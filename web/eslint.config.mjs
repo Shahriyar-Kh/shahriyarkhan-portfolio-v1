@@ -24,6 +24,9 @@ const eslintConfig = defineConfig([
     // This project's own additions:
     "coverage/**",
     ".review/**",
+    // vinext build output (npm run build:vinext) - minified bundles,
+    // never source.
+    "dist/**",
   ]),
 ]);
 

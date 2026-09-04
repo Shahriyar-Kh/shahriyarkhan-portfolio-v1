@@ -140,7 +140,7 @@ class ProductionSettingsFailFastTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
 
 
-RAILWAY_JSON_PATH = BASE_DIR / "railway.json"
+RAILWAY_IAC_PATH = BASE_DIR / ".railway" / "railway.ts"
 BUILD_SCRIPT_PATH = BASE_DIR / "scripts" / "railway-build.sh"
 START_SCRIPT_PATH = BASE_DIR / "scripts" / "railway-start.sh"
 
@@ -168,27 +168,37 @@ BASH = _resolve_bash()
 
 class RailwayDeploymentConfigTests(unittest.TestCase):
     """Static checks on the Railway deployment configuration itself, so a
-    future edit to railway.json or scripts/railway-build.sh can't
+    future edit to .railway/railway.ts or scripts/railway-build.sh can't
     silently reintroduce a code-before-schema race (migrations must
     always run, and succeed, before static files are collected) -
     carried forward from the equivalent Render-era guard this release's
-    predecessor repository had."""
+    predecessor repository had.
+
+    railway.json (Config as Code) was tried first and silently ignored -
+    confirmed by inspecting the deployed service's own recorded manifest,
+    which showed every field null despite the file's presence. Railway
+    no longer lets new services opt into Config as Code; the file was
+    removed and replaced with .railway/railway.ts (Infrastructure as
+    Code), which these tests now check instead."""
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.railway_json_text = RAILWAY_JSON_PATH.read_text()
+        cls.railway_iac_text = RAILWAY_IAC_PATH.read_text()
         cls.build_script_text = BUILD_SCRIPT_PATH.read_text()
         cls.start_script_text = START_SCRIPT_PATH.read_text()
 
-    def test_railway_json_invokes_repository_build_script(self):
-        self.assertIn("bash scripts/railway-build.sh", self.railway_json_text)
+    def test_railway_iac_invokes_repository_build_script(self):
+        self.assertIn("bash scripts/railway-build.sh", self.railway_iac_text)
 
-    def test_railway_json_invokes_repository_start_script(self):
-        self.assertIn("bash scripts/railway-start.sh", self.railway_json_text)
+    def test_railway_iac_invokes_repository_start_script(self):
+        self.assertIn("bash scripts/railway-start.sh", self.railway_iac_text)
 
-    def test_railway_json_configures_healthcheck(self):
-        self.assertIn('"healthcheckPath": "/healthz"', self.railway_json_text)
+    def test_railway_iac_configures_healthcheck(self):
+        self.assertIn('healthcheckPath: "/healthz"', self.railway_iac_text)
+
+    def test_railway_iac_enables_serverless_sleep(self):
+        self.assertIn("sleepApplication: true", self.railway_iac_text)
 
     def test_build_script_has_valid_bash_syntax(self):
         result = subprocess.run(
@@ -225,7 +235,7 @@ class RailwayDeploymentConfigTests(unittest.TestCase):
     def test_insightboard_seed_absent_from_automatic_build(self):
         # Comments are allowed to *mention* the command (explaining why it
         # was removed) - only an active invocation is actually forbidden.
-        self.assertNotIn("seed_insightboard_project", _strip_comment_lines(self.railway_json_text))
+        self.assertNotIn("seed_insightboard_project", _strip_comment_lines(self.railway_iac_text))
         self.assertNotIn("seed_insightboard_project", _strip_comment_lines(self.build_script_text))
 
     def test_shell_tracing_not_enabled(self):
@@ -242,7 +252,7 @@ class RailwayDeploymentConfigTests(unittest.TestCase):
 
     def test_no_secret_looking_values_in_scripts(self):
         suspicious = ("password", "secret", "api_key", "apikey", "token", "-----BEGIN")
-        for text in (self.build_script_text, self.start_script_text, self.railway_json_text):
+        for text in (self.build_script_text, self.start_script_text, self.railway_iac_text):
             lowered = text.lower()
             for term in suspicious:
                 self.assertNotIn(term, lowered, f"found suspicious term {term!r}")

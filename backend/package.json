@@ -1,0 +1,9 @@
+{
+  "name": "portfolio-backend-railway-iac",
+  "private": true,
+  "type": "module",
+  "description": "Railway Infrastructure-as-Code tooling only (.railway/railway.ts) - the actual backend is Python/Django, not Node.",
+  "dependencies": {
+    "railway": "^3.11.0"
+  }
+}

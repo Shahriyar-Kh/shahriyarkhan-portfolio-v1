@@ -212,6 +212,7 @@ export function Hero() {
                 alt="Portrait of Shahriyar Khan"
                 fill
                 priority
+                unoptimized
                 sizes="(min-width: 1024px) 24rem, (min-width: 640px) 20rem, 15rem"
                 className="object-cover object-[center_15%]"
               />

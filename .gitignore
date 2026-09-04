@@ -28,6 +28,12 @@ backend/media/*
 backend/.env
 backend/*.env
 
+# --- Railway IaC tooling (backend/package.json's only dependency) -
+# node_modules is regenerable via `npm install` in backend/; the IaC
+# authoring file itself (backend/.railway/railway.ts) is version-
+# controlled infrastructure config and must NOT be ignored.
+backend/node_modules/
+
 # --- Editors / OS ---
 .vscode/*
 !.vscode/extensions.json
@@ -41,5 +47,4 @@ Thumbs.db
 logs/
 
 # --- Deployment tooling local state ---
-.railway/
 .dev.vars
