@@ -8,8 +8,13 @@
  * deliberately falls back to Satori's built-in system font rather than
  * loading and embedding a font file just for share-card text.
  */
+import { SITE_URL } from "@/content/site";
+
 export const OG_SIZE = { width: 1200, height: 630 } as const;
 export const OG_CONTENT_TYPE = "image/png";
+
+/** Hostname only (no protocol) for the share-card footer text. */
+export const SITE_HOSTNAME = SITE_URL.replace(/^https?:\/\//, "");
 
 const COLOR = {
   background: "#17130f",
@@ -55,7 +60,7 @@ export function OgImageLayout({ eyebrow, title, subtitle }: OgImageLayoutProps) 
 
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <div style={{ width: 64, height: 1, background: COLOR.primary, display: "flex" }} />
-        <span style={{ fontSize: 22, color: COLOR.tertiary, display: "flex" }}>shahriyarkhan.vercel.app</span>
+        <span style={{ fontSize: 22, color: COLOR.tertiary, display: "flex" }}>{SITE_HOSTNAME}</span>
       </div>
     </div>
   );
