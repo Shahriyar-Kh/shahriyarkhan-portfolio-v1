@@ -22,5 +22,21 @@
       "binding": "VINEXT_KV_CACHE",
       "id": "e5ec29c2326045d39e7089ccfb051bc1"
     }
-  ]
+  ],
+  // DOMAIN-01: both attached as Custom Domains on this same Worker -
+  // www needs to be routed here too so middleware.ts's 301-to-apex
+  // redirect ever actually runs (otherwise Cloudflare would 404 www
+  // at the edge before any Worker code executes).
+  "routes": [
+    { "pattern": "shahriyarkhan.com", "custom_domain": true },
+    { "pattern": "www.shahriyarkhan.com", "custom_domain": true }
+  ],
+  // Adding "routes" makes Wrangler disable the workers.dev route by
+  // default (confirmed - deploying without this explicit `true` took
+  // shahriyarkhan-portfolio.feelwise.workers.dev from 200 to 404
+  // immediately). DOMAIN-01 explicitly requires keeping workers.dev
+  // live temporarily during cutover, so this stays `true` until a
+  // separate, deliberate follow-up change turns it off after the
+  // custom domain is fully verified.
+  "workers_dev": true
 }
