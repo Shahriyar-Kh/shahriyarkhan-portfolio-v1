@@ -1,15 +1,27 @@
 import { defineRailway, github, project, service } from "railway/iac";
 
 // Infrastructure as Code for the Django API's Railway project. Config as
-// Code (railway.json, kept alongside this file for reference/other
-// tooling) is deprecated and was silently ignored on this service - see
-// https://docs.railway.com/infrastructure-as-code. This is the file
-// that actually configures the deployed service; apply changes with
-// `railway config plan` then `railway config apply` from backend/.
+// Code (a railway.json file) was tried first and confirmed silently
+// ignored - Railway no longer lets new services opt into it (see
+// https://docs.railway.com/infrastructure-as-code). This file
+// documents the intended configuration; the build/deploy settings below
+// were actually applied via a direct serviceInstanceUpdate API call
+// (this environment's `railway config apply` couldn't run - see
+// scripts/railway-build.sh's sibling deploy notes) and verified live.
+//
+// The `source` (GitHub connection) below is the intended end state, not
+// yet active: Railway's GitHub App does not have access to this new
+// repository yet ("User does not have access to the repo" from both
+// `railway service source connect` and the raw serviceConnect API).
+// Granting it is a one-time, owner-only step - GitHub → Settings →
+// Integrations → Applications → Railway → Repository access → add
+// shahriyarkhan-portfolio-v1 - after which `railway service source
+// connect --repo Shahriyar-Kh/shahriyarkhan-portfolio-v1 --branch main
+// --service shahriyarkhan-portfolio-api` (or re-running this file's
+// intent) turns on auto-deploy on every push to main. Until then, a
+// new deploy requires `railway up` from backend/.
 export default defineRailway(() => {
   const backend = service("backend", {
-    // GitHub-connected (not a one-off local upload) so every push to
-    // main auto-deploys, matching how the frontend's own CI/CD works.
     source: github("Shahriyar-Kh/shahriyarkhan-portfolio-v1", {
       branch: "main",
       rootDirectory: "backend",
