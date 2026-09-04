@@ -9,17 +9,13 @@ import { defineRailway, github, project, service } from "railway/iac";
 // (this environment's `railway config apply` couldn't run - see
 // scripts/railway-build.sh's sibling deploy notes) and verified live.
 //
-// The `source` (GitHub connection) below is the intended end state, not
-// yet active: Railway's GitHub App does not have access to this new
-// repository yet ("User does not have access to the repo" from both
-// `railway service source connect` and the raw serviceConnect API).
-// Granting it is a one-time, owner-only step - GitHub → Settings →
-// Integrations → Applications → Railway → Repository access → add
-// shahriyarkhan-portfolio-v1 - after which `railway service source
-// connect --repo Shahriyar-Kh/shahriyarkhan-portfolio-v1 --branch main
-// --service shahriyarkhan-portfolio-api` (or re-running this file's
-// intent) turns on auto-deploy on every push to main. Until then, a
-// new deploy requires `railway up` from backend/.
+// The `source` (GitHub connection) below is now genuinely active - the
+// owner granted Railway's GitHub App access to this repository
+// (previously blocked: "User does not have access to the repo" from
+// both `railway service source connect` and the raw serviceConnect
+// API). Confirmed via `railway service list` reporting a real `source`
+// object, and via a real auto-deploy that ran and succeeded from the
+// DOMAIN-01 cutover PR's merge commit with no manual `railway up`.
 export default defineRailway(() => {
   const backend = service("backend", {
     source: github("Shahriyar-Kh/shahriyarkhan-portfolio-v1", {
