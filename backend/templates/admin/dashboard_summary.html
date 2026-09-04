@@ -1,0 +1,54 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div>
+  <h1>Portfolio Admin Dashboard</h1>
+
+  <ul>
+    <li>Projects: {{ summary.projects }}</li>
+    <li>Skills: {{ summary.skills }}</li>
+    <li>Services: {{ summary.services }}</li>
+    <li>Experiences: {{ summary.experiences }}</li>
+    <li>New Contact Messages: {{ summary.contact_messages_new }}</li>
+    <li>New Service Requests: {{ summary.service_requests_new }}</li>
+    <li>Resume Versions: {{ summary.resume_versions }}</li>
+    <li>Analytics Events: {{ summary.analytics_events }}</li>
+  </ul>
+
+  <h2>Top Viewed Projects</h2>
+  <ul>
+    {% for item in top_projects %}
+      <li>{{ item.project__title }} ({{ item.total }})</li>
+    {% empty %}
+      <li>No project analytics yet.</li>
+    {% endfor %}
+  </ul>
+
+  <h2>Top Visited Pages</h2>
+  <ul>
+    {% for item in top_pages %}
+      <li>{{ item.page_path|default:"(unknown)" }} ({{ item.total }})</li>
+    {% empty %}
+      <li>No page analytics yet.</li>
+    {% endfor %}
+  </ul>
+
+  <h2>Recent Contact Messages</h2>
+  <ul>
+    {% for item in recent_contacts %}
+      <li>{{ item.sender_name }} - {{ item.subject }} ({{ item.created_at }})</li>
+    {% empty %}
+      <li>No contact messages yet.</li>
+    {% endfor %}
+  </ul>
+
+  <h2>Recent Service Requests</h2>
+  <ul>
+    {% for item in recent_service_requests %}
+      <li>{{ item.sender_name }} - {{ item.subject }} ({{ item.created_at }})</li>
+    {% empty %}
+      <li>No service requests yet.</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

@@ -1,0 +1,28 @@
+# Upgraded backend requirements (Django/DRF stack)
+# Python 3.11+ recommended
+
+# Core framework
+django>=5.2,<6.0
+djangorestframework>=3.16,<4.0
+
+# Request/response helpers
+django-cors-headers>=4.5,<5.0
+django-filter>=25.1,<26.0
+
+# Database and environment
+psycopg2-binary>=2.9.10,<3.0
+python-dotenv>=1.0.1,<2.0
+
+# Media/storage
+Pillow>=11.0,<12.0
+cloudinary>=1.44,<2.0
+django-cloudinary-storage>=0.3.0,<0.4.0
+
+# Google integrations
+google-api-python-client>=2.160,<3.0
+google-auth>=2.38,<3.0
+google-auth-httplib2>=0.2.0,<1.0
+
+# Production server
+gunicorn>=23.0,<24.0
+whitenoise>=6.8,<7.0

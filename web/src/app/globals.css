@@ -1,0 +1,689 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------
+ * FINAL-DESIGN-01A brand tokens - "Shahriyar Khan — Engineered Impact".
+ *
+ * Replaces the dark-navy/cyan identity wholesale. Locked direction: warm
+ * editorial ivory as the base surface, near-black ("ink") for maximum-
+ * contrast bands (hero, footer, select CTAs), and one signature burnt
+ * orange carrying every accent, link, and interactive state - never
+ * cyan, never a second competing accent hue. Amber exists only as a rare
+ * highlight (counters, active motif nodes), not a second link color.
+ *
+ * `--ink` and `--paper` are exposed as first-class theme colors (not just
+ * --background/--foreground) so a handful of sections can invert to a
+ * full ink band (bg-ink text-paper) for contrast rhythm, without a
+ * page-level dark-mode toggle - this is one fixed brand, not a theme
+ * switch. See docs/rebuild/FINAL_DESIGN_01A_DIRECTION.md.
+ * ------------------------------------------------------------------- */
+:root {
+  --radius: 0.25rem;
+
+  --ink: #17130f;
+  --ink-raised: #211a13;
+  --paper: #faf6ee;
+  --paper-raised: #f2ead9;
+  --paper-sunken: #ece1cb;
+
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--paper-raised);
+  --card-foreground: var(--ink);
+  --popover: var(--paper);
+  --popover-foreground: var(--ink);
+
+  /* Burnt orange - the single signature accent. */
+  --primary: #b8420f;
+  --primary-strong: #8f3410;
+  --primary-foreground: #faf6ee;
+  --primary-on-ink: #ff8a4c;
+
+  --secondary: var(--paper-raised);
+  --secondary-foreground: var(--ink);
+  --muted: var(--paper-raised);
+  --muted-foreground: #6f6355;
+  --accent: #9c5c12;
+  --accent-foreground: #1a1208;
+
+  /* FINAL-DESIGN-01A-R3: two restrained supporting accents, each scoped
+   * to at most one section (Skills / Experience) - orange stays the only
+   * action color everywhere; neither of these is ever used for a link or
+   * CTA. Contrast-checked: --olive passes AA (6.87:1) on --paper but not
+   * --ink (2.50:1) - non-ink sections only. --clay passes AA (5.33:1) on
+   * --paper and the 3:1 large-text/UI threshold on --ink (3.22:1, the
+   * same profile --primary itself has on ink, which is why
+   * --primary-on-ink exists) - restrict on-ink --clay use to large
+   * text/strokes, never small on-ink body copy. */
+  --olive: #55591f;
+  --clay: #9a5240;
+  /* FINAL-DESIGN-01A-R4: a dark olive-tinted ink, distinct from plain
+   * --ink, for the Services section's background (Part G color
+   * choreography: "Services -> deep olive/ink") - breaks the otherwise
+   * near-unbroken ivory rhythm between sections without introducing a
+   * bright/saturated olive fill. Dark enough that paper-tier text on it
+   * carries the same contrast guarantees as on --ink. */
+  --surface-olive: #191c0f;
+  --surface-olive-raised: #21260f;
+  --destructive: #a1301f;
+  --destructive-foreground: #faf6ee;
+  --border: #17130f1f;
+  --border-on-ink: #faf6ee26;
+  --input: var(--paper-raised);
+  --ring: var(--primary);
+  --surface: var(--paper-raised);
+  --surface-foreground: var(--ink);
+
+  /* Ink hierarchy - text on the light (paper) surface. */
+  --ink-primary: #1a140d;
+  --ink-secondary: #4a4033;
+  --ink-tertiary: #6f6355;
+  --ink-hint: #756a58;
+
+  /* Paper hierarchy - text on inverted (ink) surfaces. */
+  --paper-primary: #faf6ee;
+  --paper-secondary: #d8cebb;
+  --paper-tertiary: #a89a83;
+  --paper-hint: #9c8f79;
+
+  --elevation-xs: 0 2px 4px #17130f14;
+  --elevation-sm: 0 4px 12px #17130f1a;
+  --elevation-md: 0 10px 24px #17130f1f;
+  --elevation-lg: 0 20px 44px #17130f24;
+  --elevation-xl: 0 30px 64px #17130f2b;
+  --elevation-2xl: 0 40px 90px #17130f33;
+
+  --glow-xs: 0 0 16px #b8420f14;
+  --glow-sm: 0 0 26px #b8420f1f;
+  --glow-md: 0 0 40px #b8420f29;
+  --glow-lg: 0 0 64px #b8420f33;
+
+  --motion-fast: 160ms;
+  --motion-base: 320ms;
+  --motion-slow: 620ms;
+  --motion-xslow: 1100ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  --z-header: 30;
+  --z-mobile-nav: 40;
+  --z-motif: 0;
+  --z-content: 10;
+
+  /* FINAL-DESIGN-01A-R6-FIX3: the header's real rendered height, kept in
+   * sync at runtime by site-header.tsx's ResizeObserver (which sets the
+   * exact measured pixel value here) - this static value is only the
+   * pre-hydration/no-JS fallback, matching the header's own
+   * h-16/sm:h-20 Tailwind classes. mobile-nav.tsx's panel reads this
+   * same variable for its top offset and height, so the two can never
+   * drift out of sync regardless of font metrics, safe-area insets, or
+   * sub-pixel rounding. */
+  --header-h: 4rem;
+}
+
+@media (min-width: 40rem) {
+  :root {
+    --header-h: 5rem;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-strong: var(--primary-strong);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-on-ink: var(--primary-on-ink);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-olive: var(--olive);
+  --color-clay: var(--clay);
+  --color-surface-olive: var(--surface-olive);
+  --color-surface-olive-raised: var(--surface-olive-raised);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-border-on-ink: var(--border-on-ink);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-surface: var(--surface);
+  --color-surface-foreground: var(--surface-foreground);
+
+  --color-ink: var(--ink);
+  --color-ink-raised: var(--ink-raised);
+  --color-paper: var(--paper);
+  --color-paper-raised: var(--paper-raised);
+  --color-paper-sunken: var(--paper-sunken);
+
+  --color-ink-primary: var(--ink-primary);
+  --color-ink-secondary: var(--ink-secondary);
+  --color-ink-tertiary: var(--ink-tertiary);
+  --color-ink-hint: var(--ink-hint);
+  --color-paper-primary: var(--paper-primary);
+  --color-paper-secondary: var(--paper-secondary);
+  --color-paper-tertiary: var(--paper-tertiary);
+  --color-paper-hint: var(--paper-hint);
+
+  --shadow-elevation-xs: var(--elevation-xs);
+  --shadow-elevation-sm: var(--elevation-sm);
+  --shadow-elevation-md: var(--elevation-md);
+  --shadow-elevation-lg: var(--elevation-lg);
+  --shadow-elevation-xl: var(--elevation-xl);
+  --shadow-elevation-2xl: var(--elevation-2xl);
+  --shadow-glow-xs: var(--glow-xs);
+  --shadow-glow-sm: var(--glow-sm);
+  --shadow-glow-md: var(--glow-md);
+  --shadow-glow-lg: var(--glow-lg);
+
+  --font-heading: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  --font-body: var(--font-manrope), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+@theme {
+  /* FINAL-DESIGN-01A-R6-FIX3: single shared breakpoint for the header's
+   * desktop-nav/mobile-trigger switch. Tailwind's default "md" (768px)
+   * is too narrow - measured in a real browser, the brand link wraps
+   * onto two lines at 768-780px, and only stops wrapping at 784px with
+   * a near-zero 0.28px gap before the nav (too cramped). 840px gives a
+   * comfortable ~28px margin above that exact-fit point (protecting
+   * against font-loading/rendering variance across browsers) while
+   * staying 72px below the confirmed-working 912px width. Generates a
+   * `header-nav:` variant, used identically by site-header.tsx (desktop
+   * nav + Résumé CTA) and mobile-nav.tsx (trigger visibility + the
+   * auto-close-on-resize effect, which reads this same token at
+   * runtime) - one source of truth so desktop and mobile controls can
+   * never both show or both hide at once. */
+  --breakpoint-header-nav: 52.5rem; /* 840px */
+
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 8px);
+  --radius-2xl: calc(var(--radius) + 14px);
+  --radius-3xl: calc(var(--radius) + 20px);
+  --radius-4xl: calc(var(--radius) + 28px);
+
+  /* Editorial type ramp - fluid (clamp) so mobile gets its own intentional
+   * scale rather than a shrunk desktop size. Line-height/letter-spacing/
+   * weight ride along with each named size via Tailwind v4's --text-*
+   * companion properties. */
+  --text-display-xl: clamp(3rem, 2.2rem + 4vw, 6.5rem);
+  --text-display-xl--line-height: 0.98;
+  --text-display-xl--letter-spacing: -0.03em;
+  --text-display-xl--font-weight: 600;
+  --text-display-lg: clamp(2.5rem, 2rem + 2.6vw, 4.5rem);
+  --text-display-lg--line-height: 1.02;
+  --text-display-lg--letter-spacing: -0.025em;
+  --text-display-lg--font-weight: 600;
+  --text-display-md: clamp(2rem, 1.7rem + 1.6vw, 3rem);
+  --text-display-md--line-height: 1.06;
+  --text-display-md--letter-spacing: -0.02em;
+  --text-display-md--font-weight: 600;
+  --text-display-sm: clamp(1.625rem, 1.45rem + 0.9vw, 2.25rem);
+  --text-display-sm--line-height: 1.1;
+  --text-display-sm--letter-spacing: -0.015em;
+  --text-display-sm--font-weight: 600;
+  --text-headline-lg: 1.875rem;
+  --text-headline-lg--line-height: 1.2;
+  --text-headline-lg--letter-spacing: -0.01em;
+  --text-headline-lg--font-weight: 600;
+  --text-headline-md: 1.5rem;
+  --text-headline-md--line-height: 1.25;
+  --text-headline-md--letter-spacing: -0.008em;
+  --text-headline-md--font-weight: 600;
+  --text-headline-sm: 1.25rem;
+  --text-headline-sm--line-height: 1.3;
+  --text-headline-sm--font-weight: 600;
+  --text-body-lg: 1.1875rem;
+  --text-body-lg--line-height: 1.7;
+  --text-body: 1.0625rem;
+  --text-body--line-height: 1.7;
+  --text-body-sm: 0.9375rem;
+  --text-body-sm--line-height: 1.6;
+  --text-caption: 0.875rem;
+  --text-caption--line-height: 1.55;
+  --text-caption-sm: 0.8125rem;
+  --text-caption-sm--line-height: 1.5;
+  --text-label-lg: 0.875rem;
+  --text-label-lg--letter-spacing: 0.1em;
+  --text-label-lg--font-weight: 600;
+  --text-label: 0.75rem;
+  --text-label--letter-spacing: 0.12em;
+  --text-label--font-weight: 600;
+}
+
+/* ---------------------------------------------------------------------
+ * Base layer
+ * ------------------------------------------------------------------- */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-body);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+  }
+
+  p {
+    line-height: 1.7;
+  }
+
+  ::selection {
+    background-color: var(--color-primary);
+    color: var(--color-primary-foreground);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+}
+
+/* Global reduced-motion guard. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------------------------------------------------------------------
+ * Shared shell system (FINAL-DESIGN-01A-R5 Part A).
+ *
+ * Root cause this fixes: `components/ui/section.tsx` used to put a
+ * max-width utility directly on the SAME element that also received
+ * every caller's background/border className (`<section className={cn(
+ * "section-shell ...", className)}>`) - so `bg-surface-olive`,
+ * `border-t`, etc. were only ever painted onto an already-1280px-capped
+ * box, never full-bleed. Invisible on a paper-on-paper section (no
+ * visible color difference either side of the cap), but a real,
+ * confirmed defect the instant a section wants a distinct full-bleed
+ * background: measured directly (not just eyeballed from the reference
+ * recording) at viewport widths from 1024 to 3840px, the Services
+ * section's colored band stayed pinned at exactly 1280px wide while its
+ * *left offset* grew with viewport width - i.e. the paper "gutter" the
+ * owner's zoomed-out recording shows isn't zoom-specific, it's this
+ * component coupling background to content width, which extreme zoom
+ * (a wider effective CSS viewport) only makes dramatic enough to notice.
+ *
+ * The fix (see components/ui/section.tsx): `Section` now always renders
+ * two elements - a full-bleed outer `<section>` (every caller's
+ * `className`, including any background/border, lands here) and an
+ * inner shell div that only ever constrains *content width*, never
+ * paints anything itself. Three named shell widths, chosen once here
+ * and reused everywhere instead of ad hoc per-section max-width values:
+ *
+ * - `shell-readable` (48rem) - dense text-only content (the FAQ list).
+ * - `section-shell` (80rem) - the default/standard shell every other
+ *   section already used before this pass; unchanged value, so no
+ *   section using the default silently gets narrower or wider.
+ * - `shell-wide` (96rem) - a deliberate, documented wider column for
+ *   sections whose job is visual (Services' bento media this round) -
+ *   per the brief, "allowed for Projects and Services... must be
+ *   deliberate and documented." The Project Proof Timeline is
+ *   deliberately left on the standard shell in this pass - it's an
+ *   already-approved, do-not-rebuild section, and its center line's
+ *   left/right alternation depends on staying aligned with every other
+ *   standard-shell section on the page, not on maximizing width.
+ * ------------------------------------------------------------------- */
+@utility shell-readable {
+  margin-inline: auto;
+  max-width: 48rem;
+  padding-inline: 1.25rem;
+
+  @media (min-width: 640px) {
+    padding-inline: 2rem;
+  }
+}
+
+@utility section-shell {
+  margin-inline: auto;
+  max-width: 80rem;
+  padding-inline: 1.25rem;
+
+  @media (min-width: 640px) {
+    padding-inline: 2rem;
+  }
+
+  @media (min-width: 1024px) {
+    padding-inline: 2.5rem;
+  }
+}
+
+@utility shell-wide {
+  margin-inline: auto;
+  max-width: 96rem;
+  padding-inline: 1.25rem;
+
+  @media (min-width: 640px) {
+    padding-inline: 2rem;
+  }
+
+  @media (min-width: 1024px) {
+    padding-inline: 2.5rem;
+  }
+
+  @media (min-width: 1536px) {
+    padding-inline: 3rem;
+  }
+}
+
+@utility surface-elevated {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+/* Full-bleed inverted band - "ink" sections used sparingly for contrast
+ * rhythm (hero, footer, one CTA, the featured case spotlight). */
+@utility surface-ink {
+  background-color: var(--color-ink);
+  color: var(--color-paper-primary);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes sk-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@utility gradient-text {
+  background-image: linear-gradient(120deg, var(--color-primary), var(--color-accent));
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+/* ---------------------------------------------------------------------
+ * Signal-line motif (components/motif/signal-line.tsx): a single drawn
+ * path is the site's signature device, not a diagram grid. The base,
+ * no-JS/no-preference state renders the path fully drawn and every node
+ * fully opaque - identical guarantee to the legacy system-map rule below:
+ * hiding requires BOTH data-enhanced AND no-preference, so JS-disabled,
+ * reduced-motion, and "observer never fired" all fail open to visible.
+ * ------------------------------------------------------------------- */
+@media (prefers-reduced-motion: no-preference) {
+  /* FINAL-DESIGN-01A-R3 fix: data-enhanced/data-active live on the SAME
+   * element as data-signal-line (see the component), so these must be
+   * compound selectors on that one element, not a descendant combinator
+   * expecting a separate ancestor - the original descendant-combinator
+   * form here never matched anything, which accidentally left the line
+   * always fully drawn rather than genuinely broken, but the intended
+   * draw-on-scroll effect never actually ran. Fixed to match
+   * ImageReveal's already-correct compound-selector convention below. */
+  [data-signal-line][data-enhanced="true"]:not([data-active="true"]) path[data-draw] {
+    stroke-dashoffset: 1;
+  }
+
+  [data-signal-line][data-enhanced="true"]:not([data-active="true"]) [data-pulse] {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+
+  [data-signal-line][data-enhanced="true"] path[data-draw] {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset var(--motion-slow) var(--ease-out);
+  }
+
+  [data-signal-line][data-enhanced="true"] [data-pulse] {
+    transform-origin: center;
+    transition:
+      opacity var(--motion-base) var(--ease-out),
+      transform var(--motion-base) var(--ease-spring);
+  }
+
+  [data-signal-line] [data-pulse-index="1"] {
+    transition-delay: 90ms;
+  }
+
+  [data-signal-line] [data-pulse-index="2"] {
+    transition-delay: 180ms;
+  }
+
+  [data-signal-line] [data-pulse-index="3"] {
+    transition-delay: 270ms;
+  }
+}
+
+@media (max-width: 767px) {
+  [data-signal-line] path[data-draw] {
+    stroke-dashoffset: 0 !important;
+    transition: none !important;
+  }
+
+  [data-signal-line] [data-pulse] {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
+/* Image mask-reveal (components/motif/image-reveal.tsx). Base state is
+ * fully visible; the clip only ever applies once JS has both enhanced
+ * the element and is about to animate it in, same fail-open guarantee. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-image-reveal][data-enhanced="true"]:not([data-active="true"]) [data-reveal-clip] {
+    clip-path: inset(0 0 100% 0);
+  }
+
+  [data-image-reveal][data-enhanced="true"] [data-reveal-clip] {
+    clip-path: inset(0 0 0 0);
+    transition: clip-path var(--motion-slow) var(--ease-out);
+  }
+
+  [data-image-reveal][data-enhanced="true"]:not([data-active="true"]) [data-reveal-scale] {
+    transform: scale(1.08);
+  }
+
+  [data-image-reveal][data-enhanced="true"] [data-reveal-scale] {
+    transform: scale(1);
+    transition: transform var(--motion-slow) var(--ease-out);
+  }
+}
+
+/* Generic scroll reveal (components/layout/reveal.tsx) - the default
+ * primitive for every "supporting section" on the homepage as of
+ * FINAL-DESIGN-01A-R3 (replaces GSAP opacity-gating there entirely; see
+ * lib/motion/use-scroll-reveal.ts's own doc comment for which sections
+ * keep GSAP and why). Same fail-open guarantee and compound-selector
+ * shape as image-reveal above: data-enhanced/data-active live on the
+ * exact element this attaches to. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-reveal][data-enhanced="true"]:not([data-active="true"]) {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+
+  [data-reveal][data-enhanced="true"] {
+    transition:
+      opacity var(--motion-base) var(--ease-out),
+      transform var(--motion-base) var(--ease-out);
+  }
+}
+
+/* Nav capsule hover/focus light sweep (components/layout/nav-link.tsx),
+ * FINAL-DESIGN-01A-R4 Part B. Purely decorative and additive to the
+ * capsule's own background/border/color transition - never the only cue
+ * for hover/active state, and gated identically to the project pan
+ * mechanic above (fine pointer, real hover, motion allowed). */
+@media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
+  [data-nav-capsule] {
+    overflow: hidden;
+  }
+
+  [data-nav-capsule]::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, transparent 35%, var(--paper-primary) 50%, transparent 65%);
+    opacity: 0;
+    transform: translateX(-100%);
+    transition:
+      transform var(--motion-slow) var(--ease-out),
+      opacity var(--motion-slow) var(--ease-out);
+    mix-blend-mode: overlay;
+    pointer-events: none;
+  }
+
+  [data-nav-capsule]:hover::before,
+  [data-nav-capsule]:focus-visible::before {
+    transform: translateX(100%);
+    opacity: 0.16;
+  }
+}
+
+/* Service card pointer spotlight + tilt (sections/services-capability.tsx),
+ * FINAL-DESIGN-01A-R4 Part D. `--tilt-x`/`--tilt-y`/`--spot-x`/`--spot-y`
+ * are set from a plain pointermove handler in the component (no
+ * animation loop - one style write per event) and read here; gated
+ * identically to the project pan mechanic and nav capsule sweep above
+ * (fine pointer, real hover, motion allowed), so touch devices and
+ * reduced-motion visitors get the fully static card the base markup
+ * already renders. The border/illustration-shift rules below are NOT
+ * gated - they're a plain :hover/:focus-within color and transform
+ * change, and the global reduced-motion guard already zeroes their
+ * transition duration, so they degrade to an instant (not absent) state
+ * change rather than needing a second gate. */
+@media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
+  [data-service-card] {
+    transform: perspective(900px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+    transition: transform 200ms var(--ease-out);
+  }
+
+  [data-service-card]::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(220px circle at var(--spot-x, 50%) var(--spot-y, 50%), #faf6ee14, transparent 60%);
+    opacity: 0;
+    transition: opacity 200ms var(--ease-out);
+    pointer-events: none;
+  }
+
+  [data-service-card]:hover::before,
+  [data-service-card]:focus-within::before {
+    opacity: 1;
+  }
+}
+
+/* Project screenshot hover/focus pan (components/work/project-frame.tsx,
+ * reused as-is by sections/service-media.tsx), FINAL-DESIGN-01A-R3 §C.
+ * `--pan-distance` is computed in JS from real measured image overflow
+ * and `data-pan-eligible` is only ever set when that overflow exceeds a
+ * minimum threshold - a near-square image never gets this attribute and
+ * never pans. Gated to fine pointers with real hover support so touch
+ * devices (no hover, no way to "leave") never see a stuck mid-pan state,
+ * and to prefers-reduced-motion so a reduced-motion visitor never gets
+ * an unrequested transform. Triggered only by real :hover/:focus-within
+ * - no timer, no IntersectionObserver, never unattended. */
+@media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
+  [data-pan-frame][data-pan-eligible="true"] [data-pan-image] {
+    transition: transform 900ms var(--ease-out);
+  }
+
+  [data-pan-frame][data-pan-eligible="true"]:hover [data-pan-image],
+  [data-pan-frame][data-pan-eligible="true"]:focus-within [data-pan-image] {
+    transform: translateY(var(--pan-distance, 0px));
+  }
+}
+
+/* Service media (sections/service-media.tsx), FINAL-DESIGN-01A-R6 Part
+ * C - replaces R5's SVG-scene treatment with the same interaction
+ * language over real raster media. The lift/sweep are unchanged from
+ * R5 (a "depth" lift plus a single, non-looping diagonal light pass on
+ * hover/focus-within - see service-media.tsx's doc comment for why a
+ * transition, not a keyframe, is used). Both already inherit the file's
+ * global reduced-motion guard; neither is additionally gated to fine-
+ * pointer/hover since degrading to instant is harmless on touch. */
+[data-service-card] [data-pan-frame] {
+  transition: transform var(--motion-base) var(--ease-out);
+}
+
+[data-service-card]:hover [data-pan-frame],
+[data-service-card]:focus-within [data-pan-frame] {
+  transform: translateY(-4px) scale(1.015);
+}
+
+[data-service-card] [data-pan-frame]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 40%, #faf6ee2e 50%, transparent 60%);
+  transform: translateX(-120%);
+  transition: transform var(--motion-slow) var(--ease-out);
+  pointer-events: none;
+}
+
+[data-service-card]:hover [data-pan-frame]::after,
+[data-service-card]:focus-within [data-pan-frame]::after {
+  transform: translateX(120%);
+}
+
+/* Illustrative (licensed-photograph) service media only gets a subtle
+ * scale/focal shift - never the vertical auto-pan real project
+ * screenshots use (those rely on `[data-pan-eligible]`, set only for
+ * `kind: "owned"` media in service-media.tsx's load handler, so an
+ * illustrative photo is structurally never pan-eligible regardless of
+ * this rule). Fine-pointer/hover/motion-allowed gated, matching the
+ * existing project-screenshot pan mechanic's own gating exactly. */
+@media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
+  [data-service-card] [data-media-kind="illustrative"] [data-pan-image] {
+    transition: transform var(--motion-slow) var(--ease-out);
+  }
+
+  [data-service-card]:hover [data-media-kind="illustrative"] [data-pan-image],
+  [data-service-card]:focus-within [data-media-kind="illustrative"] [data-pan-image] {
+    transform: scale(1.05);
+  }
+
+  /* Keyboard focus parity for the vertical pan itself: the shared
+   * `[data-pan-frame]:focus-within` rule above only fires when focus
+   * lands *inside* the frame, but a service card's media has no
+   * focusable element of its own (unlike ProjectFrame's chrome-bar
+   * link) - the title/Details/Request links live in the text half of
+   * the card. Card-level focus-within (any of those links focused)
+   * previews the pan here, matching hover-anywhere-on-the-card already
+   * triggering the spotlight/tilt/lift effects.
+   *
+   * Also correctly gated to `:not(:hover)`: without it, keyboard focus
+   * elsewhere in the card would fight the finer-grained
+   * hover/frame-focus-within pan distance whenever both apply at once. */
+  [data-service-card]:focus-within [data-pan-frame][data-pan-eligible="true"]:not(:hover):not(:focus-within) [data-pan-image] {
+    transform: translateY(var(--pan-distance, 0px));
+  }
+}

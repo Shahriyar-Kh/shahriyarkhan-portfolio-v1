@@ -1,0 +1,11 @@
+New service request submitted.
+
+Name: {{ obj.sender_name }}
+Email: {{ obj.email }}
+Subject: {{ obj.subject }}
+Service: {{ obj.service.title|default:obj.service_type_text }}
+Budget: {{ obj.budget_range }}
+Timeline: {{ obj.timeline }}
+
+Message:
+{{ obj.message }}

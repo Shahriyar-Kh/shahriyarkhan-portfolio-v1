@@ -1,0 +1,8 @@
+New contact message submitted.
+
+Name: {{ obj.sender_name }}
+Email: {{ obj.email }}
+Subject: {{ obj.subject }}
+
+Message:
+{{ obj.message }}

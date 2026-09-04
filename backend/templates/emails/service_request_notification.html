@@ -1,0 +1,9 @@
+<h2>New Service Request</h2>
+<p><strong>Name:</strong> {{ obj.sender_name }}</p>
+<p><strong>Email:</strong> {{ obj.email }}</p>
+<p><strong>Subject:</strong> {{ obj.subject }}</p>
+<p><strong>Service:</strong> {{ obj.service.title|default:obj.service_type_text }}</p>
+<p><strong>Budget:</strong> {{ obj.budget_range }}</p>
+<p><strong>Timeline:</strong> {{ obj.timeline }}</p>
+<p><strong>Message:</strong></p>
+<p>{{ obj.message|linebreaksbr }}</p>

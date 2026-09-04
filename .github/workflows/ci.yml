@@ -1,0 +1,108 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (Django)
+    runs-on: ubuntu-latest
+    env:
+      # Isolated, test-only SQLite database - never a live database.
+      # DJANGO_SECRET_KEY is a non-secret placeholder used only for
+      # `manage.py check`/`test` under config.settings.development;
+      # config.settings.production has its own fail-fast checks and is
+      # never exercised against real infrastructure by this workflow.
+      USE_SQLITE: "1"
+      DJANGO_SECRET_KEY: ci-placeholder-secret-key-not-for-production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: |
+            backend/requirements/base.txt
+            backend/requirements/prod.txt
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install -r backend/requirements/prod.txt
+
+      - name: Django system check
+        working-directory: backend
+        run: python manage.py check
+
+      - name: Migration consistency check
+        working-directory: backend
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Backend test suite
+        working-directory: backend
+        run: python manage.py test apps.portfolio apps.site_config apps.resume_builder apps.core apps.inquiries -v 2
+
+  web:
+    name: Web (Next.js)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          # Matches web/package.json's "engines.node" and web/.nvmrc exactly
+          # - see web/README.md's "Runtime requirement" section for why
+          # this specific version is required (jsdom@30/undici@8.10's
+          # minimum supported Node versions).
+          node-version-file: "web/.nvmrc"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install web dependencies (reproducible)
+        working-directory: web
+        run: npm ci
+
+      - name: Type check
+        working-directory: web
+        run: npm run typecheck
+
+      - name: Lint
+        working-directory: web
+        run: npm run lint
+
+      - name: Test suite
+        working-directory: web
+        run: npm run test
+
+      - name: Production build
+        working-directory: web
+        # No NEXT_PUBLIC_API_BASE_URL is set: IS_API_CONFIGURED
+        # (src/lib/api/config.ts) is false, so every API call
+        # short-circuits to {ok:false, error:{kind:"not_configured"}}
+        # with zero fetch calls - the build is fully offline-
+        # deterministic and every page renders its honest
+        # EmptyState/unavailable path instead of failing.
+        run: npm run build
+
+      - name: Dependency audit (visible, non-blocking)
+        working-directory: web
+        # A CI build that ships nothing to production shouldn't fail on
+        # an unrelated upstream advisory.
+        run: npm audit --omit=dev --audit-level=high
+        continue-on-error: true

@@ -1,0 +1,45 @@
+# --- Node / web (Next.js) ---
+web/node_modules/
+web/.next/
+web/out/
+web/.vercel/
+web/.wrangler/
+web/.open-next/
+web/*.tsbuildinfo
+web/npm-debug.log*
+web/coverage/
+
+# Environment files - never commit real values. Only *.env.example
+# (placeholders only) should ever be tracked.
+web/.env
+web/.env.*
+!web/.env.example
+
+# --- Python / backend (Django) ---
+backend/__pycache__/
+**/__pycache__/
+*.pyc
+backend/.venv/
+backend/venv/
+backend/db.sqlite3
+backend/staticfiles/
+backend/media/*
+!backend/media/.gitkeep
+backend/.env
+backend/*.env
+
+# --- Editors / OS ---
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.sw?
+
+# --- Logs ---
+*.log
+logs/
+
+# --- Deployment tooling local state ---
+.railway/
+.dev.vars
