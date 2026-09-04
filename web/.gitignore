@@ -44,3 +44,6 @@ next-env.d.ts
 # local visual-review screenshots (may contain third-party brand assets -
 # never committed)
 .review/
+/dist/
+.vinext/
+.wrangler/
