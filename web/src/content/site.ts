@@ -4,7 +4,7 @@
  * components/contact/contact-details.tsx.
  */
 
-export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://shahriyarkhan.vercel.app").replace(
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://shahriyarkhan.com").replace(
   /\/+$/,
   "",
 );
