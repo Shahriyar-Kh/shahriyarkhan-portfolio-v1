@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { JsonLd } from "@/components/seo/json-ld";
 import { AboutView } from "@/components/views/about-view";
 import { ROUTE_METADATA_DEFAULTS } from "@/content/metadata";
-import { getEducation, getExperiences, getPageSeo, getSiteSettings, getSkills } from "@/lib/api";
+import { getEducation, getExperiences, getPageSeo, getProjects, getServices, getSiteSettings, getSkills } from "@/lib/api";
 import { breadcrumbSchema, profilePageSchema } from "@/lib/json-ld";
 import { buildMetadata, mergePageSeo } from "@/lib/metadata";
 
@@ -14,11 +14,13 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AboutPage() {
-  const [skills, experiences, education, siteSettings] = await Promise.all([
+  const [skills, experiences, education, siteSettings, projects, services] = await Promise.all([
     getSkills(),
     getExperiences(),
     getEducation(),
     getSiteSettings(),
+    getProjects(),
+    getServices(),
   ]);
 
   return (
@@ -29,6 +31,8 @@ export default async function AboutPage() {
         skills={skills.ok ? skills.data : null}
         experiences={experiences.ok ? experiences.data : null}
         education={education.ok ? education.data : null}
+        projects={projects.ok ? projects.data : null}
+        services={services.ok ? services.data : null}
         specialization={siteSettings.ok ? siteSettings.data.hero_subtitle || null : null}
       />
     </>
