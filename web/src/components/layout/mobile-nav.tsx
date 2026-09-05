@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { NavLink } from "@/components/layout/nav-link";
 import { SkMark } from "@/components/motif/sk-mark";
@@ -15,12 +15,36 @@ export interface MobileNavProps {
   items: readonly NavItem[];
 }
 
+// FINAL-DESIGN-01B-01-R3-NAV-FIX: `useLayoutEffect` is what guarantees
+// the pathname-ref sync below runs *before* the scroll-lock effect's
+// cleanup in the same commit (React flushes every layout-effect
+// cleanup+setup before any passive-effect, i.e. plain `useEffect`,
+// cleanup+setup) - a plain `useEffect` sync would still be stale at the
+// exact moment it matters. `useLayoutEffect` warns when it runs during
+// SSR (this component is a Client Component, but Next.js still executes
+// it once via react-dom/server for the initial HTML) - swapping to
+// `useEffect` there is safe because neither runs during that server
+// pass anyway, so behavior is identical, only the dev-console warning
+// is avoided.
+const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
+
 export function MobileNav({ items }: MobileNavProps) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const pathname = usePathname();
+
+  // FINAL-DESIGN-01B-01-R3-NAV-FIX: kept fresh via useIsomorphicLayoutEffect
+  // (never written during render - refs.current must not be mutated in
+  // the render body itself, only from an effect or event handler) so the
+  // scroll-lock cleanup below can tell, at the moment it actually runs,
+  // whether the route has changed since the panel opened - see that
+  // effect's doc comment for why this is the fix, not just a convenience.
+  const pathnameRef = useRef(pathname);
+  useIsomorphicLayoutEffect(() => {
+    pathnameRef.current = pathname;
+  }, [pathname]);
 
   // Close on route change - adjusted during render (React's own
   // recommended pattern for "reset state when a prop changes") rather
@@ -37,11 +61,32 @@ export function MobileNav({ items }: MobileNavProps) {
   // the panel's fixed header boundary and its scrollable content
   // appearing briefly out of sync during a touch-scroll gesture. Locks
   // with the standard `position: fixed` technique instead, which removes
-  // the body from the scroll flow entirely (nothing left to leak), and
-  // restores the exact prior scroll position on close.
+  // the body from the scroll flow entirely (nothing left to leak).
+  //
+  // FINAL-DESIGN-01B-01-R3-NAV-FIX: this cleanup used to *always* call
+  // `window.scrollTo(0, scrollY)` on close, restoring the position the
+  // page was at when the panel opened. That's correct for an ordinary
+  // dismissal (X, Escape, backdrop) - the user is still on the same
+  // page and expects to land back where they were. It's wrong when the
+  // close was caused by clicking a nav link: the route has already
+  // changed underneath this same persistent header component, so
+  // "restore scrollY" actually meant "drag the *destination* page's
+  // scroll away from wherever it naturally landed (the top) down to the
+  // *previous* route's offset" - confirmed by real-browser measurement
+  // (scripts/verify-mobile-nav-scroll.mjs) showing the new route settle
+  // at the old route's scrollY, animated over ~1.3s because `html` has
+  // `scroll-behavior: smooth` (globals.css) and the restore call didn't
+  // override it. `pathnameRef` lets the cleanup compare "the route this
+  // effect opened on" against "the route right now" - if they differ,
+  // navigation happened, so scroll is left exactly where the new route
+  // (or the browser's own navigation handling) put it. The restore that
+  // *does* still happen (ordinary dismissal) explicitly requests
+  // `behavior: "instant"` so it can never be caught by that same global
+  // smooth-scroll rule, regardless of distance.
   useEffect(() => {
     if (!open) return;
     const scrollY = window.scrollY;
+    const openedOnPathname = pathnameRef.current;
     const body = document.body;
     const prev = { position: body.style.position, top: body.style.top, width: body.style.width, overflow: body.style.overflow };
 
@@ -55,7 +100,9 @@ export function MobileNav({ items }: MobileNavProps) {
       body.style.top = prev.top;
       body.style.width = prev.width;
       body.style.overflow = prev.overflow;
-      window.scrollTo(0, scrollY);
+      if (pathnameRef.current === openedOnPathname) {
+        window.scrollTo({ top: scrollY, left: 0, behavior: "instant" });
+      }
     };
   }, [open]);
 
