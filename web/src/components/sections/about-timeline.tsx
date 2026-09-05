@@ -26,13 +26,22 @@ export interface AboutTimelineProps {
  *
  * Every card's own text stays left-aligned regardless of which side it
  * sits on (a right-aligned paragraph is genuinely harder to read, so
- * "alternating" here means which grid column each card occupies, not
- * mirrored text). Every row's real text (title, company, dates,
+ * "alternating" here means which side of the center line each card sits
+ * on, not mirrored text). Every row's real text (title, company, dates,
  * achievements, technologies) renders at full opacity unconditionally -
  * only the connecting line's growth and each dot's "current focus"
  * highlight are GSAP-scrubbed decoration, matching experience-
- * journey.tsx's own motion-hierarchy rule exactly (see that file's doc
- * comment for the full reasoning this mirrors).
+ * journey.tsx's own motion-hierarchy rule exactly.
+ *
+ * FINAL-DESIGN-01B-01-R2: the previous version used a two-column grid
+ * with a real, empty spacer `<div>` occupying the unused side of every
+ * row - a genuinely blank half-row an owner recording flagged as dead
+ * space. Each card is now a single element sized to roughly half the
+ * available width (`lg:w-[calc(50%-1.75rem)]`, capped at `lg:max-w-md`
+ * so it doesn't stretch on very wide screens) and pushed to its side
+ * with `ml-auto`/`mr-auto` - the same one DOM node serves every
+ * breakpoint (no separate mobile/desktop trees), and there is no longer
+ * an explicit empty element for the "other" side.
  */
 export function AboutTimeline({ experiences }: AboutTimelineProps) {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -70,7 +79,7 @@ export function AboutTimeline({ experiences }: AboutTimelineProps) {
       <h2 className="max-w-xl text-display-sm text-ink-primary sm:text-display-md">{ABOUT_TIMELINE_COPY.title}</h2>
       <p className="mt-4 max-w-xl text-body text-ink-secondary">{ABOUT_TIMELINE_COPY.lead}</p>
 
-      <div ref={rootRef} className="mt-14">
+      <div ref={rootRef} className="mt-12">
         {!experiences ? (
           <EmptyState title="Experience data is temporarily unavailable." />
         ) : experiences.length === 0 ? (
@@ -86,7 +95,7 @@ export function AboutTimeline({ experiences }: AboutTimelineProps) {
               className="absolute top-0 bottom-0 left-2.5 w-0.5 origin-top scale-y-0 bg-clay lg:left-1/2 lg:-translate-x-1/2"
             />
 
-            <ol className="flex flex-col gap-10 lg:gap-6">
+            <ol className="flex flex-col gap-8">
               {experiences.map((role, i) => {
                 const onRight = i % 2 === 1;
                 return (
@@ -96,7 +105,7 @@ export function AboutTimeline({ experiences }: AboutTimelineProps) {
                       if (el) rowRefs.current.set(role.id, el);
                       else rowRefs.current.delete(role.id);
                     }}
-                    className="relative pl-8 lg:grid lg:grid-cols-2 lg:gap-x-12 lg:pl-0"
+                    className="relative pl-8 lg:pl-0"
                   >
                     <span
                       aria-hidden
@@ -110,29 +119,28 @@ export function AboutTimeline({ experiences }: AboutTimelineProps) {
                       )}
                     />
 
-                    {/* Desktop: the card sits in the left or right column
-                        depending on index parity (the opposite column is
-                        an empty spacer for this row), creating the
-                        alternating rhythm. Mobile: always the single
-                        left-aligned column, in real document order. */}
-                    <div aria-hidden className={cn("hidden lg:block", onRight ? "lg:col-start-1 lg:row-start-1" : "lg:col-start-2 lg:row-start-1")} />
-                    <div className={cn("lg:row-start-1", onRight ? "lg:col-start-2 lg:pl-12" : "lg:col-start-1 lg:pr-12")}>
+                    <div
+                      className={cn(
+                        "lg:w-[calc(50%-1.75rem)] lg:max-w-md",
+                        onRight ? "lg:ml-auto lg:pl-2" : "lg:mr-auto lg:pr-2",
+                      )}
+                    >
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="font-mono text-caption-sm text-ink-hint">{formatDateRange(role.start_date, role.end_date, role.current_role)}</p>
                         {role.current_role && (
                           <span className="border border-primary/40 px-1.5 py-0.5 font-mono text-caption-sm text-primary uppercase">Current</span>
                         )}
                       </div>
-                      <p className="mt-1.5 text-headline-md text-ink-primary">{role.role_title}</p>
+                      <p className="mt-1 text-headline-md text-ink-primary">{role.role_title}</p>
                       <p className="text-body-sm text-ink-secondary">
                         {role.company_name}
                         {role.location ? ` · ${role.location}` : ""}
                       </p>
-                      {role.description && <p className="mt-3 max-w-md text-body-sm text-ink-tertiary">{role.description}</p>}
+                      {role.description && <p className="mt-2 text-body-sm text-ink-tertiary">{role.description}</p>}
                       {role.achievements.length > 0 && (
-                        <ul className="mt-3 flex flex-col gap-1.5">
+                        <ul className="mt-2 flex flex-col gap-1">
                           {role.achievements.slice(0, 3).map((achievement) => (
-                            <li key={achievement} className="flex max-w-md items-start gap-2 text-body-sm text-ink-secondary">
+                            <li key={achievement} className="flex items-start gap-2 text-body-sm text-ink-secondary">
                               <span aria-hidden className="mt-2.5 h-1 w-1 shrink-0 rounded-full bg-clay" />
                               {achievement}
                             </li>
@@ -140,7 +148,7 @@ export function AboutTimeline({ experiences }: AboutTimelineProps) {
                         </ul>
                       )}
                       {role.technologies.length > 0 && (
-                        <ul className="mt-4 flex flex-wrap gap-2">
+                        <ul className="mt-3 flex flex-wrap gap-2">
                           {role.technologies.slice(0, 5).map((tech) => (
                             <li key={tech.id}>
                               <Badge>{tech.name}</Badge>
