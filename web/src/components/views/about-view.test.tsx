@@ -181,11 +181,14 @@ describe("AboutView", () => {
 
       expect(screen.getByAltText("Portrait of Shahriyar Khan")).toBeInTheDocument();
       expect(screen.getByText(FULL_PROPS.specialization)).toBeInTheDocument();
-      expect(screen.getByText("Software Developer")).toBeInTheDocument();
-      expect(screen.getByText("HA Technologies (Pvt) Ltd", { exact: false })).toBeInTheDocument();
+      // "Software Developer" / "HA Technologies (Pvt) Ltd" legitimately
+      // render twice now: once in the Timeline row, once in the
+      // Narrative's real-data "Now" milestone (see about-narrative.tsx).
+      expect(screen.getAllByText("Software Developer").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("HA Technologies (Pvt) Ltd", { exact: false }).length).toBeGreaterThan(0);
       expect(screen.getByText("Python Developer Intern")).toBeInTheDocument();
       expect(screen.getByText("BS Software Engineering")).toBeInTheDocument();
-      expect(screen.getByText("Abasyn University, Peshawar")).toBeInTheDocument();
+      expect(screen.getByText("Abasyn University, Peshawar", { exact: false })).toBeInTheDocument();
       expect(screen.getByText("Graduated 2025 • CGPA 3.67")).toBeInTheDocument();
       expect(screen.getAllByText("Python").length).toBeGreaterThan(0);
       expect(screen.getByText("PostgreSQL")).toBeInTheDocument();
@@ -217,7 +220,23 @@ describe("AboutView", () => {
       render(<AboutView {...FULL_PROPS} skills={[]} experiences={[]} education={[]} />);
       expect(screen.getByText("No published skills yet.")).toBeInTheDocument();
       expect(screen.getByText("No published experience yet.")).toBeInTheDocument();
-      expect(screen.getByText("No published education yet.")).toBeInTheDocument();
+      // Education has no standalone section anymore (see about-view.tsx's
+      // R2 doc comment) - a genuinely empty result quietly omits the
+      // Narrative milestone rather than reporting a non-error as one
+      // (the same precedent proof-strip.tsx already sets).
+      expect(screen.queryByText(/education/i)).not.toBeInTheDocument();
+    });
+
+    it("never shows a misleading 0+ or 1+ proof count - the real value is present immediately", () => {
+      render(<AboutView {...FULL_PROPS} />);
+      const projectsLabel = screen.getByText("Published projects");
+      const projectsRow = projectsLabel.closest("div")!;
+      expect(within(projectsRow).getByText(String(FULL_PROPS.projects.length))).toBeInTheDocument();
+      expect(within(projectsRow).queryByText("0")).not.toBeInTheDocument();
+
+      const rolesLabel = screen.getByText("Professional roles");
+      const rolesRow = rolesLabel.closest("div")!;
+      expect(within(rolesRow).getByText(String(FULL_PROPS.experiences.length))).toBeInTheDocument();
     });
   });
 
@@ -246,7 +265,6 @@ describe("AboutView", () => {
       expect(screen.getByRole("heading", { name: "How I think about a new problem" })).toBeInTheDocument();
       expect(screen.getByRole("heading", { name: "Core strengths" })).toBeInTheDocument();
       expect(screen.getByRole("heading", { name: "The shape most of these systems take" })).toBeInTheDocument();
-      expect(screen.getByRole("heading", { name: "Where it started" })).toBeInTheDocument();
     });
   });
 
@@ -275,13 +293,46 @@ describe("AboutView", () => {
     });
   });
 
+  describe("immediately-visible hero", () => {
+    it("renders the full hero (eyebrow, availability, location, headline, lead, both CTAs) synchronously on first render, with no dependency on an effect or timer firing", () => {
+      render(<AboutView {...FULL_PROPS} />);
+      // No `act(() => vi.advanceTimersByTime(...))`, no waitFor - if this
+      // content only appeared after useScrollReveal's on-mount GSAP
+      // effect ran, it would still be present here because effects flush
+      // before RTL's render() returns, but nothing below depends on that:
+      // every one of these strings is plain, unconditional JSX.
+      const heroRoot = screen.getByRole("heading", { level: 1 }).closest(".bg-paper-raised") as HTMLElement;
+      expect(within(heroRoot).getByText("Available for new work")).toBeInTheDocument();
+      expect(within(heroRoot).getByText("Islamabad, Pakistan")).toBeInTheDocument();
+      expect(within(heroRoot).getByRole("heading", { level: 1 })).toHaveTextContent("How I approach building software");
+      expect(within(heroRoot).getByText(FULL_PROPS.specialization)).toBeInTheDocument();
+      expect(within(heroRoot).getByRole("link", { name: "View résumé" })).toBeInTheDocument();
+      expect(within(heroRoot).getByRole("link", { name: "See the work" })).toBeInTheDocument();
+    });
+
+    it("places the hero's text content before the portrait in document order at every breakpoint (no CSS-order-only reflow)", () => {
+      render(<AboutView {...FULL_PROPS} />);
+      const heroRoot = screen.getByRole("heading", { level: 1 }).closest(".bg-paper-raised") as HTMLElement;
+      const headline = within(heroRoot).getByRole("heading", { level: 1 });
+      const portrait = within(heroRoot).getByAltText("Portrait of Shahriyar Khan");
+      // Node.DOCUMENT_POSITION_FOLLOWING (4): headline precedes portrait.
+      expect(headline.compareDocumentPosition(portrait) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it("keeps a compact two-column tier from md: (768px) up, not only from lg: (1024px) up, so identity and portrait both sit above the fold at tablet widths", () => {
+      const { container } = render(<AboutView {...FULL_PROPS} />);
+      const heroGrid = container.querySelector(".bg-paper-raised .section-shell") as HTMLElement;
+      expect(heroGrid.className).toMatch(/md:grid-cols-/);
+    });
+  });
+
   describe("reduced-motion behavior", () => {
     it("renders every section's real content immediately under prefers-reduced-motion, with no opacity-gated or hidden text", () => {
       const restore = setReducedMotion(true);
       try {
         render(<AboutView {...FULL_PROPS} />);
         expect(screen.getByAltText("Portrait of Shahriyar Khan")).toBeInTheDocument();
-        expect(screen.getByText("Software Developer")).toBeInTheDocument();
+        expect(screen.getAllByText("Software Developer").length).toBeGreaterThan(0);
         expect(screen.getByText("BS Software Engineering")).toBeInTheDocument();
         expect(screen.getByText("The data model comes first")).toBeInTheDocument();
         // "Interface" legitimately renders twice - the architecture
@@ -313,7 +364,7 @@ describe("AboutView", () => {
 
     it("renders the education description exactly as returned by the API, with no added or invented detail", () => {
       render(<AboutView {...FULL_PROPS} />);
-      const heading = screen.getByRole("heading", { name: "Where it started" });
+      const heading = screen.getByRole("heading", { name: "The career story" });
       const section = heading.closest("section")!;
       expect(within(section).getByText(EDUCATION.description!)).toBeInTheDocument();
     });
@@ -335,6 +386,19 @@ describe("AboutView", () => {
       for (const img of Array.from(images)) {
         const frame = img.closest('[class*="overflow-hidden"]');
         expect(frame).not.toBeNull();
+      }
+    });
+
+    it("never leaves a bare empty spacer element in the alternating experience timeline", () => {
+      render(<AboutView {...FULL_PROPS} />);
+      const heading = screen.getByRole("heading", { name: "Where this experience comes from" });
+      const list = heading.closest("section")!.querySelector("ol")!;
+      for (const row of Array.from(list.children)) {
+        // Each row is exactly the dot marker (a <span>) plus one real
+        // content <div> - never a second, empty <div> for the "other"
+        // side (the defect an owner recording flagged as dead space).
+        const emptyDivs = Array.from(row.children).filter((child) => child.tagName === "DIV" && !child.textContent?.trim());
+        expect(emptyDivs).toHaveLength(0);
       }
     });
   });
