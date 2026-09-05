@@ -6,6 +6,11 @@ export interface ProofStripProps {
   experiences: readonly Experience[] | null;
   education: readonly Education[] | null;
   services: readonly Service[] | null;
+  /** FINAL-DESIGN-01B-01-R2: pass false when this strip can't be
+   * guaranteed to sit below the fold - see counter.tsx's `animate` prop
+   * doc comment. Defaults to true, so the homepage's own usage is
+   * unchanged. */
+  animated?: boolean;
 }
 
 interface ProofItem {
@@ -21,7 +26,7 @@ interface ProofItem {
  * anywhere in the backend. A metric with a zero or missing count is
  * simply omitted, never shown as "0" or backfilled with a guess.
  */
-export function ProofStrip({ projects, experiences, education, services }: ProofStripProps) {
+export function ProofStrip({ projects, experiences, education, services, animated = true }: ProofStripProps) {
   const items: ProofItem[] = [];
   if (projects && projects.length > 0) items.push({ key: "projects", value: projects.length, label: "Published projects" });
   if (services && services.length > 0) items.push({ key: "services", value: services.length, label: "Service categories" });
@@ -36,7 +41,7 @@ export function ProofStrip({ projects, experiences, education, services }: Proof
         {items.map((item) => (
           <div key={item.key} className="border-l-2 border-primary/50 pl-4">
             <p className="font-heading text-display-sm text-ink-primary">
-              <Counter value={item.value} />
+              <Counter value={item.value} animate={animated} />
               <span className="text-primary">+</span>
             </p>
             <p className="mt-1 font-mono text-caption-sm text-ink-tertiary uppercase">{item.label}</p>
