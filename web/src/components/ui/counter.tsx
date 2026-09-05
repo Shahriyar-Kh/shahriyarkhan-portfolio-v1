@@ -9,6 +9,16 @@ export interface CounterProps {
   value: number;
   durationMs?: number;
   className?: string;
+  /**
+   * FINAL-DESIGN-01B-01-R2: when a caller can't guarantee this element
+   * sits below the fold (so the count-up's `setDisplay(0)` reset would
+   * be the very first thing a visitor sees - a real value flashing to a
+   * misleading "0" or "1"), pass `animate={false}` to render the real
+   * value as static text and skip the IntersectionObserver entirely.
+   * Defaults to true so the homepage's existing, approved proof strip is
+   * unaffected.
+   */
+  animate?: boolean;
 }
 
 /**
@@ -17,14 +27,14 @@ export interface CounterProps {
  * IntersectionObserver support, or before JS has run (the server-
  * rendered markup already contains the target number as plain text).
  */
-export function Counter({ value, durationMs = 900, className }: CounterProps) {
+export function Counter({ value, durationMs = 900, className, animate = true }: CounterProps) {
   const ref = useRef<HTMLSpanElement>(null);
   const reducedMotion = usePrefersReducedMotion();
   const [display, setDisplay] = useState(value);
   const [started, setStarted] = useState(false);
 
   useEffect(() => {
-    if (reducedMotion || started) return;
+    if (!animate || reducedMotion || started) return;
     const el = ref.current;
     if (!el || !("IntersectionObserver" in window)) return;
 
@@ -50,7 +60,7 @@ export function Counter({ value, durationMs = 900, className }: CounterProps) {
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [reducedMotion, started, value, durationMs]);
+  }, [animate, reducedMotion, started, value, durationMs]);
 
   return (
     <span ref={ref} className={className}>
