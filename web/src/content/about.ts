@@ -24,9 +24,17 @@ export const ABOUT_INTRO = {
 export const ABOUT_SPECIALIZATION_FALLBACK =
   "Software Engineering graduate specializing in backend development with Python, Django, and FastAPI, and full-stack web applications with Django REST Framework and React.js.";
 
+/**
+ * FINAL-DESIGN-01B-01-R2: split into four short, scan-friendly blocks
+ * (each a plain sentence-boundary split of the original two paragraphs -
+ * no wording changed, no fact added) instead of two dense paragraphs, so
+ * the career story reads as distinct beats rather than one wall of text.
+ */
 export const ABOUT_CAREER_STORY: readonly string[] = [
-  "My background is in Python and Django: designing the data model, wiring authentication and authorization, and building the REST API a frontend actually consumes. Most of the projects on this site follow that same shape - a Django REST Framework backend paired with a React frontend.",
-  "I finished a BS in Software Engineering at Abasyn University and have worked across backend-focused roles and internships since, moving between greenfield builds and existing codebases. The structured record of exactly where and when is on the Experience page below, sourced from the same data as the résumé so it can't drift out of sync.",
+  "My background is in Python and Django: designing the data model, wiring authentication and authorization, and building the REST API a frontend actually consumes.",
+  "Most of the projects on this site follow that same shape - a Django REST Framework backend paired with a React frontend.",
+  "I finished a BS in Software Engineering at Abasyn University and have worked across backend-focused roles and internships since, moving between greenfield builds and existing codebases.",
+  "The structured record of exactly where and when is on the Experience page below, sourced from the same data as the résumé so it can't drift out of sync.",
 ];
 
 export const ABOUT_PRINCIPLES: ReadonlyArray<{ title: string; body: string }> = [
@@ -153,7 +161,12 @@ export const ABOUT_TIMELINE_COPY = {
   lead: "Every role below is the same structured record the résumé and the Experience page draw from - moving between greenfield builds and existing codebases.",
 } as const;
 
+/**
+ * FINAL-DESIGN-01B-01-R2: Education no longer gets its own oversized,
+ * mostly-empty standalone section (a single real record left a lot of
+ * dead space) - `eyebrow` now labels the milestone chip folded into
+ * AboutNarrative instead.
+ */
 export const ABOUT_EDUCATION_COPY = {
   eyebrow: "Education",
-  title: "Where it started",
 } as const;
