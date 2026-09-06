@@ -51,6 +51,7 @@ export default async function WorkDetailPage({ params }: WorkDetailPageProps) {
   if (state.kind === "unavailable") return <ProjectUnavailableView message={state.message} />;
 
   const caseStudy = getCaseStudy(state.project.slug);
+  const projectsResult = await getProjects();
 
   return (
     <>
@@ -62,7 +63,11 @@ export default async function WorkDetailPage({ params }: WorkDetailPageProps) {
           { name: state.project.title, pathname: `/work/${state.project.slug}` },
         ])}
       />
-      <ProjectDetailView project={state.project} caseStudy={caseStudy} />
+      <ProjectDetailView
+        project={state.project}
+        caseStudy={caseStudy}
+        allProjects={projectsResult.ok ? projectsResult.data : null}
+      />
     </>
   );
 }
