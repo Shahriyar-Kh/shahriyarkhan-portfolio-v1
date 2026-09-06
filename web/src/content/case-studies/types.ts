@@ -63,4 +63,15 @@ export interface CaseStudy {
   /** Rendered verbatim under "What this page does not claim." */
   readonly limitations: readonly string[];
   readonly lastReviewed: string;
+  /**
+   * FINAL-DESIGN-01C-02: only ever "client" - set exclusively when an
+   * existing `limitations` entry already states the project was built
+   * for a third party (today: Yango Wing Fleet only). This is not a new
+   * claim - it structures a fact this same file already publishes in
+   * prose - so it must never be set from inference. Every other project's
+   * `withheld` register explicitly marks its own ownership/team
+   * composition as "pending" (unconfirmed), so leaving this field unset
+   * is not a gap to fill in; it's the honest state of the evidence.
+   */
+  readonly projectContext?: "client";
 }
