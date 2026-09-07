@@ -96,4 +96,8 @@ export const yangoWingFleet: CaseStudy = {
     "The scope of my individual contribution on this project is not asserted here.",
   ],
   lastReviewed: "2026-08-31",
+  // Structures the same fact already stated in `limitations` below
+  // ("This page describes a system built for a third party.") - see
+  // CaseStudy.projectContext's doc comment in types.ts.
+  projectContext: "client",
 };
