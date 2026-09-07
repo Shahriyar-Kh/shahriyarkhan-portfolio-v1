@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { JsonLd } from "@/components/seo/json-ld";
-import { ServiceDetailView } from "@/components/views/service-detail-view";
-import { ProjectUnavailableView } from "@/components/views/project-detail-view";
+import { ServiceDetailView, ServiceUnavailableView } from "@/components/views/service-detail-view";
 import { ENGAGEMENT_STEPS, SERVICE_FRAMING } from "@/content/services";
+import { SERVICES_MEDIA } from "@/content/services-media";
 import { getProjects, getServiceBySlug, getServices } from "@/lib/api";
 import { breadcrumbSchema, serviceSchema } from "@/lib/json-ld";
 import { buildMetadata } from "@/lib/metadata";
@@ -41,11 +41,15 @@ export async function generateMetadata({ params }: ServiceDetailPageProps): Prom
 
 export default async function ServiceDetailPage({ params }: ServiceDetailPageProps) {
   const { slug } = await params;
-  const [serviceResult, projectsResult] = await Promise.all([getServiceBySlug(slug), getProjects()]);
+  const [serviceResult, projectsResult, servicesResult] = await Promise.all([
+    getServiceBySlug(slug),
+    getProjects(),
+    getServices(),
+  ]);
   const state = resolveServicePageState(serviceResult);
 
   if (state.kind === "not_found") notFound();
-  if (state.kind === "unavailable") return <ProjectUnavailableView message={state.message} />;
+  if (state.kind === "unavailable") return <ServiceUnavailableView message={state.message} />;
 
   const framing = SERVICE_FRAMING[state.service.slug];
   const allProjects = projectsResult.ok ? projectsResult.data : [];
@@ -69,8 +73,10 @@ export default async function ServiceDetailPage({ params }: ServiceDetailPagePro
       <ServiceDetailView
         service={state.service}
         framing={framing}
+        media={SERVICES_MEDIA[state.service.slug]}
         engagementSteps={framing?.engagementSteps ?? ENGAGEMENT_STEPS}
         relatedProjects={relatedProjects}
+        allServices={servicesResult.ok ? servicesResult.data : null}
       />
     </>
   );
