@@ -1,52 +1,65 @@
-import Link from "next/link";
-import { CornerFrame } from "@/components/motif/corner-frame";
-import { Node } from "@/components/motif/node";
+import { DualCta } from "@/components/sections/dual-cta";
+import { ServiceCatalogueRow } from "@/components/sections/service-catalogue-row";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Section } from "@/components/ui/section";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { SERVICE_FRAMING } from "@/content/services";
-import type { Service } from "@/lib/api/types";
+import { SERVICES_INTRO } from "@/content/services-catalogue";
+import { SERVICES_MEDIA } from "@/content/services-media";
+import type { Project, Service } from "@/lib/api/types";
 
 export interface ServicesViewProps {
   services: readonly Service[] | null;
+  /** Null when the fetch failed - related-work links simply don't
+   * render rather than showing a broken or misleading link. */
+  projects: readonly Project[] | null;
 }
 
-export function ServicesView({ services }: ServicesViewProps) {
+/**
+ * FINAL-DESIGN-01D-01 - the premium /services catalogue. Plain,
+ * synchronous, prop-driven (matching work-view.tsx's own precedent),
+ * so it's testable without a Server Component harness.
+ */
+export function ServicesView({ services, projects }: ServicesViewProps) {
   return (
-    <Section className="pt-16 sm:pt-20">
-      <SectionHeading
-        eyebrow="Services"
-        title="Services"
-        subtitle="Backend engineering, REST API development, and full-stack web applications."
-      />
-
-      <div className="mt-10">
-        {!services ? (
-          <EmptyState title="Service data is temporarily unavailable." />
-        ) : services.length === 0 ? (
-          <EmptyState title="No published services yet." />
-        ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {services.map((service) => {
-              const hasFraming = Boolean(SERVICE_FRAMING[service.slug]);
-              return (
-                <CornerFrame key={service.id} className="flex h-full flex-col gap-3 p-6">
-                  <div className="flex items-center gap-2">
-                    <Node filled={hasFraming} />
-                    <Link href={`/services/${service.slug}`} className="text-headline-sm text-ink-primary hover:text-primary">
-                      {service.title}
-                    </Link>
-                  </div>
-                  <p className="line-clamp-3 text-body-sm text-ink-secondary">{service.description}</p>
-                  <Link href={`/services/${service.slug}`} className="mt-auto text-caption-sm text-primary hover:underline">
-                    Details →
-                  </Link>
-                </CornerFrame>
-              );
-            })}
-          </div>
+    <>
+      <Section className="pt-16 sm:pt-20">
+        <SectionHeading as="h1" eyebrow={SERVICES_INTRO.eyebrow} title={SERVICES_INTRO.title} subtitle={SERVICES_INTRO.lead} />
+        {services && services.length > 0 && (
+          <p className="mt-2 font-mono text-caption-sm text-ink-hint">
+            {services.length} service{services.length === 1 ? "" : "s"}
+          </p>
         )}
-      </div>
-    </Section>
+
+        <div className="mt-12">
+          {!services ? (
+            <EmptyState title="Service data is temporarily unavailable." description="Please try again shortly, or get in touch directly." />
+          ) : services.length === 0 ? (
+            <EmptyState title="No published services yet." />
+          ) : (
+            services.map((service, index) => {
+              const framing = SERVICE_FRAMING[service.slug];
+              const relatedProjects = (framing?.relatedProjectSlugs ?? [])
+                .map((slug) => projects?.find((p) => p.slug === slug))
+                .filter((p): p is NonNullable<typeof p> => Boolean(p))
+                .map((p) => ({ slug: p.slug, title: p.title }));
+
+              return (
+                <ServiceCatalogueRow
+                  key={service.id}
+                  service={service}
+                  index={index}
+                  media={SERVICES_MEDIA[service.slug]}
+                  framing={framing}
+                  relatedProjects={relatedProjects}
+                />
+              );
+            })
+          )}
+        </div>
+      </Section>
+
+      <DualCta />
+    </>
   );
 }
