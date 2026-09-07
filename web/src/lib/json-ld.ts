@@ -113,6 +113,27 @@ export function serviceSchema(service: Service, framing: ServiceFraming | undefi
 }
 
 /**
+ * FINAL-DESIGN-01D-01: the /services catalogue's own structured data.
+ * Deliberately simpler than serviceSchema() - every real, published
+ * service gets a ListItem (name/url are always real API fields), not
+ * just the 4 with a SERVICE_FRAMING entry, since an ItemList doesn't
+ * assert anything beyond "this page links to this service" - no
+ * offers, no rating, nothing framing-dependent.
+ */
+export function serviceListSchema(services: readonly Service[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    itemListElement: services.map((service, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: service.title,
+      url: absoluteUrl(`/services/${service.slug}`),
+    })),
+  };
+}
+
+/**
  * Escapes the whole serialized string, not just tag-looking substrings -
  * the correct mitigation for a </script> breakout inside an
  * application/ld+json block. See lib/json-ld.test.ts for a payload-based
