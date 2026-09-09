@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { JsonLd } from "@/components/seo/json-ld";
 import { SkillsView } from "@/components/views/skills-view";
 import { ROUTE_METADATA_DEFAULTS } from "@/content/metadata";
-import { getPageSeo, getSkills } from "@/lib/api";
+import { getPageSeo, getProjects, getSkills } from "@/lib/api";
 import { breadcrumbSchema } from "@/lib/json-ld";
 import { buildMetadata, mergePageSeo } from "@/lib/metadata";
 
@@ -14,12 +14,12 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function SkillsPage() {
-  const skills = await getSkills();
+  const [skills, projects] = await Promise.all([getSkills(), getProjects()]);
 
   return (
     <>
       <JsonLd data={breadcrumbSchema([{ name: "Home", pathname: "/" }, { name: "Skills", pathname: "/skills" }])} />
-      <SkillsView skills={skills.ok ? skills.data : null} />
+      <SkillsView skills={skills.ok ? skills.data : null} projects={projects.ok ? projects.data : null} />
     </>
   );
 }
