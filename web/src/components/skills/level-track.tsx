@@ -29,7 +29,16 @@ export interface LevelTrackProps {
 export function LevelTrack({ level, skillName, className, nodeSize = 6 }: LevelTrackProps) {
   const label = SKILL_LEVEL_LABELS[level];
   return (
-    <span className={cn("inline-flex items-center gap-3", className)} aria-label={skillName ? `${skillName} — ${label}` : undefined}>
+    <span
+      className={cn("inline-flex items-center gap-3", className)}
+      // aria-label is only valid ARIA on an element with a role - a bare
+      // <span> has none, which axe's aria-prohibited-attr rule flags.
+      // role="group" is the semantically correct fit for "a labelled
+      // cluster of content" and is only added when the label is actually
+      // present, matching the previous conditional exactly.
+      role={skillName ? "group" : undefined}
+      aria-label={skillName ? `${skillName} — ${label}` : undefined}
+    >
       <span className="flex items-center gap-1.5" data-capability-node aria-hidden="true">
         {([1, 2, 3, 4] as const).map((step) => (
           <Node key={step} size={nodeSize} filled={step <= level} />
