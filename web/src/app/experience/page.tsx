@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { JsonLd } from "@/components/seo/json-ld";
 import { ExperienceView } from "@/components/views/experience-view";
 import { ROUTE_METADATA_DEFAULTS } from "@/content/metadata";
-import { getEducation, getExperiences, getPageSeo, getSkills } from "@/lib/api";
+import { getEducation, getExperiences, getPageSeo } from "@/lib/api";
 import { breadcrumbSchema } from "@/lib/json-ld";
 import { buildMetadata, mergePageSeo } from "@/lib/metadata";
 
@@ -14,7 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ExperiencePage() {
-  const [experiences, education, skills] = await Promise.all([getExperiences(), getEducation(), getSkills()]);
+  const [experiences, education] = await Promise.all([getExperiences(), getEducation()]);
 
   return (
     <>
@@ -24,7 +24,6 @@ export default async function ExperiencePage() {
       <ExperienceView
         experiences={experiences.ok ? experiences.data : null}
         education={education.ok ? education.data : null}
-        skills={skills.ok ? skills.data : null}
       />
     </>
   );
