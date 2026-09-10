@@ -3,7 +3,7 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { HomeView } from "@/components/views/home-view";
 import { ROUTE_METADATA_DEFAULTS } from "@/content/metadata";
 import { getEducation, getExperiences, getPageSeo, getProjects, getServices, getSkills } from "@/lib/api";
-import { assertHomepageDataAvailable } from "@/lib/api/homepage-availability";
+import { assertRequiredDatasetsAvailable } from "@/lib/api/required-dataset-availability";
 import { profilePageSchema } from "@/lib/json-ld";
 import { buildMetadata, mergePageSeo } from "@/lib/metadata";
 
@@ -30,8 +30,8 @@ export default async function HomePage() {
   // error (transport, timeout, 5xx, or schema-invalid) now aborts the
   // whole render, so a partial fallback page can never replace the
   // previous fully-correct last-known-good page - see
-  // homepage-availability.ts for the full policy.
-  assertHomepageDataAvailable([
+  // required-dataset-availability.ts for the full policy.
+  assertRequiredDatasetsAvailable([
     { name: "projects", result: projects },
     { name: "experiences", result: experiences },
     { name: "services", result: services },
