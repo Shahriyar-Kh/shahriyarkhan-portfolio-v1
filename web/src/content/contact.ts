@@ -17,32 +17,42 @@ export type ContactIntent =
   | "improvement"
   | "general";
 
+/** Purely a <select> presentation grouping (FINAL-DESIGN-01G-01) - never
+ * read by validation, composition, or the backend. Lets the form
+ * visually separate the recruiter path from the client/project paths
+ * without touching the mode/payload logic below. */
+export type ContactIntentGroup = "General" | "A role" | "A project";
+
 export interface ContactIntentOption {
   readonly value: ContactIntent;
   readonly label: string;
   readonly mode: InquiryMode;
+  readonly group: ContactIntentGroup;
   readonly subjectHint: string;
   readonly serviceTypeHint?: string;
 }
 
 export const CONTACT_INTENTS: readonly ContactIntentOption[] = [
-  { value: "general", label: "General inquiry", mode: "message", subjectHint: "" },
+  { value: "general", label: "General inquiry", mode: "message", group: "General", subjectHint: "" },
   {
     value: "hiring",
     label: "A role or hiring opportunity",
     mode: "message",
+    group: "A role",
     subjectHint: "Hiring inquiry",
   },
   {
     value: "freelance_project",
     label: "A new project",
     mode: "project",
+    group: "A project",
     subjectHint: "New project inquiry",
   },
   {
     value: "api_backend",
     label: "API / backend development",
     mode: "project",
+    group: "A project",
     subjectHint: "API / backend development inquiry",
     serviceTypeHint: "API / backend development",
   },
@@ -50,6 +60,7 @@ export const CONTACT_INTENTS: readonly ContactIntentOption[] = [
     value: "full_stack",
     label: "A full-stack web application",
     mode: "project",
+    group: "A project",
     subjectHint: "Full-stack application inquiry",
     serviceTypeHint: "Full-stack web application",
   },
@@ -57,6 +68,7 @@ export const CONTACT_INTENTS: readonly ContactIntentOption[] = [
     value: "improvement",
     label: "Improving an existing site or system",
     mode: "message",
+    group: "A project",
     subjectHint: "Existing system - improvement inquiry",
   },
 ];

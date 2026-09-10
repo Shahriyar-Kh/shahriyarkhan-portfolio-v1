@@ -6,7 +6,7 @@ import { Field, fieldDescribedBy } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { CONTACT_INTENTS, CONTACT_PRIVACY_NOTICE, getContactIntent, type ContactIntent } from "@/content/contact";
+import { CONTACT_INTENTS, CONTACT_PRIVACY_NOTICE, getContactIntent, type ContactIntent, type ContactIntentGroup } from "@/content/contact";
 import { postContact, postServiceRequest } from "@/lib/api";
 import { trackEvent } from "@/lib/analytics";
 import { composeInquiryPayload } from "@/lib/inquiry-composition";
@@ -34,6 +34,12 @@ const EMPTY_VALUES: InquiryValues = {
 };
 
 type SubmitState = "idle" | "submitting" | "success" | "error";
+
+// Display order for the intent <select>'s <optgroup>s - recruiter path
+// first, then the client/project paths, matching this page's own dual-
+// audience framing. Purely presentational; CONTACT_INTENTS' own array
+// order still governs option order within each group.
+const INTENT_GROUPS: readonly ContactIntentGroup[] = ["General", "A role", "A project"];
 
 export function InquiryForm({ services, initialIntent, sourcePage, initialServiceId }: InquiryFormProps) {
   const formId = useId();
@@ -63,6 +69,10 @@ export function InquiryForm({ services, initialIntent, sourcePage, initialServic
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    // Prevents a double-click/double-Enter from firing a second POST
+    // before the disabled-button re-render has committed.
+    if (state === "submitting") return;
 
     // Honeypot: a real visitor never fills this hidden field. Silently
     // report success without ever posting to the API - no error, no
@@ -104,7 +114,7 @@ export function InquiryForm({ services, initialIntent, sourcePage, initialServic
 
   if (state === "success") {
     return (
-      <div className="border border-dashed border-accent p-6">
+      <div role="status" aria-live="polite" className="border border-dashed border-accent p-6">
         <p className="text-body font-medium text-ink-primary">Your message was received.</p>
         <p className="mt-2 text-body-sm text-ink-secondary">
           This confirms the backend accepted your submission - it does not guarantee an email notification was
@@ -135,10 +145,14 @@ export function InquiryForm({ services, initialIntent, sourcePage, initialServic
             setIntentValue(e.target.value as ContactIntent);
           }}
         >
-          {CONTACT_INTENTS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
+          {INTENT_GROUPS.map((group) => (
+            <optgroup key={group} label={group}>
+              {CONTACT_INTENTS.filter((option) => option.group === group).map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </Select>
       </Field>
@@ -152,6 +166,7 @@ export function InquiryForm({ services, initialIntent, sourcePage, initialServic
             invalid={Boolean(errors.name)}
             aria-describedby={fieldDescribedBy(`${formId}-name`, undefined, errors.name)}
             autoComplete="name"
+            required
           />
         </Field>
         <Field label="Email" htmlFor={`${formId}-email`} required error={errors.email}>
@@ -163,6 +178,7 @@ export function InquiryForm({ services, initialIntent, sourcePage, initialServic
             invalid={Boolean(errors.email)}
             aria-describedby={fieldDescribedBy(`${formId}-email`, undefined, errors.email)}
             autoComplete="email"
+            required
           />
         </Field>
       </div>
@@ -175,6 +191,7 @@ export function InquiryForm({ services, initialIntent, sourcePage, initialServic
           placeholder={intent.subjectHint}
           invalid={Boolean(errors.subject)}
           aria-describedby={fieldDescribedBy(`${formId}-subject`, undefined, errors.subject)}
+          required
         />
       </Field>
 
@@ -225,6 +242,7 @@ export function InquiryForm({ services, initialIntent, sourcePage, initialServic
           onChange={(e) => setField("message", e.target.value)}
           invalid={Boolean(errors.message)}
           aria-describedby={fieldDescribedBy(`${formId}-message`, "At least 20 characters.", errors.message)}
+          required
         />
       </Field>
 
