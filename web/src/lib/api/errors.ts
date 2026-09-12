@@ -38,8 +38,13 @@ export function isTransient(error: ApiError): boolean {
 }
 
 const GENERIC_SERVER_ERROR_MESSAGE = "The content service is temporarily unavailable.";
+const GENERIC_RATE_LIMIT_MESSAGE = "Too many attempts. Please try again shortly.";
 
 export function messageForStatus(status: number, detail?: string): string {
   if (status >= 500) return GENERIC_SERVER_ERROR_MESSAGE;
+  // Deliberately generic and never derived from the response body - DRF's
+  // own throttle detail can include exact wait-time/scope information
+  // that a public error message doesn't need to expose.
+  if (status === 429) return GENERIC_RATE_LIMIT_MESSAGE;
   return detail ?? `Request failed with status ${status}.`;
 }

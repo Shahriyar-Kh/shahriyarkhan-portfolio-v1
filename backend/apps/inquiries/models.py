@@ -1,22 +1,186 @@
-from django.db import models
+import re
+import secrets
+
+from django.core.exceptions import ValidationError
+from django.db import IntegrityError, models, transaction
 
 from apps.core.models import TimeStampedModel
 from apps.portfolio.models import Service
 
+# Unambiguous alphabet - no 0/O or 1/I, so a reference ID read aloud or
+# copy-pasted from an email never has a visually-confusable character.
+REFERENCE_ID_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+REFERENCE_ID_LENGTH = 8
+REFERENCE_ID_PREFIX = "SK-"
+REFERENCE_ID_MAX_ATTEMPTS = 5
 
-class ContactMessage(TimeStampedModel):
-    class Status(models.TextChoices):
-        NEW = "new", "New"
-        READ = "read", "Read"
-        REPLIED = "replied", "Replied"
-        ARCHIVED = "archived", "Archived"
+# Mirrors web/src/content/contact.ts's CONTACT_INTENTS values exactly -
+# keep in sync if that list ever changes.
+CONTACT_INTENT_CHOICES = (
+    "general",
+    "hiring",
+    "freelance_project",
+    "api_backend",
+    "full_stack",
+    "improvement",
+)
 
+# Mirrors the site's real routes (web/src/app/**/page.tsx) - an enquiry's
+# source_page is metadata about where the visitor was, not free text, so
+# anything outside this shape is rejected rather than stored.
+SOURCE_PAGE_PATTERN = re.compile(
+    r"^/("
+    r"about|contact|privacy|resume|skills|experience"
+    r"|work(/[a-z0-9-]{1,100})?"
+    r"|services(/[a-z0-9-]{1,100})?"
+    r")?$"
+)
+
+
+def generate_reference_id() -> str:
+    suffix = "".join(secrets.choice(REFERENCE_ID_ALPHABET) for _ in range(REFERENCE_ID_LENGTH))
+    return f"{REFERENCE_ID_PREFIX}{suffix}"
+
+
+def validate_intent(value: str) -> None:
+    if value and value not in CONTACT_INTENT_CHOICES:
+        raise ValidationError("Unrecognized intent.")
+
+
+def validate_source_page(value: str) -> None:
+    if value and not SOURCE_PAGE_PATTERN.match(value):
+        raise ValidationError("Unrecognized source page.")
+
+
+class ReviewStatus(models.TextChoices):
+    NEW = "new", "New"
+    REVIEWED = "reviewed", "Reviewed"
+    CONTACTED = "contacted", "Contacted"
+    QUALIFIED = "qualified", "Qualified"
+    CLOSED = "closed", "Closed"
+    SPAM = "spam", "Spam"
+
+
+class EmailDeliveryStatus(models.TextChoices):
+    PENDING = "pending", "Pending"
+    SENT = "sent", "Sent"
+    FAILED = "failed", "Failed"
+    SKIPPED = "skipped", "Skipped"
+
+
+class SheetsDeliveryStatus(models.TextChoices):
+    PENDING = "pending", "Pending"
+    SYNCED = "synced", "Synced"
+    FAILED = "failed", "Failed"
+    SKIPPED = "skipped", "Skipped"
+    NOT_CONFIGURED = "not_configured", "Not configured"
+
+
+class EnquiryTrackingFields(models.Model):
+    """Shared by ContactMessage and ServiceRequest: the public reference
+    ID, submission idempotency key, intent/source metadata, honeypot
+    result, and per-channel (email/Sheets) delivery tracking. See
+    CONTACT-OPS-01's plan for why this is one mixin rather than a
+    separate model - both concrete models need identical tracking and
+    the row itself is the "outbox" (no separate queue table)."""
+
+    reference_id = models.CharField(max_length=20, unique=True, editable=False, blank=True)
+    # Client-generated idempotency key (crypto.randomUUID() per form-fill
+    # session). NULL for any client that doesn't send one - Postgres
+    # treats multiple NULLs in a unique column as distinct, so that never
+    # collides. A concrete value is what lets a retried HTTP submission
+    # return the existing reference_id instead of creating a duplicate row.
+    submission_id = models.UUIDField(unique=True, null=True, blank=True)
+    intent = models.CharField(max_length=32, blank=True, validators=[validate_intent])
+    source_page = models.CharField(max_length=200, blank=True, validators=[validate_source_page])
+    # Never serialized publicly. True means the write-only honeypot field
+    # was non-empty on submission - see services/delivery.py, which treats
+    # this as terminal (status forced to spam, no email/Sheets attempted).
+    honeypot_triggered = models.BooleanField(default=False, editable=False)
+
+    email_status = models.CharField(
+        max_length=16, choices=EmailDeliveryStatus.choices, default=EmailDeliveryStatus.PENDING
+    )
+    email_attempts = models.PositiveSmallIntegerField(default=0)
+    email_last_attempt_at = models.DateTimeField(null=True, blank=True)
+    # Sanitized summary only (exception class + generic text) - never the
+    # raw exception message, which can embed SMTP/OAuth connection detail.
+    email_error = models.CharField(max_length=255, blank=True)
+
+    sheets_status = models.CharField(
+        max_length=16, choices=SheetsDeliveryStatus.choices, default=SheetsDeliveryStatus.PENDING
+    )
+    sheets_attempts = models.PositiveSmallIntegerField(default=0)
+    sheets_last_attempt_at = models.DateTimeField(null=True, blank=True)
+    sheets_error = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        abstract = True
+
+    @property
+    def delivery_state(self) -> str:
+        """Derived, never stored - always computed live from the two
+        independent per-channel fields plus status, so it can never drift
+        into a misleading persisted aggregate (CONTACT-OPS-01 correction).
+        Admin display only; automation must read email_status/sheets_status
+        directly, never this property."""
+        if self.status == ReviewStatus.SPAM:
+            return "spam"
+
+        email_attempted = self.email_status != EmailDeliveryStatus.PENDING
+        sheets_attempted = self.sheets_status != SheetsDeliveryStatus.PENDING
+        if not email_attempted or not sheets_attempted:
+            return "delivery_pending"
+
+        email_ok = self.email_status == EmailDeliveryStatus.SENT
+        sheets_ok = self.sheets_status in (SheetsDeliveryStatus.SYNCED, SheetsDeliveryStatus.NOT_CONFIGURED)
+        if email_ok and sheets_ok:
+            return "delivered"
+        return "delivered_with_warning"
+
+    def _generate_unique_reference_id(self) -> str:
+        model_cls = type(self)
+        for _ in range(REFERENCE_ID_MAX_ATTEMPTS):
+            candidate = generate_reference_id()
+            if not model_cls.objects.filter(reference_id=candidate).exists():
+                return candidate
+        raise RuntimeError("Could not generate a unique reference ID after multiple attempts.")
+
+    def save(self, *args, **kwargs):
+        if not self.reference_id:
+            self.reference_id = self._generate_unique_reference_id()
+
+        model_cls = type(self)
+        attempts_remaining = REFERENCE_ID_MAX_ATTEMPTS
+        while True:
+            try:
+                with transaction.atomic():
+                    super().save(*args, **kwargs)
+                return
+            except IntegrityError:
+                attempts_remaining -= 1
+                # Only auto-recover a genuine reference_id collision - a
+                # submission_id collision is a legitimate idempotent
+                # replay the caller (the public view) is responsible for
+                # resolving, so it must propagate unchanged rather than
+                # being silently retried under a new reference_id here.
+                reference_id_collided = model_cls.objects.filter(reference_id=self.reference_id).exists()
+                if not reference_id_collided:
+                    raise
+                if attempts_remaining <= 0:
+                    raise RuntimeError(
+                        "Could not generate a unique reference ID after multiple attempts."
+                    ) from None
+                self.reference_id = generate_reference_id()
+
+
+class ContactMessage(EnquiryTrackingFields, TimeStampedModel):
     sender_name = models.CharField(max_length=150)
     email = models.EmailField()
     subject = models.CharField(max_length=200)
     service_type_text = models.CharField(max_length=255, blank=True)
     message = models.TextField()
-    status = models.CharField(max_length=12, choices=Status.choices, default=Status.NEW)
+    status = models.CharField(max_length=12, choices=ReviewStatus.choices, default=ReviewStatus.NEW)
     admin_notes = models.TextField(blank=True)
 
     class Meta:
@@ -26,12 +190,7 @@ class ContactMessage(TimeStampedModel):
         return f"{self.sender_name} - {self.subject}"
 
 
-class ServiceRequest(TimeStampedModel):
-    class Status(models.TextChoices):
-        NEW = "new", "New"
-        IN_PROGRESS = "in_progress", "In Progress"
-        CLOSED = "closed", "Closed"
-
+class ServiceRequest(EnquiryTrackingFields, TimeStampedModel):
     sender_name = models.CharField(max_length=150)
     email = models.EmailField()
     service = models.ForeignKey(Service, on_delete=models.SET_NULL, null=True, blank=True, related_name="service_requests")
@@ -40,8 +199,7 @@ class ServiceRequest(TimeStampedModel):
     message = models.TextField()
     budget_range = models.CharField(max_length=120, blank=True)
     timeline = models.CharField(max_length=120, blank=True)
-    source_page = models.CharField(max_length=200, blank=True)
-    status = models.CharField(max_length=12, choices=Status.choices, default=Status.NEW)
+    status = models.CharField(max_length=12, choices=ReviewStatus.choices, default=ReviewStatus.NEW)
     admin_notes = models.TextField(blank=True)
 
     class Meta:

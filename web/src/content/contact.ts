@@ -1,13 +1,15 @@
 import type { InquiryMode } from "@/lib/validation";
 
 /**
- * Intent capture, entirely a frontend concept - it never adds a backend
- * field. Each option only decides (a) which of the two existing inquiry
- * endpoints the form posts to (message vs. project, via InquiryMode) and
- * (b) a pre-filled, still-editable subject/service_type_text hint. See
- * lib/inquiry-composition.ts for how an intent + form values become an
- * actual ContactMessagePayload/ServiceRequestPayload - never an
- * unsupported property reaches the API.
+ * Intent capture. Each option decides (a) which of the two inquiry
+ * endpoints the form posts to (message vs. project, via InquiryMode),
+ * (b) a pre-filled, still-editable subject/service_type_text hint, and
+ * (c) the `intent` value itself, which IS sent to and stored by the
+ * backend (validated against this exact list of six values -
+ * CONTACT-OPS-01) so recruiter/project/technical enquiries stay
+ * distinguishable in admin. See lib/inquiry-composition.ts for how an
+ * intent + form values become an actual ContactMessagePayload/
+ * ServiceRequestPayload - never an unsupported property reaches the API.
  */
 export type ContactIntent =
   | "hiring"
@@ -81,4 +83,4 @@ export function getContactIntent(value: string | null | undefined): ContactInten
  * in the repo (owner judgment call #9's same discipline applied to
  * contact copy). */
 export const CONTACT_PRIVACY_NOTICE =
-  "Submitting this form sends your message to a single-person inbox for review. See the privacy page for exactly what's collected.";
+  "Submitting this form stores your message for review by a single person. See the privacy page for exactly what's collected and where it goes.";

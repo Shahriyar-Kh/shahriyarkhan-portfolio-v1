@@ -1,8 +1,14 @@
 New contact message submitted.
 
+Reference: {{ obj.reference_id }}
+Intent: {{ obj.intent|default:"(not provided)" }}
+Submitted: {{ obj.created_at }}
+
 Name: {{ obj.sender_name }}
 Email: {{ obj.email }}
 Subject: {{ obj.subject }}
 
 Message:
 {{ obj.message }}
+
+Admin: {{ admin_url }}

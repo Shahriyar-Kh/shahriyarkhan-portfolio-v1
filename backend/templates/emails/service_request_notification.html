@@ -1,4 +1,7 @@
 <h2>New Service Request</h2>
+<p><strong>Reference:</strong> {{ obj.reference_id }}</p>
+<p><strong>Intent:</strong> {{ obj.intent|default:"(not provided)" }}</p>
+<p><strong>Submitted:</strong> {{ obj.created_at }}</p>
 <p><strong>Name:</strong> {{ obj.sender_name }}</p>
 <p><strong>Email:</strong> {{ obj.email }}</p>
 <p><strong>Subject:</strong> {{ obj.subject }}</p>
@@ -7,3 +10,4 @@
 <p><strong>Timeline:</strong> {{ obj.timeline }}</p>
 <p><strong>Message:</strong></p>
 <p>{{ obj.message|linebreaksbr }}</p>
+<p><a href="{{ admin_url }}">Open in admin</a></p>

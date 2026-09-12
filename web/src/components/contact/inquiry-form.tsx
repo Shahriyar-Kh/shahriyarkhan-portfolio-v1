@@ -51,8 +51,14 @@ export function InquiryForm({ services, initialIntent, sourcePage, initialServic
   const [errors, setErrors] = useState<FieldErrors>({});
   const [state, setState] = useState<SubmitState>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [referenceId, setReferenceId] = useState<string | null>(null);
   const started = useRef(false);
   const honeypotRef = useRef<HTMLInputElement>(null);
+  // One idempotency key per filled-out form, reused across a retry after
+  // an error so a network retry of the same submit never creates a
+  // second enquiry - the backend returns the original reference_id
+  // instead. A fresh mount (e.g. navigating back to Contact) gets a new one.
+  const submissionIdRef = useRef<string>(crypto.randomUUID());
 
   const intent = getContactIntent(intentValue);
 
@@ -89,11 +95,15 @@ export function InquiryForm({ services, initialIntent, sourcePage, initialServic
     setState("submitting");
     setErrorMessage(null);
 
-    const composed = composeInquiryPayload(intent, values, sourcePage);
+    const composed = composeInquiryPayload(intent, values, sourcePage, {
+      website: honeypotRef.current?.value,
+      submissionId: submissionIdRef.current,
+    });
     const result =
       composed.mode === "message" ? await postContact(composed.payload) : await postServiceRequest(composed.payload);
 
     if (result.ok) {
+      setReferenceId(result.data.reference_id);
       setState("success");
       trackEvent("contact_succeeded", { intent: intentValue });
       return;
@@ -116,6 +126,11 @@ export function InquiryForm({ services, initialIntent, sourcePage, initialServic
     return (
       <div role="status" aria-live="polite" className="border border-dashed border-accent p-6">
         <p className="text-body font-medium text-ink-primary">Your message was received.</p>
+        {referenceId && (
+          <p className="mt-2 text-body-sm text-ink-secondary">
+            Reference: <span className="font-medium text-ink-primary">{referenceId}</span>
+          </p>
+        )}
         <p className="mt-2 text-body-sm text-ink-secondary">
           This confirms the backend accepted your submission - it does not guarantee an email notification was
           delivered. See the privacy page for how this works.

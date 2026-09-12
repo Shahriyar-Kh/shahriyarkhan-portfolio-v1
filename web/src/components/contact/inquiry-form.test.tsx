@@ -27,38 +27,12 @@ async function fillRequiredFields(user: ReturnType<typeof userEvent.setup>) {
 
 const CONTACT_RESPONSE = {
   ok: true as const,
-  data: {
-    id: 1,
-    sender_name: "Jane Doe",
-    email: "jane@example.com",
-    subject: "A general inquiry",
-    service_type_text: "",
-    message: "m",
-    status: "new" as const,
-    admin_notes: "",
-    created_at: "2026-01-01T00:00:00Z",
-    updated_at: "2026-01-01T00:00:00Z",
-  },
+  data: { reference_id: "SK-ABCDEFGH" },
 };
 
 const SERVICE_REQUEST_RESPONSE = {
   ok: true as const,
-  data: {
-    id: 1,
-    sender_name: "Jane Doe",
-    email: "jane@example.com",
-    subject: "New project inquiry",
-    service: 1,
-    service_type_text: "",
-    budget_range: "",
-    timeline: "",
-    source_page: "/contact",
-    message: "m",
-    status: "new" as const,
-    admin_notes: "",
-    created_at: "2026-01-01T00:00:00Z",
-    updated_at: "2026-01-01T00:00:00Z",
-  },
+  data: { reference_id: "SK-12345678" },
 };
 
 describe("InquiryForm", () => {
@@ -110,7 +84,7 @@ describe("InquiryForm", () => {
       expect(postContactMock).not.toHaveBeenCalled();
       const payload = postServiceRequestMock.mock.calls[0]![0];
       expect(Object.keys(payload).sort()).toEqual(
-        ["sender_name", "email", "subject", "message", "service", "source_page"].sort(),
+        ["sender_name", "email", "subject", "message", "service", "source_page", "intent", "submission_id"].sort(),
       );
     });
   });
@@ -261,6 +235,40 @@ describe("InquiryForm", () => {
 
       await waitFor(() => expect(screen.getByText(/was received/i)).toBeInTheDocument());
       expect(screen.getByText(/does not guarantee an email notification/i)).toBeInTheDocument();
+    });
+
+    it("shows the returned reference id inside the accessible success region", async () => {
+      postContactMock.mockResolvedValue(CONTACT_RESPONSE);
+      const user = userEvent.setup();
+      render(<InquiryForm services={[]} initialIntent="general" sourcePage="/contact" />);
+
+      await fillRequiredFields(user);
+      await user.click(screen.getByRole("button", { name: /send message/i }));
+
+      const status = await screen.findByRole("status");
+      expect(status).toHaveTextContent("SK-ABCDEFGH");
+    });
+
+    it("sends a stable submission id so a resubmit after an error reuses the same idempotency key", async () => {
+      postContactMock.mockResolvedValueOnce({
+        ok: false,
+        error: { kind: "network", status: null, message: "Could not reach the content service." },
+      });
+      postContactMock.mockResolvedValueOnce(CONTACT_RESPONSE);
+      const user = userEvent.setup();
+      render(<InquiryForm services={[]} initialIntent="general" sourcePage="/contact" />);
+
+      await fillRequiredFields(user);
+      const button = screen.getByRole("button", { name: /send message/i });
+      await user.click(button);
+      await screen.findByText("Could not reach the content service.");
+      await user.click(button);
+      await waitFor(() => expect(postContactMock).toHaveBeenCalledTimes(2));
+
+      const firstSubmissionId = postContactMock.mock.calls[0]![0].submission_id;
+      const secondSubmissionId = postContactMock.mock.calls[1]![0].submission_id;
+      expect(firstSubmissionId).toBeTruthy();
+      expect(firstSubmissionId).toBe(secondSubmissionId);
     });
 
     it("announces the success state via an accessible live region (role=status)", async () => {

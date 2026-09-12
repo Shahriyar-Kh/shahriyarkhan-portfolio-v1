@@ -220,6 +220,11 @@ export interface ContactMessagePayload {
   subject: string; // required, max_length 200
   message: string; // required
   service_type_text?: string; // optional, max_length 255
+  intent?: string; // optional - one of CONTACT_INTENTS' values (content/contact.ts)
+  source_page?: string; // optional - must match a real site route or the backend rejects it
+  submission_id?: string; // optional client-generated UUID - a retried submit with the
+  // same value returns the original reference_id instead of creating a duplicate row
+  website?: string; // honeypot - always empty for a real visitor, never read back
 }
 
 export interface ServiceRequestPayload {
@@ -231,37 +236,17 @@ export interface ServiceRequestPayload {
   service_type_text?: string; // optional, max_length 255
   budget_range?: string; // optional, max_length 120
   timeline?: string; // optional, max_length 120
-  source_page?: string; // optional, max_length 200
+  source_page?: string; // optional, max_length 200 - must match a real site route
+  intent?: string; // optional - one of CONTACT_INTENTS' values (content/contact.ts)
+  submission_id?: string; // optional client-generated UUID - see ContactMessagePayload
+  website?: string; // honeypot - see ContactMessagePayload
 }
 
-// ---- Inquiry 201 responses (fields="__all__", so read-only fields are echoed) ----
-
-export interface ContactMessage {
-  id: number;
-  sender_name: string;
-  email: string;
-  subject: string;
-  service_type_text: string;
-  message: string;
-  status: "new" | "read" | "replied" | "archived";
-  admin_notes: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface ServiceRequest {
-  id: number;
-  sender_name: string;
-  email: string;
-  service: number | null;
-  service_type_text: string;
-  subject: string;
-  message: string;
-  budget_range: string;
-  timeline: string;
-  source_page: string;
-  status: "new" | "in_progress" | "closed";
-  admin_notes: string;
-  created_at: string;
-  updated_at: string;
+// ---- Inquiry 201/200 response ----
+// The backend deliberately returns ONLY this - never the internal DB id,
+// never delivery/internal error detail (CONTACT-OPS-01, Phase 7). A 200
+// means an idempotent replay of an already-accepted submission_id; the
+// shape is identical either way.
+export interface InquiryReceipt {
+  reference_id: string;
 }
