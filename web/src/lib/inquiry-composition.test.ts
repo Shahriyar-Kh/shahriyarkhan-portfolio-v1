@@ -23,6 +23,7 @@ const ALLOWED_MESSAGE_KEYS = new Set([
   "message",
   "service_type_text",
   "intent",
+  "source_page",
   "website",
   "submission_id",
 ]);
@@ -66,6 +67,14 @@ describe("composeInquiryPayload", () => {
     if (composed.mode === "project") {
       expect(composed.payload.source_page).toBe("/contact");
       expect(composed.payload.service).toBe(3);
+    }
+  });
+
+  it("CONTACT-OPS-01-PROD-INCIDENT-01: a message-mode intent also carries source_page, not just project-mode", () => {
+    for (const intent of CONTACT_INTENTS.filter((i) => i.mode === "message")) {
+      const composed = composeInquiryPayload(intent, VALUES, "/contact");
+      expect(composed.mode).toBe("message");
+      expect(composed.payload.source_page, `${intent.value} lost source_page`).toBe("/contact");
     }
   });
 

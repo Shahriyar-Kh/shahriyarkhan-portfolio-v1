@@ -47,6 +47,11 @@ export function composeInquiryPayload(
       subject,
       message: values.message.trim(),
       intent: intent.value,
+      // CONTACT-OPS-01-PROD-INCIDENT-01: this was missing here (present
+      // only in the project-mode payload below), so every message-mode
+      // submission (general/hiring/improvement intents) stored a blank
+      // source_page regardless of where the visitor actually was.
+      source_page: sourcePage,
       ...(serviceTypeText ? { service_type_text: serviceTypeText } : {}),
       ...trackingFields,
     };

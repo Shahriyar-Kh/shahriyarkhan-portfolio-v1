@@ -1,5 +1,4 @@
 import logging
-import threading
 import time
 
 from django.conf import settings
@@ -17,7 +16,7 @@ _EMAIL_TEMPLATES = {
 }
 
 
-def _attempt_timeout_seconds() -> float:
+def _sheets_attempt_timeout_seconds() -> float:
     return getattr(settings, "DELIVERY_ATTEMPT_TIMEOUT_SECONDS", 3)
 
 
@@ -25,66 +24,37 @@ def _total_budget_seconds() -> float:
     return getattr(settings, "DELIVERY_TOTAL_TIMEOUT_SECONDS", 6)
 
 
-def _run_with_timeout(fn, timeout_seconds: float):
-    """Runs fn() in a daemon thread and waits up to timeout_seconds so a
-    slow/hanging SMTP or Sheets call can never hold the visitor's HTTP
-    request open indefinitely. Returns (completed, exception_or_none).
+def attempt_email_notification(obj) -> None:
+    """Exactly one synchronous attempt, bound only by the already-bounded
+    transport itself (settings.EMAIL_TIMEOUT, which Django's SMTP backend
+    and the Gmail API backend both honor natively). Called both for a
+    brand-new enquiry and, separately, by the authenticated admin "retry
+    email" action - either way this is the single unit of work.
 
-    Python threads cannot be forcibly killed: if fn() is still running
-    when the timeout elapses, this returns (False, None) immediately and
-    the request proceeds - that's what actually bounds response time.
-    The orphaned thread keeps running in the background and will still
-    write its own outcome via its own bounded obj.save(update_fields=...)
-    call when it eventually finishes; that write only ever touches the
-    delivery-status fields (never the visitor's original content) and
-    losing a race with the "timed out" write already recorded here is an
-    accepted, narrow edge case, not a correctness issue for the enquiry
-    itself.
+    CONTACT-OPS-01-PROD-INCIDENT-01: this used to run inside a daemon
+    thread with an independent join() timeout layered on top of the
+    transport's own timeout. When the join expired first, the row was
+    marked FAILED while the thread kept sending in the background with
+    no way to ever record what actually happened - the status could be
+    wrong, and a later admin retry could produce a genuine duplicate
+    email if that orphaned send also eventually succeeded. There is no
+    thread here anymore: whatever this call raises (or doesn't) is the
+    real, final, synchronously-known outcome - never ambiguous.
     """
-    outcome: dict = {}
-
-    def target():
-        try:
-            fn()
-        except Exception as exc:  # noqa: BLE001 - deliberately broad, see module docstring
-            outcome["error"] = exc
-
-    thread = threading.Thread(target=target, daemon=True)
-    thread.start()
-    thread.join(timeout_seconds)
-    if thread.is_alive():
-        return False, None
-    return True, outcome.get("error")
-
-
-def attempt_email_notification(obj, timeout_seconds: float | None = None) -> None:
-    """Exactly one bounded attempt. Called both for a brand-new enquiry
-    and, separately, by the authenticated admin "retry email" action -
-    either way this is the single unit of work, never a retry loop with
-    sleeps. timeout_seconds defaults to the per-channel attempt timeout;
-    process_new_enquiry() may pass a smaller value to keep the *total*
-    wall-clock budget strict regardless of how the per-channel timeout is
-    configured."""
     template_base, subject_label = _EMAIL_TEMPLATES[type(obj)]
     obj.email_attempts += 1
     obj.email_last_attempt_at = timezone.now()
 
-    completed, error = _run_with_timeout(
-        lambda: send_enquiry_notification(obj, template_base=template_base, subject_label=subject_label),
-        timeout_seconds if timeout_seconds is not None else _attempt_timeout_seconds(),
-    )
-    if not completed:
+    try:
+        send_enquiry_notification(obj, template_base=template_base, subject_label=subject_label)
+    except Exception as exc:
         obj.email_status = EmailDeliveryStatus.FAILED
-        obj.email_error = "timed out"
-        logger.error("Email notification timed out: type=%s id=%s", type(obj).__name__, obj.pk)
-    elif error is not None:
-        obj.email_status = EmailDeliveryStatus.FAILED
-        obj.email_error = f"{type(error).__name__}: delivery failed"
+        obj.email_error = f"{type(exc).__name__}: delivery failed"
         logger.error(
             "Email notification failed: type=%s id=%s exception_class=%s",
             type(obj).__name__,
             obj.pk,
-            type(error).__name__,
+            type(exc).__name__,
         )
     else:
         obj.email_status = EmailDeliveryStatus.SENT
@@ -94,8 +64,16 @@ def attempt_email_notification(obj, timeout_seconds: float | None = None) -> Non
 
 
 def attempt_sheets_sync(obj, timeout_seconds: float | None = None) -> None:
-    """Exactly one bounded attempt, same reuse contract as
-    attempt_email_notification above."""
+    """Exactly one synchronous attempt, same reuse contract and the same
+    "no thread, no ambiguity" guarantee as attempt_email_notification
+    above. `timeout_seconds`, when given, overrides the Sheets
+    transport's own httplib2 timeout for just this call - used by
+    process_new_enquiry() to shrink this channel's bound to whatever of
+    the total delivery budget remains after the email attempt. This is
+    safe to do here (unlike the old thread-join approach) because
+    httplib2's timeout is a real socket-level bound with no background
+    work left running after it fires.
+    """
     if not is_sheets_configured():
         obj.sheets_status = SheetsDeliveryStatus.NOT_CONFIGURED
         obj.save(update_fields=["sheets_status"])
@@ -104,21 +82,16 @@ def attempt_sheets_sync(obj, timeout_seconds: float | None = None) -> None:
     obj.sheets_attempts += 1
     obj.sheets_last_attempt_at = timezone.now()
 
-    completed, error = _run_with_timeout(
-        lambda: sync_enquiry_row(obj), timeout_seconds if timeout_seconds is not None else _attempt_timeout_seconds()
-    )
-    if not completed:
+    try:
+        sync_enquiry_row(obj, timeout=timeout_seconds)
+    except Exception as exc:
         obj.sheets_status = SheetsDeliveryStatus.FAILED
-        obj.sheets_error = "timed out"
-        logger.error("Sheets sync timed out: type=%s id=%s", type(obj).__name__, obj.pk)
-    elif error is not None:
-        obj.sheets_status = SheetsDeliveryStatus.FAILED
-        obj.sheets_error = f"{type(error).__name__}: sync failed"
+        obj.sheets_error = f"{type(exc).__name__}: sync failed"
         logger.error(
             "Sheets sync failed: type=%s id=%s exception_class=%s",
             type(obj).__name__,
             obj.pk,
-            type(error).__name__,
+            type(exc).__name__,
         )
     else:
         obj.sheets_status = SheetsDeliveryStatus.SYNCED
@@ -133,15 +106,19 @@ def process_new_enquiry(obj) -> None:
     before this runs, so nothing here can lose or duplicate the lead.
 
     Honeypot submissions are terminal: marked spam immediately, neither
-    channel is ever attempted. Otherwise, at most one bounded attempt per
-    channel runs under a strict overall wall-clock budget - there is no
-    background worker, so this function's return IS what the visitor's
-    HTTP response waits on; the budget exists to keep that wait bounded,
-    not to make it zero. The second channel's own timeout is clamped to
-    whatever of the total budget remains after the first attempt, so the
-    combined wall-clock time can never exceed the total budget regardless
-    of how the per-channel timeout is configured (summing two independent
-    per-channel timeouts would not give that guarantee on its own).
+    channel is ever attempted. Otherwise, at most one synchronous attempt
+    per channel runs, bounded only by each channel's own already-bounded
+    transport (EMAIL_TIMEOUT; the Sheets httplib2 timeout) - there is no
+    independent outer timeout layered on top anymore (see
+    attempt_email_notification's docstring for why that was removed).
+    The practical consequence: the visitor's HTTP response now waits for
+    up to EMAIL_TIMEOUT + (the Sheets timeout, if attempted) - keep those
+    two settings sane; there is no separate hard cap shortening them
+    further. What "preserving the total delivery budget" means here is
+    narrower and safer than before: Sheets is skipped entirely (left
+    PENDING) if the email attempt alone already used up the whole budget,
+    and otherwise its own timeout is shrunk to whatever of the budget
+    remains - never started with no time left, never running detached.
     """
     if obj.honeypot_triggered:
         obj.status = ReviewStatus.SPAM
@@ -153,12 +130,12 @@ def process_new_enquiry(obj) -> None:
     total_budget = _total_budget_seconds()
     started = time.monotonic()
 
-    attempt_email_notification(obj, timeout_seconds=min(_attempt_timeout_seconds(), total_budget))
+    attempt_email_notification(obj)
 
     remaining = total_budget - (time.monotonic() - started)
     if remaining <= 0:
-        # Budget exhausted after the email attempt alone - leave Sheets
-        # PENDING (never started) rather than beginning a second bounded
-        # call with no time left; the admin retry action picks it up.
+        # Budget exhausted by the email attempt alone - leave Sheets
+        # PENDING (never started) rather than beginning a second call
+        # with no time left; the admin retry action picks it up.
         return
-    attempt_sheets_sync(obj, timeout_seconds=min(_attempt_timeout_seconds(), remaining))
+    attempt_sheets_sync(obj, timeout_seconds=min(_sheets_attempt_timeout_seconds(), remaining))
