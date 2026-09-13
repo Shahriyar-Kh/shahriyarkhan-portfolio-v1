@@ -86,6 +86,26 @@ class SheetsSyncTests(TestCase):
         mock_sync.assert_called_once()
 
     @override_settings(**SHEETS_SETTINGS)
+    def test_appended_row_always_shows_synced_regardless_of_the_objects_live_status(self):
+        """CONTACT-OPS-01-PROD-INCIDENT-01: obj.sheets_status is still its
+        stale PRE-attempt value at the moment the row is built (it's only
+        updated by the caller AFTER a successful append returns) - the
+        cell written into the sheet must never be sourced from that live
+        value, or every appended row permanently shows "pending" instead
+        of what actually happened. A row existing in the sheet at all
+        means the sync succeeded, so the cell must always read "synced"."""
+        obj = make_contact()
+        obj.sheets_status = SheetsDeliveryStatus.FAILED  # simulate the stale pre-attempt snapshot
+        service = _fake_service()
+        with patch("apps.inquiries.services.sheets.build_service", return_value=service):
+            sheets.sync_enquiry_row(obj)
+
+        append_call = service.spreadsheets.return_value.values.return_value.append
+        sent_row = append_call.call_args.kwargs["body"]["values"][0]
+        sent_sheets_status = sent_row[sheets.ROW_FIELDS.index("sheets_status")]
+        self.assertEqual(sent_sheets_status, "synced")
+
+    @override_settings(**SHEETS_SETTINGS)
     def test_formula_prefixed_cell_is_neutralized_before_sending(self):
         obj = make_contact(sender_name="=cmd|'/c calc'!A1")
         service = _fake_service()

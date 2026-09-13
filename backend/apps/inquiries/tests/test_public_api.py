@@ -41,6 +41,19 @@ class PersistenceTests(ThrottleSafeAPITestCase):
         self.assertEqual(obj.intent, "hiring")
         self.assertEqual(response.data, {"reference_id": obj.reference_id})
 
+    def test_contact_message_stores_an_explicit_source_page(self):
+        """CONTACT-OPS-01-PROD-INCIDENT-01: the production bug was in the
+        frontend's payload composition (it never sent source_page for
+        message-mode intents), not the backend - this proves the API
+        itself correctly accepts and stores it for ContactMessage exactly
+        like it already does for ServiceRequest."""
+        payload = {**CONTACT_PAYLOAD, "intent": "general", "source_page": "/contact"}
+        response = self.client.post(CONTACT_URL, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        obj = ContactMessage.objects.get()
+        self.assertEqual(obj.source_page, "/contact")
+
     def test_general_technical_enquiry_persists(self):
         payload = {**CONTACT_PAYLOAD, "intent": "api_backend"}
         response = self.client.post(CONTACT_URL, payload, format="json")

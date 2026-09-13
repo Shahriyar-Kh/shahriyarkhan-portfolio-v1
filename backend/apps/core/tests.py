@@ -471,29 +471,45 @@ class GmailApiEmailDeliveryIntegrationTests(TestCase):
 
 
 class GmailApiEmailBackendThreadAccumulationTests(TestCase):
-    """CONTACT-OPS-01-RC2: repeated timeouts must not leave background
-    threads piling up. Each attempt spawns at most one daemon thread
-    (apps/inquiries/services/delivery.py's _run_with_timeout) that must
-    itself finish promptly once the underlying call is genuinely bounded -
-    proven here by running several timeout cycles back to back and
-    confirming the live thread count returns to baseline afterward."""
+    """CONTACT-OPS-01-PROD-INCIDENT-01: apps/inquiries/services/delivery.py
+    no longer wraps email delivery in a daemon thread at all - that
+    mechanism is exactly what caused the production incident this
+    correction addresses (a join() timeout could mark an enquiry FAILED
+    while the orphaned thread kept sending in the background with no way
+    to ever record what actually happened, risking a duplicate email on
+    a later admin retry). These tests prove the stronger replacement
+    guarantee directly: repeated attempts - failing or succeeding - never
+    spawn a background thread in the first place, not merely that any
+    such thread would eventually clean up."""
 
-    @override_settings(DELIVERY_ATTEMPT_TIMEOUT_SECONDS=0.1, DELIVERY_TOTAL_TIMEOUT_SECONDS=0.1, EMAIL_TIMEOUT=0.05)
-    def test_repeated_gmail_timeouts_do_not_accumulate_background_threads(self):
+    def test_repeated_failing_email_attempts_never_spawn_a_background_thread(self):
         from apps.inquiries.models import ContactMessage
         from apps.inquiries.services.delivery import attempt_email_notification
-
-        def slow_then_timeout(*args, **kwargs):
-            time.sleep(0.05)
-            raise TimeoutError("simulated Gmail API timeout")
 
         baseline = threading.active_count()
         for i in range(5):
             obj = ContactMessage.objects.create(
                 sender_name=f"Thread Test {i}", email=f"thread{i}@example.com", subject="S", message="A message body here."
             )
-            with patch("apps.inquiries.services.delivery.send_enquiry_notification", side_effect=slow_then_timeout):
+            with patch(
+                "apps.inquiries.services.delivery.send_enquiry_notification",
+                side_effect=TimeoutError("simulated Gmail API timeout"),
+            ):
                 attempt_email_notification(obj)
+            # Checked immediately after each call returns, not after a
+            # sleep margin - a synchronous call leaves no thread to wait
+            # out in the first place.
+            self.assertEqual(threading.active_count(), baseline)
 
-        time.sleep(0.5)  # generous margin for every spawned daemon thread to have finished
-        self.assertLessEqual(threading.active_count(), baseline + 1)
+    def test_repeated_successful_email_attempts_never_spawn_a_background_thread(self):
+        from apps.inquiries.models import ContactMessage
+        from apps.inquiries.services.delivery import attempt_email_notification
+
+        baseline = threading.active_count()
+        for i in range(5):
+            obj = ContactMessage.objects.create(
+                sender_name=f"Thread Test {i}", email=f"thread{i}@example.com", subject="S", message="A message body here."
+            )
+            with patch("apps.inquiries.services.delivery.send_enquiry_notification"):
+                attempt_email_notification(obj)
+            self.assertEqual(threading.active_count(), baseline)
