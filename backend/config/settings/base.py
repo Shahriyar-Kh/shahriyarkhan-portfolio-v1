@@ -210,7 +210,54 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 12,
+    # No DEFAULT_THROTTLE_CLASSES here deliberately - a rate in
+    # DEFAULT_THROTTLE_RATES has no effect unless a view actually attaches
+    # a throttle class referencing that scope, so this cannot change
+    # behavior for any endpoint other than the two public inquiry views
+    # (apps/inquiries/api/views.py), which attach ContactFormThrottle
+    # directly. CONTACT-OPS-01: keep this scoped, never global.
+    "DEFAULT_THROTTLE_RATES": {
+        "contact_form": os.getenv("CONTACT_FORM_THROTTLE_RATE", "5/hour"),
+    },
+    # How many trusted reverse-proxy hops sit in front of this API, for
+    # DRF's own X-Forwarded-For parsing (it trusts exactly this many
+    # entries counted from the right, ignoring anything a client
+    # prepends). 1 matches the best available repo evidence - the public
+    # API is reached directly at Railway's own host today, with no
+    # Cloudflare proxy in that specific path (see CONTACT-OPS-01's plan).
+    # This has NOT been verified against live production request headers
+    # and must be reconfirmed before the contact-form throttle is relied
+    # on in production - see the external configuration report.
+    "NUM_PROXIES": int(os.getenv("DRF_NUM_PROXIES", "1")),
 }
+
+# Off by default: there is no repo evidence the public API is reached
+# through a Cloudflare-proxied custom domain today (see NUM_PROXIES
+# above). If that ever changes, flip this on so throttling trusts
+# Cloudflare's own client-IP header instead of counting X-Forwarded-For
+# hops - see apps/inquiries/api/views.py's ClientIPThrottleMixin.
+TRUST_CLOUDFLARE_CONNECTING_IP = env_bool("TRUST_CLOUDFLARE_CONNECTING_IP", False)
+
+# Bounds on the single, synchronous, no-retry-loop delivery attempt made
+# for a new enquiry (apps/inquiries/services/delivery.py) - there is no
+# background worker, so these directly bound how long a visitor's POST
+# to the contact/service-request endpoint can take.
+DELIVERY_ATTEMPT_TIMEOUT_SECONDS = float(os.getenv("DELIVERY_ATTEMPT_TIMEOUT_SECONDS", "3"))
+DELIVERY_TOTAL_TIMEOUT_SECONDS = float(os.getenv("DELIVERY_TOTAL_TIMEOUT_SECONDS", "6"))
+EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "5"))
+
+# --- Google Sheets operational mirror (apps/inquiries/services/sheets.py) ---
+# Optional - if unset, GOOGLE_SHEETS_ENABLED is False and every enquiry's
+# sheets_status simply records "not_configured"; submission itself is
+# never affected. GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON is the full JSON key
+# for a Google service account (see the external configuration report
+# for how to create one) - never a path, never committed.
+GOOGLE_SHEETS_SPREADSHEET_ID = os.getenv("GOOGLE_SHEETS_SPREADSHEET_ID", "").strip()
+GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON = os.getenv("GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON", "").strip()
+GOOGLE_SHEETS_ENABLED = env_bool(
+    "GOOGLE_SHEETS_ENABLED",
+    bool(GOOGLE_SHEETS_SPREADSHEET_ID and GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON),
+)
 
 
 # The default below is a local-development fallback only: production sets

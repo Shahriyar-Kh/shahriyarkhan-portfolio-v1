@@ -184,6 +184,26 @@ describe("apiGet/apiGetList/apiPost", () => {
     }
   });
 
+  it("apiPost shows a generic message on 429, never DRF's raw throttle detail", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ detail: "Request was throttled. Expected available in 37 seconds." }), {
+          status: 429,
+        }),
+      ),
+    );
+    const { apiPost } = await freshClient();
+
+    const result = await apiPost("/api/v1/public/inquiries/contact/", { email: "a@b.com" });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.message).toBe("Too many attempts. Please try again shortly.");
+      expect(result.error.message).not.toMatch(/37 seconds/);
+    }
+  });
+
   it("apiPost never sends a GET-only retry", async () => {
     const fetchSpy = vi.fn().mockResolvedValue(new Response("", { status: 500 }));
     vi.stubGlobal("fetch", fetchSpy);

@@ -16,7 +16,16 @@ const VALUES: InquiryValues = {
 
 // Mirrors the verified backend contract in lib/api/types.ts exactly -
 // composeInquiryPayload must never produce a key outside these sets.
-const ALLOWED_MESSAGE_KEYS = new Set(["sender_name", "email", "subject", "message", "service_type_text"]);
+const ALLOWED_MESSAGE_KEYS = new Set([
+  "sender_name",
+  "email",
+  "subject",
+  "message",
+  "service_type_text",
+  "intent",
+  "website",
+  "submission_id",
+]);
 const ALLOWED_PROJECT_KEYS = new Set([
   "sender_name",
   "email",
@@ -27,6 +36,9 @@ const ALLOWED_PROJECT_KEYS = new Set([
   "budget_range",
   "timeline",
   "source_page",
+  "intent",
+  "website",
+  "submission_id",
 ]);
 
 describe("composeInquiryPayload", () => {
@@ -61,5 +73,35 @@ describe("composeInquiryPayload", () => {
     const intent = CONTACT_INTENTS.find((i) => i.subjectHint.length > 0)!;
     const composed = composeInquiryPayload(intent, { ...VALUES, subject: "" }, "/contact");
     expect(composed.payload.subject).toBe(intent.subjectHint);
+  });
+
+  it("always sends the chosen intent's value", () => {
+    for (const intent of CONTACT_INTENTS) {
+      const composed = composeInquiryPayload(intent, VALUES, "/contact");
+      expect(composed.payload.intent).toBe(intent.value);
+    }
+  });
+
+  it("omits website/submission_id when no tracking info is given", () => {
+    const composed = composeInquiryPayload(CONTACT_INTENTS[0]!, VALUES, "/contact");
+    expect(composed.payload).not.toHaveProperty("website");
+    expect(composed.payload).not.toHaveProperty("submission_id");
+  });
+
+  it("passes through a non-empty honeypot value and the submission id", () => {
+    const composed = composeInquiryPayload(CONTACT_INTENTS[0]!, VALUES, "/contact", {
+      website: "http://spam.example.com",
+      submissionId: "11111111-1111-1111-1111-111111111111",
+    });
+    expect(composed.payload.website).toBe("http://spam.example.com");
+    expect(composed.payload.submission_id).toBe("11111111-1111-1111-1111-111111111111");
+  });
+
+  it("omits an empty honeypot value even when tracking info is provided", () => {
+    const composed = composeInquiryPayload(CONTACT_INTENTS[0]!, VALUES, "/contact", {
+      website: "",
+      submissionId: "11111111-1111-1111-1111-111111111111",
+    });
+    expect(composed.payload).not.toHaveProperty("website");
   });
 });
