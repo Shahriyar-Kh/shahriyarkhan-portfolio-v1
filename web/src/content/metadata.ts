@@ -75,6 +75,6 @@ export const ROUTE_METADATA_DEFAULTS: Record<string, RouteMetadataDefault> = {
     pageKey: "privacy",
     title: "Privacy",
     description:
-      "What this website collects through its contact and project-request forms, where it goes, and what tracking (none) runs on this site.",
+      "What this website collects through its contact and project forms, where it goes, and this site's approach to tracking, spam prevention, and data retention.",
   },
 };
