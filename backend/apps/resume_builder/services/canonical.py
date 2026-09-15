@@ -87,8 +87,26 @@ def collect_source_facts(version):
     for item in _ordered(version.include_projects.prefetch_related("technologies").all(), "display_order"):
         _eligible(item, "project")
         values = [claim("portfolio.project", item.pk, "title", item.title), claim("portfolio.project", item.pk, "description", item.description)]
-        for position, technology in enumerate(_ordered(item.technologies.all(), "name")):
-            values.append(claim("portfolio.project.technology", technology.pk, "name", technology.name, position))
+        for technology in _ordered(item.technologies.all(), "name"):
+            # record_id carries BOTH the owning Project's pk and the
+            # Technology's pk (RESUME-SYSTEM-01B9.1). Technology.pk alone
+            # is not unique here - the same Technology is routinely
+            # shared by many real projects - so keying only on
+            # (Technology.pk, alphabetical-position-within-this-project)
+            # let two different projects produce an identical claim_id
+            # whenever they shared a technology at the same alphabetical
+            # rank (e.g. two projects both listing "Django" first).
+            # Composing the ID from (item.pk, technology.pk) makes it
+            # unique per (project, technology) pair - the smallest set of
+            # identifiers that actually identifies this fact - and
+            # deterministic/stable across recollection even if an
+            # unrelated technology's name changes and shifts the
+            # alphabetical order, which the old position-suffixed scheme
+            # was not. `position` is dropped: once (project, technology)
+            # is unique, it adds no further disambiguating information
+            # (a project's technologies M2M cannot contain the same
+            # Technology twice).
+            values.append(claim("portfolio.project.technology", f"{item.pk}:{technology.pk}", "name", technology.name))
         project_claims.append(values)
 
     certification_claims = []
