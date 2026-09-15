@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Education, Experience, Project, Service, Skill, SkillCategory, Technology
+from .models import Certification, Education, Experience, Project, Service, Skill, SkillCategory, Technology
 
 
 @admin.register(Project)
@@ -61,3 +61,10 @@ class EducationAdmin(admin.ModelAdmin):
     list_display = ("institution", "degree", "start_date", "end_date", "status")
     list_filter = ("status",)
     search_fields = ("institution", "degree")
+
+
+@admin.register(Certification)
+class CertificationAdmin(admin.ModelAdmin):
+    list_display = ("name", "issuer", "issue_date", "expiry_date", "is_verified", "status")
+    list_filter = ("is_verified", "status")
+    search_fields = ("name", "issuer", "credential_id")

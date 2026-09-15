@@ -1,0 +1,9 @@
+{% extends "admin/base.html" %}
+{% block content %}
+<h1>Résumé preview: {{ version.title }}</h1>
+<p>Status: {{ version.status }} | Type: {{ version.resume_type }} | Freshness: {{ freshness.status }}</p>
+<p>Source schema: {{ version.snapshot_schema_version }} | Source hash: {{ version.source_hash }} | Content hash: {{ version.resume_content_hash }}</p>
+<p>PDF: {{ readiness.pdf|default:"missing or invalid" }} | DOCX: {{ readiness.docx|default:"missing or invalid" }}</p>
+<p>{{ ats_disclaimer }}</p>
+{% for item in version.resume_content.items %}<section><h2>{{ item.section|title }}</h2><p>{{ item.text }}</p><small>Claims: {% for claim in item.source_claim_ids %}{{ claim }}{% if not forloop.last %}, {% endif %}{% endfor %}</small></section>{% empty %}<p>No résumé content is stored.</p>{% endfor %}
+{% endblock %}

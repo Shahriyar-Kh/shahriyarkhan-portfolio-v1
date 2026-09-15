@@ -1,0 +1,10 @@
+{% extends "admin/base.html" %}
+{% block content %}
+<h1>{{ title }}</h1>
+<p>Draft wording only. Factual source claims and provenance remain unchanged.</p>
+<form method="post" novalidate>{% csrf_token %}
+  {{ form.non_field_errors }}
+  {% for field in form %}<div class="form-row">{{ field.errors }}<label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% endfor %}
+  <div class="submit-row"><input type="submit" name="_save" value="Save wording" class="default"></div>
+</form>
+{% endblock %}

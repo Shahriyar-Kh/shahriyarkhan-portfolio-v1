@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from apps.portfolio.models import Education, Experience, Project, Service, Skill, SkillCategory, Technology
+from apps.portfolio.models import Certification, Education, Experience, Project, Service, Skill, SkillCategory, Technology
 
 
 class TechnologySerializer(serializers.ModelSerializer):
@@ -98,4 +98,10 @@ class AdminServiceSerializer(serializers.ModelSerializer):
 class EducationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Education
+        fields = "__all__"
+
+
+class CertificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Certification
         fields = "__all__"

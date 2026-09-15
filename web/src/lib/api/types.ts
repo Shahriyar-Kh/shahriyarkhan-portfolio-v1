@@ -198,6 +198,70 @@ export interface PageSeo {
   // Every PageSEO row is live - this model has no draft/published concept.
 }
 
+export interface Certification {
+  id: number;
+  name: string;
+  issuer: string;
+  issue_date: string;
+  expiry_date: string | null;
+  credential_id: string;
+  credential_url: string; // "" when unset
+  description: string;
+  is_verified: boolean;
+  status: PublishStatus;
+  published_at: string | null;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Whether this format is really downloadable right now - resolved by
+ * the same authoritative policy (resolve_downloadable_export) the
+ * download endpoint itself uses, so this can never say `true` for an
+ * export the download route would 404 on, or vice versa. Never the
+ * bytes or a hash. Actual bytes are served only by the stable
+ * /default/download/<format>/ backend route. */
+export interface ResumeDownloadAvailability {
+  available: boolean;
+}
+
+/** One safe, pre-validated (http/https only) contiguous run of a
+ * snapshot text line - a plain segment (href: null) or a clickable one.
+ * Identical segmentation to what the PDF/DOCX renderers embed as real
+ * links (services.exports.security.split_text_and_links). */
+export interface ResumeDocumentLinkSegment {
+  text: string;
+  href: string | null;
+}
+
+/** A single rendered line (a contact line, or one bullet/paragraph
+ * inside a section) as an ordered run of segments - join their `text`
+ * to get the plain-text line; render each with an `href` as a link. */
+export type ResumeDocumentLine = ResumeDocumentLinkSegment[];
+
+export interface ResumeDocumentSection {
+  key: string;
+  heading: string;
+  items: ResumeDocumentLine[];
+}
+
+/**
+ * The safe public presentation DTO for a résumé (B7-RC correction 1) -
+ * built exclusively from the B6 shared normalized document, itself
+ * derived only from the immutable, approved resume_content/source_facts
+ * snapshot. NEVER built from live SiteSetting or live portfolio rows,
+ * so it is guaranteed to be exactly what was approved/published/
+ * exported - the only field the frontend should render a published
+ * résumé from. `null` only if the snapshot could not be normalized (a
+ * state a valid published master should never reach).
+ */
+export interface ResumeDocument {
+  name: string;
+  professional_title: string;
+  contacts: ResumeDocumentLine[];
+  sections: ResumeDocumentSection[];
+}
+
 export interface ResumeVersion {
   id: number;
   title: string;
@@ -206,10 +270,20 @@ export interface ResumeVersion {
   custom_summary: string;
   is_default: boolean;
   ats_tags: string;
+  /** LIVE-sourced (the current M2M selections), kept only for
+   * response-shape compatibility. Can legitimately drift from what was
+   * actually approved/published/exported - never render a published
+   * résumé from these. Use `document` instead. */
   projects: Project[]; // serializer source="include_projects"
   experiences: Experience[]; // source="include_experiences"
   skills: Skill[]; // source="include_skills"
   education: Education[]; // source="include_education"
+  certifications: Certification[]; // source="include_certifications"
+  document: ResumeDocument | null;
+  downloads: {
+    pdf: ResumeDownloadAvailability;
+    docx: ResumeDownloadAvailability;
+  };
 }
 
 // ---- Inquiry write payloads (request bodies) ----

@@ -16,6 +16,16 @@ export interface RequestOptions {
   /** Test-only override for the retry backoff schedule, so retry tests
    * don't have to wait out the real multi-second production delays. */
   retryBackoffMs?: readonly number[];
+  /** Forces the underlying fetch's `cache` mode directly instead of
+   * Next's `next.revalidate` cache-config path - "no-store" means never
+   * served from any cache layer, not even briefly (mutually exclusive
+   * with `revalidate`/`tags`: Next throws if both `cache` and
+   * `next.revalidate` are set on the same fetch call). Reserve for a
+   * resource that must reflect the immediate current server state on
+   * every request - see lib/api/resume.ts's getDefaultResume(). Every
+   * other established page/resource keeps using `revalidate` and is
+   * unaffected by this option's existence. */
+  cache?: "no-store";
 }
 
 const MAX_LIST_PAGES = 10;
@@ -46,6 +56,13 @@ async function doFetch(path: string, init: RequestInit, options: RequestOptions)
   const timeoutSignal = AbortSignal.timeout(options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
   const signal = combineSignals(timeoutSignal, options.signal);
 
+  // `cache: "no-store"` and `next: { revalidate }` are mutually
+  // exclusive on a single fetch call (Next throws if both are present),
+  // so `options.cache` takes a distinct branch rather than layering on
+  // top of the revalidate-based one below.
+  const cacheInit: RequestInit =
+    options.cache === "no-store" ? { cache: "no-store" } : { next: options.revalidate === false ? { revalidate: 0 } : { revalidate: options.revalidate, tags: options.tags } };
+
   return fetch(apiUrl(path), {
     ...init,
     signal,
@@ -54,10 +71,7 @@ async function doFetch(path: string, init: RequestInit, options: RequestOptions)
     // data cache). Mitigation: every resource is fetched exactly once
     // per page at the page/layout level and passed down as props - there
     // is nothing to memoize across components for the same resource.
-    next:
-      options.revalidate === false
-        ? { revalidate: 0 }
-        : { revalidate: options.revalidate, tags: options.tags },
+    ...cacheInit,
   });
 }
 

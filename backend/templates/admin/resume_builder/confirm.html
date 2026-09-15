@@ -1,0 +1,6 @@
+{% extends "admin/base.html" %}
+{% block content %}
+<h1>Confirm {{ action }}</h1>
+<p>Résumé: {{ version.title }}</p>
+<form method="post">{% csrf_token %}<button type="submit" class="default">Confirm {{ action }}</button></form>
+{% endblock %}
