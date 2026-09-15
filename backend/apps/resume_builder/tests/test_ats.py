@@ -244,6 +244,147 @@ class ATSScoringTests(TestCase):
         self.assertEqual(stuffed["evidence_ids"], truthful["evidence_ids"])
 
 
+class ATSVisibleContentRepetitionTests(TestCase):
+    """RESUME-SYSTEM-01B9.1: the readiness scorer's repetition penalty
+    (clarity_structure/keyword_quality) must reflect what the résumé
+    actually SHOWS, never internal source-fact metadata (e.g. a real
+    Skill's category/level, which collect_source_facts() captures as
+    separate claims for provenance but never renders as its own line).
+    Source coverage/provenance (evidence_ids, category_evidence_ids) is a
+    different concern and must stay based on source_facts - unaffected
+    by this fix."""
+
+    def setUp(self):
+        self.version = create_master_draft(custom_summary="A verified summary.")
+
+    def _build_version_with_skills(self, skills, experience_role="Backend Engineer"):
+        """`skills`: list of (name, category, level) tuples, mirroring the
+        exact 3-claims-per-skill shape collect_source_facts() produces for
+        real Skill rows. The visible resume_content only ever cites the
+        *name* claims, grouped into one non-repeating line - exactly like
+        a real polished résumé built through update_resume_content()."""
+        profile = [{
+            "claim_id": "resume_builder.positioning:0:professional_title",
+            "value": "Software Engineer",
+            "source": {"model": "resume_builder.positioning", "record_id": 0, "field": "professional_title"},
+        }]
+        skill_claims = []
+        name_claim_ids = []
+        for i, (name, category, level) in enumerate(skills, start=1):
+            name_id = f"portfolio.skill:{i}:name"
+            skill_claims.append({"claim_id": name_id, "value": name, "source": {"model": "portfolio.skill", "record_id": i, "field": "name"}})
+            skill_claims.append({"claim_id": f"portfolio.skill:{i}:category", "value": category, "source": {"model": "portfolio.skill", "record_id": i, "field": "category"}})
+            skill_claims.append({"claim_id": f"portfolio.skill:{i}:level", "value": str(level), "source": {"model": "portfolio.skill", "record_id": i, "field": "level"}})
+            name_claim_ids.append(name_id)
+        experience_claims = [
+            {"claim_id": "portfolio.experience:1:role_title", "value": experience_role, "source": {"model": "portfolio.experience", "record_id": 1, "field": "role_title"}},
+            {"claim_id": "portfolio.experience:1:achievement:0", "value": "Built and shipped a production feature.", "source": {"model": "portfolio.experience", "record_id": 1, "field": "achievement"}},
+        ]
+        education_claims = [
+            {"claim_id": "portfolio.education:1:degree", "value": "BS Computer Science", "source": {"model": "portfolio.education", "record_id": 1, "field": "degree"}},
+        ]
+        summary_claims = [{
+            "claim_id": "resume_builder.resumeversion:1:custom_summary",
+            "value": "A verified summary.",
+            "source": {"model": "resume_builder.resumeversion", "record_id": 1, "field": "custom_summary"},
+        }]
+        facts = {
+            "schema_version": 1,
+            "sections": {
+                "profile": profile, "experience": experience_claims, "education": education_claims,
+                "skills": skill_claims, "projects": [], "certifications": [], "custom_summary": summary_claims,
+            },
+            "provenance": {"source": "fixture"},
+        }
+        content = {
+            "positioning": "Software Engineer",
+            "items": [
+                {"section": "positioning", "text": "Software Engineer", "source_claim_ids": ["resume_builder.positioning:0:professional_title"]},
+                {"section": "summary", "text": "A verified summary.", "source_claim_ids": ["resume_builder.resumeversion:1:custom_summary"]},
+                {"section": "skills", "text": ", ".join(name for name, _category, _level in skills), "source_claim_ids": name_claim_ids},
+                {"section": "experience", "text": experience_role, "source_claim_ids": ["portfolio.experience:1:role_title"]},
+                {"section": "experience", "text": "Built and shipped a production feature.", "source_claim_ids": ["portfolio.experience:1:achievement:0"]},
+                {"section": "education", "text": "BS Computer Science", "source_claim_ids": ["portfolio.education:1:degree"]},
+            ],
+        }
+        self.version.source_facts = facts
+        self.version.resume_content = content
+        self.version.source_hash = source_hash(facts)
+        self.version.resume_content_hash = resume_content_hash(content)
+        self.version.save(update_fields=("source_facts", "resume_content", "source_hash", "resume_content_hash"))
+        return self.version
+
+    def test_hidden_skill_category_and_level_repetition_does_not_penalize_visible_clarity(self):
+        # 6 truthful, DISTINCT skill names, but category/level metadata
+        # repeats heavily underneath - exactly like real verified data
+        # (multiple Backend skills all rated level 4). None of that
+        # metadata is ever rendered; only the distinct skill names are.
+        skills = [
+            ("Python", "Backend", 4),
+            ("Django", "Backend", 4),
+            ("REST APIs", "Backend", 4),
+            ("PostgreSQL", "Database", 4),
+            ("React.js", "Frontend", 3),
+            ("JavaScript", "Frontend", 3),
+        ]
+        version = self._build_version_with_skills(skills)
+        result = score_readiness(version)
+        self.assertEqual(result["categories"]["clarity_structure"], 10, result)
+        self.assertEqual(result["categories"]["keyword_quality"], 5, result)
+        self.assertNotIn("keyword_repetition_detected", result["warnings"])
+
+    def test_hidden_level_repetition_alone_does_not_penalize_visible_clarity(self):
+        # Every skill shares both the same category AND the same level -
+        # the worst case for hidden-metadata repetition - while every
+        # skill NAME (the only thing ever displayed) stays distinct.
+        skills = [(f"Skill{i}", "Backend", 4) for i in range(8)]
+        version = self._build_version_with_skills(skills)
+        result = score_readiness(version)
+        self.assertEqual(result["categories"]["clarity_structure"], 10, result)
+        self.assertEqual(result["categories"]["keyword_quality"], 5, result)
+
+    def test_duplicated_visible_resume_bullet_is_still_penalized(self):
+        version = self._build_version_with_skills([("Python", "Backend", 4)])
+        content = version.resume_content
+        content["items"].append(dict(content["items"][-2]))  # exact duplicate of the achievement bullet's visible text
+        version.resume_content = content
+        version.resume_content_hash = resume_content_hash(content)
+        version.save(update_fields=("resume_content", "resume_content_hash"))
+        result = score_readiness(version)
+        self.assertLess(result["categories"]["clarity_structure"], 10)
+        self.assertIn("keyword_repetition_detected", result["warnings"])
+
+    def test_duplicate_visible_keyword_stuffing_within_one_bullet_is_still_penalized(self):
+        version = self._build_version_with_skills([("Python", "Backend", 4)])
+        content = version.resume_content
+        content["items"][-1]["text"] = "Python Django Python Django Python Django Python Django " * 3
+        version.resume_content = content
+        version.resume_content_hash = resume_content_hash(content)
+        version.save(update_fields=("resume_content", "resume_content_hash"))
+        result = score_readiness(version)
+        self.assertLess(result["categories"]["keyword_quality"], 5)
+        self.assertIn("keyword_repetition_detected", result["warnings"])
+
+    def test_unique_truthful_visible_content_has_no_false_repetition_penalty(self):
+        skills = [("Python", "Backend", 4), ("Django", "Backend", 4)]
+        version = self._build_version_with_skills(skills)
+        result = score_readiness(version)
+        self.assertEqual(result["categories"]["clarity_structure"], 10)
+        self.assertEqual(result["categories"]["keyword_quality"], 5)
+
+    def test_source_coverage_and_provenance_are_unaffected_by_the_fix(self):
+        skills = [("Python", "Backend", 4), ("Django", "Backend", 4), ("REST APIs", "Backend", 4)]
+        version = self._build_version_with_skills(skills)
+        result = score_readiness(version)
+        valid_claim_ids = {item["claim_id"] for section in version.source_facts["sections"].values() for item in section}
+        self.assertTrue(set(result["evidence_ids"]).issubset(valid_claim_ids))
+        # Category/level claims remain legitimate, resolvable provenance
+        # even though this fix stops them from being scored as visible
+        # repetition - they must not be deleted or hidden from facts.
+        self.assertIn("portfolio.skill:1:category", valid_claim_ids)
+        self.assertIn("portfolio.skill:1:level", valid_claim_ids)
+
+
 class ResumeAssessmentConstraintTests(TransactionTestCase):
     def setUp(self):
         self.version = create_master_draft()
