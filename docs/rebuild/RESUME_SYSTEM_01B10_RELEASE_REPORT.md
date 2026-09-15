@@ -1,12 +1,13 @@
 # RESUME-SYSTEM-01B10 — Owner Approval + Controlled Production Release
 
-## Status: PARTIALLY COMPLETE — blocked before the production data write
+## Status: COMPLETE — RESUME PLATFORM V1 PRODUCTION VERIFIED
 
-Code merge and both deployments are live and verified. The production `SiteSetting`
-contact write and the production `ResumeVersion` publish (the steps that make the
-résumé and contact info actually visible to the public) were **not performed** —
-every attempt to reach the production database, including a read-only check, was
-refused by this environment's own safety classifier. See "Blocked step" below.
+Code merge, both deployments, the production contact write, and the résumé
+publish are all live and verified. Initial attempts to reach the production
+database (even a read-only check) were refused by this environment's own
+safety classifier; the owner granted explicit tool permission, after which
+the read/write/publish sequence completed successfully. See "Production
+account note" below for one follow-up action the owner should take.
 
 ## Approved factual policy (unchanged from B9.1)
 
@@ -46,7 +47,7 @@ LinkedIn URL was mistyped as `shahriyar-khan786` (extra hyphen); the corrected
 build asserts the rendered value against the source claim byte-for-byte before
 using it.
 
-## SiteSetting update required: YES (not yet performed — see Blocked step)
+## SiteSetting update required: YES — performed
 
 Canonical runtime source confirmed via `apps/resume_builder/services/canonical.py`
 (`collect_source_facts` reads `owner_name`, `public_email`, `public_phone`,
@@ -123,66 +124,68 @@ session). Ran `npm run build:vinext` then `npm run deploy:vinext`; deployed
 Worker version `d5a36579-8e78-4bd1-8800-f4de9c8ee6cc`. Smoke-tested `/`,
 `/resume`, `/work`, `/services`, `/contact` — all `200`.
 
-## Production E2E performed
+## Production E2E performed (post-publish)
 
 - `GET /healthz` → `200 {"status":"ok"}`.
-- `GET /api/v1/public/resume/default/` → `404
-  {"detail":"No published default resume is configured."}` — correct
-  business-logic 404 (not a 500), matching the expected pre-publish state.
-- `GET /api/v1/public/portfolio/projects/` → `200`, real published project
-  data, unaffected by this release.
-- `GET /api/v1/public/site/settings/` → `200`, confirms `public_email`,
-  `public_phone`, `public_location`, `social_links` are still empty
-  (pre-write state, as expected).
-- Frontend routes `/`, `/resume`, `/work`, `/services`, `/contact` → all `200`.
+- `GET /api/v1/public/resume/default/` → `200`, full published master
+  document, verified to contain no CognoRise / Coursera / TBOS text and the
+  correct owner-confirmed contact block.
+- `GET /api/v1/public/resume/default/download/pdf/` → `200`,
+  `Content-Type: application/pdf`, `Content-Disposition: attachment;
+  filename="resume-<uuid>.pdf"`, `ETag` matches the exact SHA-256 recorded at
+  publish time, `Content-Length: 44640`.
+- `GET /api/v1/public/resume/default/download/docx/` → `200`, correct
+  DOCX content type, `ETag` matches, `Content-Length: 36000`.
+- `GET /api/v1/public/resume/this-slug-does-not-exist/` → `404
+  {"detail":"No ResumeVersion matches the given query."}` — no 500.
+- `GET /api/v1/admin/resume/versions/` (unauthenticated) → `403` — ATS/
+  governance data confirmed inaccessible without admin auth.
+- `GET /api/v1/public/portfolio/projects/` → `200`, unaffected by this
+  release.
+- `GET /api/v1/public/site/settings/` → `200`, confirms the four contact
+  fields now hold exactly the owner-confirmed values, nothing else changed.
+- Frontend: `/`, `/resume`, `/about`, `/skills`, `/experience`, `/work`,
+  `/services`, `/contact` → all `200`; `/resume` HTML confirmed to render
+  "Shahriyar Khan", the correct email, and "Yango Wing Fleet", with no
+  CognoRise/Coursera text present.
+- `OPTIONS /api/v1/public/inquiries/contact/` → `200` (contact-form endpoint
+  unaffected; no test submission was made to avoid writing a real inquiry
+  record).
 
-Full E2E (résumé page showing the published master, PDF/DOCX download,
-contact-form regression) could not be completed because no `ResumeVersion` is
-published in production yet — see Blocked step.
+## Production account note
 
-## Blocked step — explain and stop here
-
-Section 11 (the minimum authorized `SiteSetting` contact write) and the
-production `ResumeVersion` create/approve/publish both require executing
-code against the live production database. Every attempt to do this — via
-`railway run` (Bash) and via `railway run` (PowerShell), including a
-**read-only** verification query before any write — was refused by this
-environment's own safety classifier ("Blocked by classifier" / "Remote Shell
-Writes"), independent of the owner's explicit authorization earlier in this
-conversation. Per this session's operating rules, that block is not something
-to route around (e.g. by connecting directly with the raw database credential
-that was incidentally visible in an earlier `railway variables` call) — it is
-reported here instead.
-
-**What is fully built and verified, ready to publish:** a release-candidate
-`ResumeVersion` was built and scored through the exact same B9.1-fixed
-pipeline in an isolated local database — score **92/100**, both PDF and DOCX
-generated, validated, and visually reviewed. See "Release candidate" below.
-The only remaining step is applying the equivalent `SiteSetting` write and
-`ResumeVersion` create/approve/publish sequence to the actual production
-database, which needs either:
-1. the owner running it themselves (e.g. via the production Django admin at
-   `/<ADMIN_URL_PATH>/`, or a one-off `railway run` from their own machine), or
-2. the owner explicitly granting this session's Bash/PowerShell tool
-   permission to run `railway run` commands, after which this session can
-   finish the write and publish in the same way it built the verified
-   candidate.
+Publishing a résumé requires an authenticated owner/admin actor (the app's
+own `is_portfolio_admin_user(actor, require_owner_role=True)` gate on export
+generation) — and production had **zero user accounts** before this release.
+Creating one wasn't in the B10 task's original write scope, so this was
+paused and put to the owner directly; the owner asked for a superuser to be
+created. One was created (`username: shahriyar_owner`) with a freshly
+generated random password, printed once to this session's own command
+output and nowhere else. **The owner should log in via the production Django
+admin and rotate that password immediately**, and may also disable/replace
+this account with their preferred personal one.
 
 ## Release candidate
 
-- `Shahriyar_Khan_Master_Resume_Release_Candidate.pdf` — 44,640 bytes,
-  SHA-256 `dd42e140053d5f73f510fde9cf9de637d96f552d4e827d051c5adca2cf0dd983`,
-  1 page, visually rendered and reviewed.
-- `Shahriyar_Khan_Master_Resume_Release_Candidate.docx` — 36,001 bytes,
-  SHA-256 `250ff243781ba89389677a9d842fa0133b543f96c2f84d7419fc8b09c7d7dd9b`,
-  structurally validated (`DOCX STRUCTURALLY VERIFIED — OWNER VISUAL
-  PAGINATION REVIEW REQUIRED`; no Word/LibreOffice available in this
-  environment).
-- Both in the session scratchpad's `b10-release/` directory, alongside the
-  exact `source_facts`/`resume_content`/readiness-report JSON used to build
-  them, so the production write can reproduce them byte-for-byte.
-- ATS score: **92/100** (identical category breakdown to the audited B9.1
-  candidate — content is unchanged; only the contact block was corrected).
+- Local pre-flight build (isolated DB, identical content/logic to
+  production): `Shahriyar_Khan_Master_Resume_Release_Candidate.pdf` (44,640
+  bytes, SHA-256 `dd42e140053d5f73f510fde9cf9de637d96f552d4e827d051c5adca2cf0dd983`,
+  1 page, visually rendered and reviewed) and
+  `Shahriyar_Khan_Master_Resume_Release_Candidate.docx` (36,001 bytes, SHA-256
+  `250ff243781ba89389677a9d842fa0133b543f96c2f84d7419fc8b09c7d7dd9b`,
+  `DOCX STRUCTURALLY VERIFIED — OWNER VISUAL PAGINATION REVIEW REQUIRED`; no
+  Word/LibreOffice available in this environment). Both kept in the session
+  scratchpad's `b10-release/` directory.
+- **Production-published artifacts** (same content, generated fresh in
+  production so file metadata/timestamps differ from the local pre-flight
+  build): PDF SHA-256 `1a37f338bc683e529b9729624d99037d466d2edc6c65cf64de78841096e37d82`
+  (44,640 bytes), DOCX SHA-256 `818b18ef2afdbb50cf7f6502ea9afdd0dc90f2b88ad88c2da518e62f86cc6653`
+  (36,000 bytes) — both confirmed live via their public download endpoints
+  (`ETag` matches these hashes exactly).
+- ATS score: **92/100** in both the local pre-flight build and the actual
+  production `ResumeAssessment`-equivalent score, identical category
+  breakdown to the audited B9.1 candidate — content is unchanged; only the
+  contact block was corrected and completed.
 
 ## Rollback targets (recorded before any production data write)
 
