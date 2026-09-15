@@ -1,11 +1,13 @@
 from datetime import date
 
+from django.core.exceptions import ValidationError
+from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.core.models import PublishableModel
-from apps.portfolio.models import Experience, Project, Service, Skill, SkillCategory
+from apps.portfolio.models import Certification, Experience, Project, Service, Skill, SkillCategory
 
 
 class PublicPortfolioEndpointsEmptyDatabaseTests(APITestCase):
@@ -164,3 +166,19 @@ class NoGenericServerErrorTests(APITestCase):
                     500,
                     f"{endpoint} returned a server error ({response.status_code})",
                 )
+
+
+class CertificationModelTests(TestCase):
+    def test_certification_defaults_to_unverified(self):
+        certification = Certification(name="Certificate", issuer="Issuer", issue_date=date(2025, 1, 1))
+        self.assertFalse(certification.is_verified)
+
+    def test_expiry_date_cannot_precede_issue_date(self):
+        certification = Certification(
+            name="Certificate",
+            issuer="Issuer",
+            issue_date=date(2025, 1, 2),
+            expiry_date=date(2025, 1, 1),
+        )
+        with self.assertRaises(ValidationError):
+            certification.full_clean()

@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 
 from apps.core.models import OrderedModel, PublishableModel, SEOMetadataModel, TimeStampedModel
 
@@ -114,3 +115,25 @@ class Education(TimeStampedModel, PublishableModel, OrderedModel):
 
     def __str__(self) -> str:
         return f"{self.degree} - {self.institution}"
+
+
+class Certification(TimeStampedModel, PublishableModel, OrderedModel):
+    name = models.CharField(max_length=255)
+    issuer = models.CharField(max_length=255)
+    issue_date = models.DateField()
+    expiry_date = models.DateField(blank=True, null=True)
+    credential_id = models.CharField(max_length=255, blank=True)
+    credential_url = models.URLField(blank=True)
+    description = models.TextField(blank=True)
+    is_verified = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ("-issue_date", "display_order")
+
+    def clean(self):
+        super().clean()
+        if self.expiry_date and self.expiry_date < self.issue_date:
+            raise ValidationError({"expiry_date": "Expiry date cannot precede issue date."})
+
+    def __str__(self) -> str:
+        return f"{self.name} - {self.issuer}"

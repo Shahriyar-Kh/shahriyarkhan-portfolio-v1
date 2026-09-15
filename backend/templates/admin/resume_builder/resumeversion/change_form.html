@@ -1,0 +1,17 @@
+{% extends "admin/change_form.html" %}
+{% block object-tools-items %}
+{% if original %}
+<li><a href="{% url 'admin:resume_builder_admin_preview' original.pk %}">Preview</a></li>
+<li><a href="{% url 'admin:resume_builder_edit_content' original.pk %}">Edit wording</a></li>
+<li><a href="{% url 'admin:resume_builder_freshness' original.pk %}">Check freshness</a></li>
+<li><a href="{% url 'admin:resume_builder_ats_readiness' original.pk %}">Run ATS readiness</a></li>
+{% if original.status == 'approved' %}
+<li><a href="{% url 'admin:resume_builder_generate_export' original.pk 'pdf' %}">Generate PDF</a></li>
+<li><a href="{% url 'admin:resume_builder_generate_export' original.pk 'docx' %}">Generate DOCX</a></li>
+{% endif %}
+{% if has_pdf_export %}<li><a href="{% url 'admin:resume_builder_download_export' original.pk 'pdf' %}">Download PDF</a></li>{% endif %}
+{% if has_docx_export %}<li><a href="{% url 'admin:resume_builder_download_export' original.pk 'docx' %}">Download DOCX</a></li>{% endif %}
+<li><a href="{% url 'admin:resume_builder_version_action' original.pk 'clone' %}">Clone</a></li>
+{% endif %}
+{{ block.super }}
+{% endblock %}
