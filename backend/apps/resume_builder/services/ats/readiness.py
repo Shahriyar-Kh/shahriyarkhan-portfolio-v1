@@ -31,6 +31,33 @@ def _repeated_content_keywords(content):
     return repeated
 
 
+def _repeated_visible_values(content):
+    """Counts exact duplicate VISIBLE résumé lines - i.e. two different
+    `resume_content` items whose rendered text is identical. This is
+    deliberately scoped to what the résumé document actually shows, not
+    to `source_facts` (see _repeated_content_keywords for the sibling
+    within-one-line stuffing check, and score_readiness()'s docstring-
+    equivalent comment below for why source_facts must never feed this
+    metric)."""
+    texts = [str(item.get("text", "")).strip().casefold() for item in content.get("items", []) if str(item.get("text", "")).strip()]
+    return sum(count - 1 for count in Counter(texts).values() if count > 1)
+
+
+def _source_metadata_repetition(facts):
+    """A provenance/debug-only signal: how often the same VALUE recurs
+    anywhere across every source_facts claim, including fields that are
+    never individually rendered in the résumé (e.g. a Skill's category or
+    numeric level - real verified data routinely has many skills sharing
+    "Backend" or level 4, which is expected and not a content defect).
+    Intentionally NOT part of the scored categories - see
+    RESUME-SYSTEM-01B9.1: the old implementation fed this straight into
+    clarity_structure/keyword_quality, which penalized the underlying
+    evidence's shape rather than anything a reader or an ATS would ever
+    see."""
+    values = _values(facts)
+    return sum(count - 1 for count in Counter(value.casefold() for value in values if value).values() if count > 1)
+
+
 def score_readiness(version):
     facts = version.source_facts or {}
     content = version.resume_content or {}
@@ -47,9 +74,21 @@ def score_readiness(version):
             blockers.append(blocker)
     values = _values(facts)
     numbers = sum(bool(re.search(r"\b\d+(?:\.\d+)?%?\b", value)) for value in values)
-    repeated_claim_values = sum(count - 1 for count in Counter(value.casefold() for value in values if value).values() if count > 1)
+    # Résumé-quality repetition (feeds clarity_structure/keyword_quality
+    # below) is scored ONLY from what the document actually renders:
+    # duplicate visible lines, and keyword stuffing within one visible
+    # line. It must never be computed from source_facts, which also
+    # carries internal provenance metadata (e.g. Skill.category,
+    # Skill.level) that is never displayed and whose natural repetition
+    # (many real skills sharing "Backend" or level 4) is not a content
+    # defect. See RESUME-SYSTEM-01B9.1.
+    repeated_visible_values = _repeated_visible_values(content)
     repeated_content_keywords = _repeated_content_keywords(content)
-    repeated = repeated_claim_values + repeated_content_keywords
+    repeated = repeated_visible_values + repeated_content_keywords
+    # Provenance/debug-only signal - deliberately excluded from `repeated`
+    # and from every scored category. Exposed on the report for
+    # transparency/tooling, never used to reduce the score.
+    source_metadata_repetition = _source_metadata_repetition(facts)
     technical_claims = [
         item
         for item in _claims(facts)
@@ -103,4 +142,8 @@ def score_readiness(version):
         "category_evidence_ids": category_evidence_ids,
         "recommendations": recommendations,
         "disclaimer": DISCLAIMER,
+        # Diagnostic/integrity signal only - see _source_metadata_repetition().
+        # Never subtracted from `score` or any category; useful for owner/
+        # data-quality tooling (e.g. flagging near-duplicate Skill rows).
+        "source_metadata_repetition": source_metadata_repetition,
     }
