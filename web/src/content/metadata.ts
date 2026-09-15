@@ -54,7 +54,7 @@ export const ROUTE_METADATA_DEFAULTS: Record<string, RouteMetadataDefault> = {
     pageKey: "resume",
     title: "Résumé",
     description:
-      "Shahriyar Khan resume - experience, education, and core technical skills, with a direct PDF download and no unverifiable claims.",
+      "Shahriyar Khan resume - experience, education, and core technical skills, with downloadable PDF and DOCX résumés and no unverifiable claims.",
     keywords: "Shahriyar Khan resume, Shahriyar Khan CV, Django developer resume",
   },
   services: {

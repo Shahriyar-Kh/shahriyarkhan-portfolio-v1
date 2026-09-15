@@ -204,6 +204,30 @@ describe("apiGet/apiGetList/apiPost", () => {
     }
   });
 
+  it("apiGet with cache: 'no-store' passes that through to fetch and never sets next.revalidate", async () => {
+    const fetchSpy = vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: 1 }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchSpy);
+    const { apiGet } = await freshClient();
+
+    await apiGet("/api/v1/public/resume/default/", { cache: "no-store" });
+
+    const init = fetchSpy.mock.calls[0]?.[1] as RequestInit & { next?: unknown };
+    expect(init.cache).toBe("no-store");
+    expect(init.next).toBeUndefined();
+  });
+
+  it("apiGet without cache uses the revalidate-based next config, never a bare cache: 'no-store'", async () => {
+    const fetchSpy = vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: 1 }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchSpy);
+    const { apiGet } = await freshClient();
+
+    await apiGet("/api/v1/public/portfolio/projects/", { revalidate: 300 });
+
+    const init = fetchSpy.mock.calls[0]?.[1] as RequestInit & { next?: { revalidate?: number } };
+    expect(init.cache).toBeUndefined();
+    expect(init.next?.revalidate).toBe(300);
+  });
+
   it("apiPost never sends a GET-only retry", async () => {
     const fetchSpy = vi.fn().mockResolvedValue(new Response("", { status: 500 }));
     vi.stubGlobal("fetch", fetchSpy);

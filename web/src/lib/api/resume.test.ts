@@ -37,3 +37,15 @@ describe("getDefaultResume", () => {
     expect(fetchSpy.mock.calls[0]?.[0]).toBe("https://api.example.test/api/v1/public/resume/default/");
   });
 });
+
+describe("getResumeDownloadUrl", () => {
+  beforeEach(() => {
+    process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
+  });
+
+  it("builds the stable current-master download URL through the centralized API base URL, per format", async () => {
+    const { getResumeDownloadUrl } = await freshResume();
+    expect(getResumeDownloadUrl("pdf")).toBe("https://api.example.test/api/v1/public/resume/default/download/pdf/");
+    expect(getResumeDownloadUrl("docx")).toBe("https://api.example.test/api/v1/public/resume/default/download/docx/");
+  });
+});
