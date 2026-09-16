@@ -209,6 +209,47 @@ describe("ResumeView (published snapshot)", () => {
       expect(headings[i]! - headings[i - 1]!).toBeLessThanOrEqual(1);
     }
   });
+
+  // RESUME-UX-01: the résumé is presented as a professional document with
+  // download actions repeated at the end, not only at the top.
+  it("labels the page as the current Master Resume", () => {
+    render(<ResumeView state={PUBLISHED_STATE} />);
+    expect(screen.getByText("Master Resume")).toBeInTheDocument();
+  });
+
+  it("repeats both download actions at the end of the résumé preview, distinct from the top buttons", () => {
+    render(<ResumeView state={PUBLISHED_STATE} />);
+
+    // Exactly one top-of-page match for each simple name (would throw on
+    // getByRole if the bottom CTA collided with this pattern).
+    const topPdf = screen.getByRole("link", { name: /^download pdf$/i });
+    const topDocx = screen.getByRole("link", { name: /^download docx$/i });
+    const bottomPdf = screen.getByRole("link", { name: /download ats resume.*pdf/i });
+    const bottomDocx = screen.getByRole("link", { name: /download editable resume.*docx/i });
+
+    expect(topPdf).toHaveAttribute("href", expect.stringContaining("/api/v1/public/resume/default/download/pdf"));
+    expect(topDocx).toHaveAttribute("href", expect.stringContaining("/api/v1/public/resume/default/download/docx"));
+    expect(bottomPdf).toHaveAttribute("href", topPdf.getAttribute("href"));
+    expect(bottomDocx).toHaveAttribute("href", topDocx.getAttribute("href"));
+    expect(bottomPdf).not.toBe(topPdf);
+  });
+
+  it("omits the repeated bottom CTA when neither format is available", () => {
+    const state: PublishedResumePageState = { ...PUBLISHED_STATE, downloads: { pdf: false, docx: false } };
+    render(<ResumeView state={state} />);
+    expect(screen.queryByText(/download ats resume/i)).not.toBeInTheDocument();
+  });
+
+  it("offers a non-intrusive recruiter contact CTA after the résumé preview", () => {
+    render(<ResumeView state={PUBLISHED_STATE} />);
+    const link = screen.getByRole("link", { name: /contact shahriyar/i });
+    expect(link).toHaveAttribute("href", "/contact");
+  });
+
+  it("presents the résumé content inside a distinct document surface", () => {
+    const { container } = render(<ResumeView state={PUBLISHED_STATE} />);
+    expect(container.querySelector(".surface-elevated")).toBeInTheDocument();
+  });
 });
 
 describe("ResumeView (no-published-master fallback)", () => {
@@ -238,6 +279,11 @@ describe("ResumeView (no-published-master fallback)", () => {
   it("renders exactly one h1 in the fallback state too", () => {
     render(<ResumeView state={FALLBACK_STATE} />);
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+  });
+
+  it("does not show the recruiter contact CTA for the unapproved fallback content", () => {
+    render(<ResumeView state={FALLBACK_STATE} />);
+    expect(screen.queryByRole("link", { name: /contact shahriyar/i })).not.toBeInTheDocument();
   });
 });
 
