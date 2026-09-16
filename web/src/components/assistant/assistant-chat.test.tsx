@@ -11,6 +11,21 @@ import { postAssistantQuery } from "@/lib/api";
 
 const postAssistantQueryMock = vi.mocked(postAssistantQuery);
 
+function projectResponse() {
+  return {
+    ok: true as const,
+    data: {
+      answer: "Based on the published portfolio: Yango Wing Fleet - a fleet management platform.",
+      intent: "PROJECTS" as const,
+      sources: [{ source_id: "project:yango-wing-fleet", type: "project", title: "Yango Wing Fleet", public_path: "/work/yango-wing-fleet" }],
+      recommended_projects: ["yango-wing-fleet"],
+      recommended_services: [],
+      handoff: { active: false, reason: null },
+      remaining_requests: 39,
+    },
+  };
+}
+
 describe("AssistantChat", () => {
   beforeEach(() => {
     postAssistantQueryMock.mockReset();
@@ -26,15 +41,52 @@ describe("AssistantChat", () => {
     expect(screen.getByText(/what does shahriyar specialize in\?/i)).toBeInTheDocument();
   });
 
-  it("clicking a starter question sends it and renders the grounded answer", async () => {
+  it("clicking a starter question sends it and renders a grounded project recommendation", async () => {
+    postAssistantQueryMock.mockResolvedValue(projectResponse());
+    const user = userEvent.setup();
+    render(<AssistantChat onStartProject={vi.fn()} />);
+
+    await user.click(screen.getByText(/show me relevant django projects\./i));
+
+    expect(await screen.findByText(/yango wing fleet - a fleet management platform/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /view case study/i })).toHaveAttribute("href", "/work/yango-wing-fleet");
+    expect(screen.getByRole("button", { name: /ask about this project/i })).toBeInTheDocument();
+  });
+
+  it("asks a grounded follow-up when the visitor chooses Ask about this project", async () => {
+    postAssistantQueryMock
+      .mockResolvedValueOnce(projectResponse())
+      .mockResolvedValueOnce({
+        ok: true,
+        data: {
+          answer: "Yango Wing Fleet is a published portfolio project.",
+          intent: "PROJECTS",
+          sources: [{ source_id: "project:yango-wing-fleet", type: "project", title: "Yango Wing Fleet", public_path: "/work/yango-wing-fleet" }],
+          recommended_projects: ["yango-wing-fleet"],
+          recommended_services: [],
+          handoff: { active: false, reason: null },
+          remaining_requests: 38,
+        },
+      });
+    const user = userEvent.setup();
+    render(<AssistantChat onStartProject={vi.fn()} />);
+
+    await user.click(screen.getByText(/show me relevant django projects\./i));
+    await user.click(await screen.findByRole("button", { name: /ask about this project/i }));
+
+    await waitFor(() => expect(postAssistantQueryMock).toHaveBeenCalledTimes(2));
+    expect(postAssistantQueryMock.mock.calls[1]?.[0].message).toMatch(/tell me more about the yango wing fleet project/i);
+  });
+
+  it("renders recommended services as real service links", async () => {
     postAssistantQueryMock.mockResolvedValue({
       ok: true,
       data: {
-        answer: "Based on the published portfolio: Yango Wing Fleet - a fleet management platform.",
-        intent: "PROJECTS",
-        sources: [{ source_id: "project:yango-wing-fleet", type: "project", title: "Yango Wing Fleet", public_path: "/work/yango-wing-fleet" }],
-        recommended_projects: ["yango-wing-fleet"],
-        recommended_services: [],
+        answer: "A relevant published service is Full-Stack Web Development.",
+        intent: "SERVICES",
+        sources: [{ source_id: "service:full-stack-web-development", type: "service", title: "Full-Stack Web Development", public_path: "/services/full-stack-web-development" }],
+        recommended_projects: [],
+        recommended_services: ["full-stack-web-development"],
         handoff: { active: false, reason: null },
         remaining_requests: 39,
       },
@@ -42,10 +94,11 @@ describe("AssistantChat", () => {
     const user = userEvent.setup();
     render(<AssistantChat onStartProject={vi.fn()} />);
 
-    await user.click(screen.getByText(/show me relevant django projects\./i));
+    const textbox = screen.getByRole("textbox", { name: /ask a question/i });
+    await user.type(textbox, "What services are relevant?");
+    await user.click(screen.getByRole("button", { name: /^ask$/i }));
 
-    expect(await screen.findByText(/yango wing fleet - a fleet management platform/i)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /view project: yango wing fleet/i })).toHaveAttribute("href", "/work/yango-wing-fleet");
+    expect(await screen.findByRole("link", { name: /full-stack web development/i })).toHaveAttribute("href", "/services/full-stack-web-development");
   });
 
   it("renders the insufficient-evidence state distinctly, without inventing a source", async () => {
