@@ -126,18 +126,19 @@ const FALLBACK_STATE: FallbackResumePageState = {
 };
 
 describe("ResumeView (published snapshot)", () => {
-  it("renders exactly one h1 with the snapshot name and title as its subtitle", () => {
+  it("renders exactly one h1 with the snapshot name and title", () => {
     render(<ResumeView state={PUBLISHED_STATE} />);
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Jordan Ashworth");
     expect(screen.getByText("Software Engineer | Python & Django Full-Stack Developer")).toBeInTheDocument();
   });
 
-  it("renders sections in exactly the snapshot's order, including the summary heading", () => {
+  it("renders sections in exactly the snapshot's order after the document preview heading", () => {
     const { container } = render(<ResumeView state={PUBLISHED_STATE} />);
     const headings = Array.from(container.querySelectorAll("h1, h2")).map((el) => el.textContent);
     expect(headings).toEqual([
       "Jordan Ashworth",
+      "Professional profile",
       "PROFESSIONAL SUMMARY",
       "SKILLS",
       "EXPERIENCE",
@@ -154,12 +155,15 @@ describe("ResumeView (published snapshot)", () => {
     expect(screen.getByText("SKILLS")).toBeInTheDocument();
   });
 
-  it("shows both download buttons when both formats are available, linking to the stable backend routes", () => {
+  it("shows one download action group with both real backend formats", () => {
     render(<ResumeView state={PUBLISHED_STATE} />);
-    const pdfLink = screen.getByRole("link", { name: /download pdf/i });
-    const docxLink = screen.getByRole("link", { name: /download docx/i });
-    expect(pdfLink).toHaveAttribute("href", expect.stringContaining("/api/v1/public/resume/default/download/pdf"));
-    expect(docxLink).toHaveAttribute("href", expect.stringContaining("/api/v1/public/resume/default/download/docx"));
+    expect(screen.getAllByLabelText("Resume downloads")).toHaveLength(1);
+    const pdfLinks = screen.getAllByRole("link", { name: /download pdf/i });
+    const docxLinks = screen.getAllByRole("link", { name: /download docx/i });
+    expect(pdfLinks).toHaveLength(1);
+    expect(docxLinks).toHaveLength(1);
+    expect(pdfLinks[0]).toHaveAttribute("href", expect.stringContaining("/api/v1/public/resume/default/download/pdf"));
+    expect(docxLinks[0]).toHaveAttribute("href", expect.stringContaining("/api/v1/public/resume/default/download/docx"));
   });
 
   it("shows only the available format when just one export exists", () => {
@@ -183,7 +187,7 @@ describe("ResumeView (published snapshot)", () => {
     expect(container.innerHTML).not.toContain(RESUME_PDF_PATH);
   });
 
-  it("renders an embedded snapshot link (e.g. a certification credential) as a safe external link", () => {
+  it("renders an embedded snapshot link as a safe external link", () => {
     render(<ResumeView state={PUBLISHED_STATE} />);
     const link = screen.getByRole("link", { name: "Verified Secure Software Practitioner" });
     expect(link).toHaveAttribute("target", "_blank");
@@ -210,45 +214,26 @@ describe("ResumeView (published snapshot)", () => {
     }
   });
 
-  // RESUME-UX-01: the résumé is presented as a professional document with
-  // download actions repeated at the end, not only at the top.
-  it("labels the page as the current Master Resume", () => {
+  it("labels the page as Resume and presents the approved document as a distinct preview", () => {
     render(<ResumeView state={PUBLISHED_STATE} />);
-    expect(screen.getByText("Master Resume")).toBeInTheDocument();
+    expect(screen.getByText(/^Resume$/)).toBeInTheDocument();
+    expect(screen.getByText(/resume document/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/resume document preview/i)).toBeInTheDocument();
+    expect(screen.getByText(/published master · ats-ready pdf \+ docx/i)).toBeInTheDocument();
   });
 
-  it("repeats both download actions at the end of the résumé preview, distinct from the top buttons", () => {
+  it("does not repeat PDF or DOCX download actions after the document", () => {
     render(<ResumeView state={PUBLISHED_STATE} />);
-
-    // Exactly one top-of-page match for each simple name (would throw on
-    // getByRole if the bottom CTA collided with this pattern).
-    const topPdf = screen.getByRole("link", { name: /^download pdf$/i });
-    const topDocx = screen.getByRole("link", { name: /^download docx$/i });
-    const bottomPdf = screen.getByRole("link", { name: /download ats resume.*pdf/i });
-    const bottomDocx = screen.getByRole("link", { name: /download editable resume.*docx/i });
-
-    expect(topPdf).toHaveAttribute("href", expect.stringContaining("/api/v1/public/resume/default/download/pdf"));
-    expect(topDocx).toHaveAttribute("href", expect.stringContaining("/api/v1/public/resume/default/download/docx"));
-    expect(bottomPdf).toHaveAttribute("href", topPdf.getAttribute("href"));
-    expect(bottomDocx).toHaveAttribute("href", topDocx.getAttribute("href"));
-    expect(bottomPdf).not.toBe(topPdf);
-  });
-
-  it("omits the repeated bottom CTA when neither format is available", () => {
-    const state: PublishedResumePageState = { ...PUBLISHED_STATE, downloads: { pdf: false, docx: false } };
-    render(<ResumeView state={state} />);
+    expect(screen.getAllByRole("link", { name: /download pdf/i })).toHaveLength(1);
+    expect(screen.getAllByRole("link", { name: /download docx/i })).toHaveLength(1);
     expect(screen.queryByText(/download ats resume/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/download editable resume/i)).not.toBeInTheDocument();
   });
 
-  it("offers a non-intrusive recruiter contact CTA after the résumé preview", () => {
+  it("offers a recruiter-oriented contact CTA after the résumé preview", () => {
     render(<ResumeView state={PUBLISHED_STATE} />);
-    const link = screen.getByRole("link", { name: /contact shahriyar/i });
-    expect(link).toHaveAttribute("href", "/contact");
-  });
-
-  it("presents the résumé content inside a distinct document surface", () => {
-    const { container } = render(<ResumeView state={PUBLISHED_STATE} />);
-    expect(container.querySelector(".surface-elevated")).toBeInTheDocument();
+    const link = screen.getByRole("link", { name: /discuss a role/i });
+    expect(link).toHaveAttribute("href", "/contact?intent=hiring");
   });
 });
 
@@ -260,7 +245,7 @@ describe("ResumeView (no-published-master fallback)", () => {
 
   it("renders live-sourced sections with a real project link and skill level badge", () => {
     render(<ResumeView state={FALLBACK_STATE} />);
-    expect(screen.getByRole("link", { name: "Portfolio Résumé Platform" })).toHaveAttribute("href", "/work/portfolio-resume-platform");
+    expect(screen.getByRole("link", { name: /portfolio résumé platform/i })).toHaveAttribute("href", "/work/portfolio-resume-platform");
     expect(screen.getByText(/Django · Expert/)).toBeInTheDocument();
   });
 
@@ -283,12 +268,10 @@ describe("ResumeView (no-published-master fallback)", () => {
 
   it("does not show the recruiter contact CTA for the unapproved fallback content", () => {
     render(<ResumeView state={FALLBACK_STATE} />);
-    expect(screen.queryByRole("link", { name: /contact shahriyar/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /discuss a role/i })).not.toBeInTheDocument();
   });
 });
 
-// Exercised only to prove the discriminated union type is exhaustive at
-// the type level - not rendered.
 function _typeExhaustivenessCheck(state: ResumePageState) {
   if (state.usedFallback) return state.contactEmail;
   return state.sections;
