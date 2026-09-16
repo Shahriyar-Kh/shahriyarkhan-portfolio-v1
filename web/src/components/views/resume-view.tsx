@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { ExternalLink } from "@/components/ui/external-link";
 import { Icon } from "@/components/ui/icon";
 import { Section } from "@/components/ui/section";
-import { SectionHeading } from "@/components/ui/section-heading";
 import { getResumeDownloadUrl } from "@/lib/api/resume";
 import { SKILL_LEVEL_LABELS } from "@/lib/api/types";
 import type { ResumeDocumentLine } from "@/lib/api/types";
@@ -35,50 +34,30 @@ function DocumentLine({ line }: { line: ResumeDocumentLine }) {
   );
 }
 
-function DownloadButtons({ downloads }: { downloads: ResumePageState["downloads"] }) {
+function DownloadButtons({ downloads, onInk = false }: { downloads: ResumePageState["downloads"]; onInk?: boolean }) {
   if (!downloads.pdf && !downloads.docx) return null;
   return (
-    <div className="flex flex-wrap gap-3">
+    <div className="flex flex-wrap gap-3" aria-label="Resume downloads">
       {downloads.pdf && (
-        <Button href={getResumeDownloadUrl("pdf")} size="lg" data-analytics-event="resume_download_pdf">
+        <Button
+          href={getResumeDownloadUrl("pdf")}
+          size="lg"
+          variant={onInk ? "primary-on-ink" : "primary"}
+          data-analytics-event="resume_download_pdf"
+        >
           <Icon.Download size={18} aria-hidden />
           Download PDF
         </Button>
       )}
       {downloads.docx && (
-        <Button href={getResumeDownloadUrl("docx")} variant="secondary" size="lg" data-analytics-event="resume_download_docx">
+        <Button
+          href={getResumeDownloadUrl("docx")}
+          variant={onInk ? "secondary-on-ink" : "secondary"}
+          size="lg"
+          data-analytics-event="resume_download_docx"
+        >
           <Icon.Download size={18} aria-hidden />
           Download DOCX
-        </Button>
-      )}
-    </div>
-  );
-}
-
-/**
- * RESUME-UX-01: the same real download links as DownloadButtons above,
- * repeated at the end of the résumé preview so a visitor never has to
- * scroll back to the top to find them. Deliberately different accessible
- * names ("Download ATS Resume — PDF", not "Download PDF") so this can
- * never collide with the single-match `getByRole(..., { name: /download
- * pdf/i })` assertions the top buttons are tested with - both sets of
- * links point at the identical stable backend routes and carry the same
- * analytics events, since a click here is the same real action.
- */
-function RepeatedDownloadCta({ downloads }: { downloads: ResumePageState["downloads"] }) {
-  if (!downloads.pdf && !downloads.docx) return null;
-  return (
-    <div className="mt-10 flex flex-col gap-3 border-t border-border pt-8 sm:flex-row sm:flex-wrap">
-      {downloads.pdf && (
-        <Button href={getResumeDownloadUrl("pdf")} size="lg" data-analytics-event="resume_download_pdf">
-          <Icon.Download size={18} aria-hidden />
-          Download ATS Resume — PDF
-        </Button>
-      )}
-      {downloads.docx && (
-        <Button href={getResumeDownloadUrl("docx")} variant="secondary" size="lg" data-analytics-event="resume_download_docx">
-          <Icon.Download size={18} aria-hidden />
-          Download Editable Resume — DOCX
         </Button>
       )}
     </div>
@@ -88,26 +67,23 @@ function RepeatedDownloadCta({ downloads }: { downloads: ResumePageState["downlo
 function UnavailableNotice({ state }: { state: ResumePageState }) {
   if (state.downloads.pdf || state.downloads.docx) return null;
   if (state.usedFallback) return null;
-  return <p className="mt-4 text-caption-sm text-ink-hint">A downloadable résumé document is not available right now.</p>;
+  return <p className="mt-5 text-caption-sm text-paper-tertiary">A downloadable résumé document is not available right now.</p>;
 }
 
 /**
- * Renders the immutable published snapshot's `document` DTO (B7-RC
- * correction 1) - name, professional title, contact lines, and sections
- * in exactly the order/heading normalize_resume() produced for the
- * PDF/DOCX (empty sections are already omitted server-side). No project
- * slugs, skill levels, or structured dates exist in this flat
- * presentation text - it is deliberately the same words the approved
- * documents contain, not a live-data-enriched view.
+ * Renders the immutable published snapshot's `document` DTO - exactly the
+ * words that were approved and exported, with only presentation changed
+ * here. The document itself stays deliberately conservative: a white,
+ * single-column recruiter/ATS-style surface inside the branded website.
  */
 function PublishedResumeSections({ state }: { state: Extract<ResumePageState, { source: "default_version" }> }) {
   return (
     <>
       {state.sections.map((section, index) => (
-        <div key={section.key} className={cn("py-8 sm:py-10", index > 0 && "border-t border-border")}>
-          <h2 className="text-label text-ink-tertiary uppercase tracking-wide">{section.heading}</h2>
+        <section key={section.key} className={cn("py-7 sm:py-8", index > 0 && "border-t border-border")}>
+          <h2 className="font-mono text-caption-sm font-semibold uppercase tracking-[0.12em] text-primary">{section.heading}</h2>
           {section.key === "summary" ? (
-            <div className="mt-4 flex max-w-2xl flex-col gap-3 text-body text-ink-secondary">
+            <div className="mt-3 flex max-w-3xl flex-col gap-3 text-body-sm leading-relaxed text-ink-secondary sm:text-body">
               {section.items.map((item, itemIndex) => (
                 <p key={itemIndex} className="break-words">
                   <DocumentLine line={item} />
@@ -115,26 +91,24 @@ function PublishedResumeSections({ state }: { state: Extract<ResumePageState, { 
               ))}
             </div>
           ) : (
-            <ul className="mt-4 flex flex-col gap-2.5">
+            <ul className="mt-3 flex list-disc flex-col gap-2.5 pl-5 marker:text-primary/70">
               {section.items.map((item, itemIndex) => (
-                <li key={itemIndex} className="break-words text-body-sm text-ink-secondary">
+                <li key={itemIndex} className="break-words pl-1 text-body-sm leading-relaxed text-ink-secondary">
                   <DocumentLine line={item} />
                 </li>
               ))}
             </ul>
           )}
-        </div>
+        </section>
       ))}
     </>
   );
 }
 
 /**
- * No valid published default master exists - composed from the current
- * live, published portfolio lists (see resume-page-state.ts). Uses
- * structured project/skill/experience/education data (with real
- * project links and skill levels) since there is no approved snapshot
- * to defer to here.
+ * No valid published default master exists - composed from current live,
+ * published portfolio records. This path remains visibly marked as a
+ * fallback and never pretends to be the approved generated résumé.
  */
 function FallbackResumeSections({ state }: { state: Extract<ResumePageState, { source: "composed_from_lists" }> }) {
   const sections = [
@@ -149,8 +123,8 @@ function FallbackResumeSections({ state }: { state: Extract<ResumePageState, { s
   return (
     <>
       {state.skills.length > 0 && (
-        <div className={cn("py-8 sm:py-10", firstVisibleIndex !== 0 && "border-t border-border")}>
-          <h2 className="text-label text-ink-tertiary uppercase tracking-wide">Technical skills</h2>
+        <section className={cn("py-7 sm:py-8", firstVisibleIndex !== 0 && "border-t border-border")}>
+          <h2 className="font-mono text-caption-sm font-semibold uppercase tracking-[0.12em] text-primary">Technical skills</h2>
           <ul className="mt-4 flex flex-wrap gap-2">
             {state.skills.map((skill) => (
               <li key={skill.id}>
@@ -160,12 +134,12 @@ function FallbackResumeSections({ state }: { state: Extract<ResumePageState, { s
               </li>
             ))}
           </ul>
-        </div>
+        </section>
       )}
 
       {state.experiences.length > 0 && (
-        <div className={cn("py-8 sm:py-10", firstVisibleIndex !== 1 && "border-t border-border")}>
-          <h2 className="text-label text-ink-tertiary uppercase tracking-wide">Professional experience</h2>
+        <section className={cn("py-7 sm:py-8", firstVisibleIndex !== 1 && "border-t border-border")}>
+          <h2 className="font-mono text-caption-sm font-semibold uppercase tracking-[0.12em] text-primary">Professional experience</h2>
           <ol className="mt-4 flex flex-col gap-6 border-l border-border pl-6">
             {state.experiences.map((role) => (
               <li key={role.id} className="relative">
@@ -177,27 +151,27 @@ function FallbackResumeSections({ state }: { state: Extract<ResumePageState, { s
               </li>
             ))}
           </ol>
-        </div>
+        </section>
       )}
 
       {state.projects.length > 0 && (
-        <div className={cn("py-8 sm:py-10", firstVisibleIndex !== 2 && "border-t border-border")}>
-          <h2 className="text-label text-ink-tertiary uppercase tracking-wide">Selected projects</h2>
+        <section className={cn("py-7 sm:py-8", firstVisibleIndex !== 2 && "border-t border-border")}>
+          <h2 className="font-mono text-caption-sm font-semibold uppercase tracking-[0.12em] text-primary">Selected projects</h2>
           <ul className="mt-4 flex flex-col gap-2">
             {state.projects.map((project) => (
               <li key={project.id}>
-                <Link href={`/work/${project.slug}`} className="break-words text-body-sm text-primary hover:underline">
-                  {project.title}
+                <Link href={`/work/${project.slug}`} className="inline-flex items-center gap-1 break-words text-body-sm font-medium text-primary hover:underline">
+                  {project.title} <Icon.ArrowRight size={13} aria-hidden />
                 </Link>
               </li>
             ))}
           </ul>
-        </div>
+        </section>
       )}
 
       {state.education.length > 0 && (
-        <div className={cn("py-8 sm:py-10", firstVisibleIndex !== 3 && "border-t border-border")}>
-          <h2 className="text-label text-ink-tertiary uppercase tracking-wide">Education</h2>
+        <section className={cn("py-7 sm:py-8", firstVisibleIndex !== 3 && "border-t border-border")}>
+          <h2 className="font-mono text-caption-sm font-semibold uppercase tracking-[0.12em] text-primary">Education</h2>
           <ul className="mt-4 flex flex-col gap-4">
             {state.education.map((item) => (
               <li key={item.id}>
@@ -209,12 +183,12 @@ function FallbackResumeSections({ state }: { state: Extract<ResumePageState, { s
               </li>
             ))}
           </ul>
-        </div>
+        </section>
       )}
 
       {state.certifications.length > 0 && (
-        <div className={cn("py-8 sm:py-10", firstVisibleIndex !== 4 && "border-t border-border")}>
-          <h2 className="text-label text-ink-tertiary uppercase tracking-wide">Verified certifications</h2>
+        <section className={cn("py-7 sm:py-8", firstVisibleIndex !== 4 && "border-t border-border")}>
+          <h2 className="font-mono text-caption-sm font-semibold uppercase tracking-[0.12em] text-primary">Verified certifications</h2>
           <ul className="mt-4 flex flex-col gap-4">
             {state.certifications.map((cert) => (
               <li key={cert.id}>
@@ -235,18 +209,21 @@ function FallbackResumeSections({ state }: { state: Extract<ResumePageState, { s
               </li>
             ))}
           </ul>
-        </div>
+        </section>
       )}
     </>
   );
 }
 
-function ContactRow({ state }: { state: ResumePageState }) {
+function ContactRow({ state, onInk = false }: { state: ResumePageState; onInk?: boolean }) {
+  const tone = onInk ? "text-paper-secondary" : "text-ink-secondary";
+  const hover = onInk ? "hover:text-paper-primary" : "hover:text-ink-primary";
+
   if (!state.usedFallback) {
     return (
-      <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-body-sm text-ink-secondary">
+      <div className={cn("mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-caption-sm sm:text-body-sm", tone)}>
         {state.contacts.map((line, index) => (
-          <span key={index as Key}>
+          <span key={index as Key} className="break-words">
             <DocumentLine line={line} />
           </span>
         ))}
@@ -254,13 +231,13 @@ function ContactRow({ state }: { state: ResumePageState }) {
     );
   }
   return (
-    <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-body-sm text-ink-secondary">
-      <a href={`mailto:${state.contactEmail}`} className="hover:text-ink-primary">
+    <div className={cn("mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-caption-sm sm:text-body-sm", tone)}>
+      <a href={`mailto:${state.contactEmail}`} className={hover}>
         {state.contactEmail}
       </a>
       {state.contactLocation && <span>{state.contactLocation}</span>}
       {state.contactLinks.map((link) => (
-        <ExternalLink key={link.label} href={link.href} className="hover:text-ink-primary">
+        <ExternalLink key={link.label} href={link.href} className={hover}>
           {link.label}
         </ExternalLink>
       ))}
@@ -271,60 +248,62 @@ function ContactRow({ state }: { state: ResumePageState }) {
 function fallbackNotice(state: ResumePageState): ReactNode {
   if (!state.usedFallback) return null;
   return (
-    <p className="mt-4 text-caption-sm text-ink-hint">
-      Composed from the live, published employment and education record below - not an approved generated résumé
-      document.
+    <p className="mt-5 max-w-2xl text-caption-sm text-paper-tertiary">
+      Composed from the live, published employment and education record below — not an approved generated résumé document.
     </p>
   );
 }
 
 /**
- * B7-RC: when a valid published default master exists, every fact shown
- * comes from its immutable snapshot (state.source === "default_version"
- * - see resume-page-state.ts); live SiteSetting/portfolio edits made
- * after publish can never change it. Download buttons appear only when
- * the backend confirms a real, structurally valid artifact exists right
- * now, resolved by the same policy the download endpoint itself uses.
- * They are real native anchors to the stable backend route - no blob, no
- * manual tracking call (a successful GET is tracked server-side). The
- * old bundled static PDF is deliberately never linked here.
+ * The web page deliberately has two layers: a branded portfolio hero and
+ * a restrained white résumé document. The immutable approved snapshot is
+ * still the only source for a published résumé; this component changes
+ * presentation only, never facts or governance.
  */
 export function ResumeView({ state }: ResumeViewProps) {
   return (
     <>
-      <Section shell="readable" className="pt-16 pb-4 sm:pt-20">
-        <div className="flex flex-wrap items-end justify-between gap-6">
-          <SectionHeading as="h1" eyebrow="Master Resume" title={state.name} subtitle={state.professionalTitle || undefined} />
+      <Section shell="readable" className="border-b border-border-on-ink bg-ink">
+        <div className="grid gap-8 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+          <div className="min-w-0">
+            <p className="font-mono text-label uppercase tracking-[0.12em] text-primary-on-ink">Resume</p>
+            <h1 className="mt-3 break-words font-heading text-display-sm text-paper-primary sm:text-display-md">{state.name}</h1>
+            {state.professionalTitle && <p className="mt-3 max-w-2xl text-body text-paper-secondary">{state.professionalTitle}</p>}
+            <p className="mt-4 max-w-2xl text-body-sm leading-relaxed text-paper-tertiary">
+              Current master résumé with verified portfolio experience, projects, education, and ATS-safe downloadable formats.
+            </p>
+            <ContactRow state={state} onInk />
+            {fallbackNotice(state)}
+            <UnavailableNotice state={state} />
+          </div>
+
+          <div className="flex flex-col items-start gap-3 sm:items-end">
+            <p className="font-mono text-caption-sm uppercase tracking-[0.12em] text-paper-tertiary">Recruiter copy</p>
+            <DownloadButtons downloads={state.downloads} onInk />
+          </div>
         </div>
-        <p className="mt-3 max-w-2xl text-body-sm text-ink-hint">
-          The current portfolio résumé — kept in sync with verified experience and optimized for applicant tracking
-          systems.
-        </p>
-
-        <ContactRow state={state} />
-
-        <div className="mt-6">
-          <DownloadButtons downloads={state.downloads} />
-        </div>
-
-        {fallbackNotice(state)}
-        <UnavailableNotice state={state} />
       </Section>
 
-      <Section shell="readable" className="pt-4 pb-16 sm:pb-20">
-        <div className="surface-elevated px-6 py-8 sm:px-10 sm:py-10">
-          {state.usedFallback ? <FallbackResumeSections state={state} /> : <PublishedResumeSections state={state} />}
-          <RepeatedDownloadCta downloads={state.downloads} />
+      <Section shell="readable" className="bg-paper-primary">
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-border pb-4">
+          <div>
+            <p className="font-mono text-caption-sm uppercase tracking-[0.12em] text-ink-hint">Resume document</p>
+            <h2 className="mt-1 font-heading text-headline-md text-ink-primary">Professional profile</h2>
+          </div>
+          {!state.usedFallback && <p className="text-caption-sm text-ink-hint">Published master · ATS-ready PDF + DOCX</p>}
         </div>
 
+        <article className="border border-border bg-white px-5 py-7 shadow-md sm:px-9 sm:py-9" aria-label="Resume document preview">
+          {state.usedFallback ? <FallbackResumeSections state={state} /> : <PublishedResumeSections state={state} />}
+        </article>
+
         {!state.usedFallback && (
-          <p className="mt-8 text-body-sm text-ink-hint">
-            Have a role in mind?{" "}
-            <Link href="/contact" className="text-ink-primary hover:underline">
-              Contact Shahriyar
-            </Link>
-            .
-          </p>
+          <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6">
+            <p className="max-w-2xl text-body-sm text-ink-hint">Reviewing for a role or project? The contact page is the fastest way to share the context.</p>
+            <Button href="/contact?intent=hiring" variant="secondary" data-analytics-event="recruiter_cta_click">
+              Discuss a role <Icon.ArrowRight size={14} aria-hidden />
+            </Button>
+          </div>
         )}
       </Section>
     </>
