@@ -37,7 +37,7 @@ function DocumentLine({ line }: { line: ResumeDocumentLine }) {
 function DownloadButtons({ downloads, onInk = false }: { downloads: ResumePageState["downloads"]; onInk?: boolean }) {
   if (!downloads.pdf && !downloads.docx) return null;
   return (
-    <div className="flex flex-wrap gap-3" aria-label="Resume downloads">
+    <div className="flex flex-wrap justify-center gap-3" aria-label="Resume downloads">
       {downloads.pdf && (
         <Button
           href={getResumeDownloadUrl("pdf")}
@@ -73,8 +73,8 @@ function UnavailableNotice({ state }: { state: ResumePageState }) {
 /**
  * Renders the immutable published snapshot's `document` DTO - exactly the
  * words that were approved and exported, with only presentation changed
- * here. The document itself stays deliberately conservative: a white,
- * single-column recruiter/ATS-style surface inside the branded website.
+ * here. The document remains a conservative white, single-column surface
+ * inside the branded portfolio page.
  */
 function PublishedResumeSections({ state }: { state: Extract<ResumePageState, { source: "default_version" }> }) {
   return (
@@ -106,7 +106,7 @@ function PublishedResumeSections({ state }: { state: Extract<ResumePageState, { 
 }
 
 /**
- * No valid published default master exists - composed from current live,
+ * No valid published default exists - composed from current live,
  * published portfolio records. This path remains visibly marked as a
  * fallback and never pretends to be the approved generated résumé.
  */
@@ -215,13 +215,18 @@ function FallbackResumeSections({ state }: { state: Extract<ResumePageState, { s
   );
 }
 
-function ContactRow({ state, onInk = false }: { state: ResumePageState; onInk?: boolean }) {
+function ContactRow({ state, onInk = false, centered = false }: { state: ResumePageState; onInk?: boolean; centered?: boolean }) {
   const tone = onInk ? "text-paper-secondary" : "text-ink-secondary";
   const hover = onInk ? "hover:text-paper-primary" : "hover:text-ink-primary";
+  const layout = cn(
+    "mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-caption-sm sm:text-body-sm",
+    centered && "justify-center",
+    tone,
+  );
 
   if (!state.usedFallback) {
     return (
-      <div className={cn("mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-caption-sm sm:text-body-sm", tone)}>
+      <div className={layout}>
         {state.contacts.map((line, index) => (
           <span key={index as Key} className="break-words">
             <DocumentLine line={line} />
@@ -231,7 +236,7 @@ function ContactRow({ state, onInk = false }: { state: ResumePageState; onInk?: 
     );
   }
   return (
-    <div className={cn("mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-caption-sm sm:text-body-sm", tone)}>
+    <div className={layout}>
       <a href={`mailto:${state.contactEmail}`} className={hover}>
         {state.contactEmail}
       </a>
@@ -255,42 +260,34 @@ function fallbackNotice(state: ResumePageState): ReactNode {
 }
 
 /**
- * The web page deliberately has two layers: a branded portfolio hero and
- * a restrained white résumé document. The immutable approved snapshot is
- * still the only source for a published résumé; this component changes
- * presentation only, never facts or governance.
+ * The web page has two deliberate layers: a concise branded portfolio
+ * introduction and a restrained white résumé document. The approved
+ * snapshot remains the only source for published résumé facts.
  */
 export function ResumeView({ state }: ResumeViewProps) {
   return (
     <>
       <Section shell="readable" className="border-b border-border-on-ink bg-ink">
-        <div className="grid gap-8 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-          <div className="min-w-0">
-            <p className="font-mono text-label uppercase tracking-[0.12em] text-primary-on-ink">Resume</p>
-            <h1 className="mt-3 break-words font-heading text-display-sm text-paper-primary sm:text-display-md">{state.name}</h1>
-            {state.professionalTitle && <p className="mt-3 max-w-2xl text-body text-paper-secondary">{state.professionalTitle}</p>}
-            <p className="mt-4 max-w-2xl text-body-sm leading-relaxed text-paper-tertiary">
-              Current master résumé with verified portfolio experience, projects, education, and ATS-safe downloadable formats.
-            </p>
-            <ContactRow state={state} onInk />
-            {fallbackNotice(state)}
-            <UnavailableNotice state={state} />
-          </div>
-
-          <div className="flex flex-col items-start gap-3 sm:items-end">
-            <p className="font-mono text-caption-sm uppercase tracking-[0.12em] text-paper-tertiary">Recruiter copy</p>
+        <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
+          <p className="font-mono text-label uppercase tracking-[0.12em] text-primary-on-ink">Resume</p>
+          <h1 className="mt-3 break-words font-heading text-display-sm text-paper-primary sm:text-display-md">{state.name}</h1>
+          {state.professionalTitle && <p className="mt-3 max-w-2xl text-body text-paper-secondary">{state.professionalTitle}</p>}
+          <p className="mt-4 max-w-2xl text-body-sm leading-relaxed text-paper-tertiary">
+            A concise professional profile covering verified experience, selected projects, education, and technical skills.
+          </p>
+          <ContactRow state={state} onInk centered />
+          <div className="mt-7">
             <DownloadButtons downloads={state.downloads} onInk />
           </div>
+          {fallbackNotice(state)}
+          <UnavailableNotice state={state} />
         </div>
       </Section>
 
       <Section shell="readable" className="bg-paper-primary">
-        <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-border pb-4">
-          <div>
-            <p className="font-mono text-caption-sm uppercase tracking-[0.12em] text-ink-hint">Resume document</p>
-            <h2 className="mt-1 font-heading text-headline-md text-ink-primary">Professional profile</h2>
-          </div>
-          {!state.usedFallback && <p className="text-caption-sm text-ink-hint">Published master · ATS-ready PDF + DOCX</p>}
+        <div className="mb-5 border-b border-border pb-4">
+          <p className="font-mono text-caption-sm uppercase tracking-[0.12em] text-ink-hint">Resume document</p>
+          <h2 className="mt-1 font-heading text-headline-md text-ink-primary">Professional profile</h2>
         </div>
 
         <article className="border border-border bg-white px-5 py-7 shadow-md sm:px-9 sm:py-9" aria-label="Resume document preview">
