@@ -6,3 +6,4 @@ export { getSiteSettings } from "@/lib/api/site";
 export { getPageSeo } from "@/lib/api/seo";
 export { getDefaultResume, getResume, getResumeDownloadUrl, trackResumeDownload } from "@/lib/api/resume";
 export { postContact, postServiceRequest } from "@/lib/api/inquiries";
+export { postAssistantQuery, postProjectDiscovery } from "@/lib/api/assistant";
