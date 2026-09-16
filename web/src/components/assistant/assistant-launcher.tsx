@@ -50,11 +50,27 @@ export function AssistantLauncher() {
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setMode((current) => (current === "closed" ? "ask" : "closed"))}
-        style={{ bottom: "max(1.25rem, calc(env(safe-area-inset-bottom) + 0.75rem))" }}
-        className="fixed right-5 z-(--z-assistant) flex min-h-11 items-center gap-2 border border-border bg-primary px-4 py-3 text-body-sm font-medium text-primary-foreground shadow-lg hover:opacity-90"
+        style={{ bottom: "max(1.25rem, calc(env(safe-area-inset-bottom, 0px) + 0.75rem))" }}
+        // RESUME-UX-01 / ASSISTANT-LAUNCHER-FIX: `max-w-[calc(100vw-2.5rem)]`
+        // is a hard viewport-width safety net - whatever the label text
+        // measures to, this button can never itself become wider than the
+        // viewport minus its own left/right clearance, so it cannot be the
+        // reason a mobile visitor can't see it. `shrink-0` on the icon and
+        // `whitespace-nowrap` on the label keep the button's own content
+        // from wrapping into something taller/narrower than intended -
+        // truncation (never wrapping) is the fallback if a viewport is
+        // ever narrower than the compact label needs.
+        className="fixed right-5 z-(--z-assistant) flex min-h-11 max-w-[calc(100vw-2.5rem)] items-center gap-2 overflow-hidden border border-border bg-primary px-4 py-3 text-body-sm font-medium whitespace-nowrap text-primary-foreground shadow-lg hover:opacity-90"
       >
-        <Icon.MessageCircle size={18} aria-hidden />
-        {ASSISTANT_LAUNCHER_LABEL}
+        <Icon.MessageCircle size={18} className="shrink-0" aria-hidden />
+        {/* Compact label under ~640px (Tailwind `sm`) so the button reads
+         * as a small floating badge on mobile rather than a wide bar -
+         * the full label returns at `sm:` and up. No separate aria-label
+         * needed: a `hidden`/`display:none` span is excluded from
+         * accessible-name computation, so the button's announced name
+         * always matches whichever span is actually visible. */}
+        <span className="sm:hidden">Ask</span>
+        <span className="hidden sm:inline">{ASSISTANT_LAUNCHER_LABEL}</span>
       </button>
 
       {open &&

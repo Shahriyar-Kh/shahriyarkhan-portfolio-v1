@@ -152,6 +152,32 @@ describe("AssistantLauncher", () => {
       expect(screen.getByRole("button", { name: /ask about shahriyar/i })).toBeInTheDocument();
     });
 
+    it("the trigger button can never exceed the viewport width, regardless of label length", () => {
+      // ASSISTANT-LAUNCHER-FIX: a hard safety net (max-w + overflow-hidden
+      // + whitespace-nowrap) so the button's own content can never be the
+      // reason it renders off-screen on a narrow viewport - independent
+      // of whichever label text is actually visible at a given breakpoint.
+      render(<AssistantLauncher />);
+      const trigger = screen.getAllByRole("button", { name: /ask/i }).find((btn) => btn.getAttribute("aria-haspopup") === "dialog")!;
+      expect(trigger.className).toMatch(/max-w-\[calc\(100vw-/);
+      expect(trigger.className).toContain("overflow-hidden");
+      expect(trigger.className).toContain("whitespace-nowrap");
+    });
+
+    it("carries both a compact mobile label and the full desktop label, switched by a responsive class only", () => {
+      // Both spans exist in markup at all times (real CSS media queries,
+      // not JS, decide which renders) - this asserts the structure exists,
+      // not that a narrow viewport is actually simulated (jsdom does not
+      // evaluate CSS @media rules) - see ASSISTANT-LAUNCHER-FIX report for
+      // the manual/real-browser verification this still requires.
+      render(<AssistantLauncher />);
+      const trigger = screen.getAllByRole("button", { name: /ask/i }).find((btn) => btn.getAttribute("aria-haspopup") === "dialog")!;
+      const compact = trigger.querySelector(".sm\\:hidden");
+      const full = trigger.querySelector(".sm\\:inline");
+      expect(compact).toHaveTextContent("Ask");
+      expect(full).toHaveTextContent("Ask about Shahriyar");
+    });
+
     it("switching between Ask and Start a project and back leaves the launcher trigger present throughout", async () => {
       // Once the dialog is open, both the persistent trigger and the
       // dialog's own "Ask about Shahriyar" tab button match the same
