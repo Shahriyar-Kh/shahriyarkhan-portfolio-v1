@@ -10,24 +10,6 @@ import { ASSISTANT_LAUNCHER_LABEL } from "@/content/assistant";
 
 type Mode = "closed" | "ask" | "discover";
 
-// PORTFOLIO-ASSISTANTS-02: the always-visible trigger button below is
-// rendered directly and unconditionally - it must never depend on a lazy
-// chunk load to exist. Only the two heavy, interaction-gated panels
-// (chat, wizard) are code-split, and only AFTER the visitor has actually
-// opened the dialog. This file itself is a Client Component ("use client"
-// above), so `ssr: false` is allowed here per Next.js/Turbopack's rule
-// (PA-01 section 27's original build failure was from putting `dynamic`
-// with `ssr:false` in the Server Component layout.tsx instead).
-//
-// Root cause of the PA-02 visual-QA defect (launcher vanishing on
-// mobile/tablet and never recovering, even back at desktop width): the
-// ENTIRE launcher - including this trigger button - was previously
-// wrapped in `dynamic(..., { ssr: false })` with no `loading` fallback and
-// no retry. `next/dynamic` renders nothing while its chunk is loading and
-// stays that way indefinitely if the fetch stalls or errors - since nothing
-// in this component's always-rendered path (the button) touches any
-// browser-only API during its first render, there was never a real reason
-// to gate its own existence behind a lazy import at all.
 const AssistantChat = dynamic(() => import("@/components/assistant/assistant-chat").then((mod) => mod.AssistantChat), { ssr: false });
 const ProjectDiscoveryWizard = dynamic(
   () => import("@/components/assistant/project-discovery-wizard").then((mod) => mod.ProjectDiscoveryWizard),
@@ -46,31 +28,17 @@ export function AssistantLauncher() {
     <>
       <button
         type="button"
+        aria-label={ASSISTANT_LAUNCHER_LABEL}
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setMode((current) => (current === "closed" ? "ask" : "closed"))}
         style={{ bottom: "max(1.25rem, calc(env(safe-area-inset-bottom, 0px) + 0.75rem))" }}
-        // RESUME-UX-01 / ASSISTANT-LAUNCHER-FIX: `max-w-[calc(100vw-2.5rem)]`
-        // is a hard viewport-width safety net - whatever the label text
-        // measures to, this button can never itself become wider than the
-        // viewport minus its own left/right clearance, so it cannot be the
-        // reason a mobile visitor can't see it. `shrink-0` on the icon and
-        // `whitespace-nowrap` on the label keep the button's own content
-        // from wrapping into something taller/narrower than intended -
-        // truncation (never wrapping) is the fallback if a viewport is
-        // ever narrower than the compact label needs.
         className="fixed right-5 z-(--z-assistant) flex min-h-11 max-w-[calc(100vw-2.5rem)] items-center gap-2 overflow-hidden border border-border bg-primary px-4 py-3 text-body-sm font-medium whitespace-nowrap text-primary-foreground shadow-lg hover:opacity-90"
       >
         <Icon.MessageCircle size={18} className="shrink-0" aria-hidden />
-        {/* Compact label under ~640px (Tailwind `sm`) so the button reads
-         * as a small floating badge on mobile rather than a wide bar -
-         * the full label returns at `sm:` and up. No separate aria-label
-         * needed: a `hidden`/`display:none` span is excluded from
-         * accessible-name computation, so the button's announced name
-         * always matches whichever span is actually visible. */}
-        <span className="sm:hidden">Ask</span>
-        <span className="hidden sm:inline">{ASSISTANT_LAUNCHER_LABEL}</span>
+        <span className="sm:hidden" aria-hidden="true">Ask</span>
+        <span className="hidden sm:inline" aria-hidden="true">{ASSISTANT_LAUNCHER_LABEL}</span>
       </button>
 
       {open &&
