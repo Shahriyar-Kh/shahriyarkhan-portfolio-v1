@@ -46,12 +46,12 @@ def render_pdf(document):
     _register_fonts()
     buffer = BytesIO()
     styles = {
-        "name": ParagraphStyle("ResumeName", fontName=FONT_BOLD, fontSize=16, leading=18, textColor=NAVY, alignment=TA_CENTER, spaceAfter=2),
-        "title": ParagraphStyle("ResumeTitle", fontName=FONT_REGULAR, fontSize=10.5, leading=13, textColor=DARK, alignment=TA_CENTER, spaceAfter=2),
-        "contact": ParagraphStyle("ResumeContact", fontName=FONT_REGULAR, fontSize=8.5, leading=10.5, textColor=DARK, alignment=TA_CENTER, spaceAfter=1),
-        "heading": ParagraphStyle("ResumeHeading", fontName=FONT_BOLD, fontSize=10.2, leading=12, textColor=NAVY, spaceBefore=7, spaceAfter=2, keepWithNext=True),
-        "body": ParagraphStyle("ResumeBody", fontName=FONT_REGULAR, fontSize=9.1, leading=11.5, textColor=DARK, spaceAfter=2),
-        "bullet": ParagraphStyle("ResumeBullet", fontName=FONT_REGULAR, fontSize=9.1, leading=11.5, textColor=DARK, leftIndent=12, firstLineIndent=-7, bulletIndent=0, spaceAfter=1.5),
+        "name": ParagraphStyle("ResumeName", fontName=FONT_BOLD, fontSize=17, leading=19, textColor=NAVY, alignment=TA_CENTER, spaceAfter=3),
+        "title": ParagraphStyle("ResumeTitle", fontName=FONT_REGULAR, fontSize=10.8, leading=13.2, textColor=DARK, alignment=TA_CENTER, spaceAfter=2),
+        "contact": ParagraphStyle("ResumeContact", fontName=FONT_REGULAR, fontSize=9, leading=11, textColor=DARK, alignment=TA_CENTER, spaceAfter=1),
+        "heading": ParagraphStyle("ResumeHeading", fontName=FONT_BOLD, fontSize=10.5, leading=12.5, textColor=NAVY, spaceBefore=7.5, spaceAfter=2.5, keepWithNext=True),
+        "body": ParagraphStyle("ResumeBody", fontName=FONT_REGULAR, fontSize=9.6, leading=12, textColor=DARK, spaceAfter=2.2),
+        "bullet": ParagraphStyle("ResumeBullet", fontName=FONT_REGULAR, fontSize=9.6, leading=12, textColor=DARK, leftIndent=12, firstLineIndent=-7, bulletIndent=0, spaceAfter=1.7),
     }
     story = []
     if document.name:
@@ -60,13 +60,15 @@ def render_pdf(document):
         story.append(Paragraph(_markup(document.professional_title), styles["title"]))
     for contact in document.contacts:
         story.append(Paragraph(_markup(contact), styles["contact"]))
-    story.append(Spacer(1, 3))
+    story.append(Spacer(1, 4))
     for section in document.sections:
         story.append(Paragraph(escape(section.heading), styles["heading"]))
         style = styles["body"] if section.key == "summary" else styles["bullet"]
         for item in section.items:
             story.append(Paragraph(_markup(item.text), style, bulletText=None if section.key == "summary" else "•"))
 
+    title = f"{document.name} — Resume" if document.name else "Resume"
+    author = document.name or "Portfolio resume export service"
     pdf = SimpleDocTemplate(
         buffer,
         pagesize=LETTER,
@@ -76,14 +78,14 @@ def render_pdf(document):
         bottomMargin=0.55 * inch,
         pageCompression=1,
         invariant=1,
-        title="Resume",
-        author="Portfolio resume export service",
+        title=title,
+        author=author,
         subject=f"resume-content-sha256:{document.content_hash}",
     )
 
     def set_metadata(canvas, _doc):
-        canvas.setTitle("Resume")
-        canvas.setAuthor("Portfolio resume export service")
+        canvas.setTitle(title)
+        canvas.setAuthor(author)
         canvas.setSubject(f"resume-content-sha256:{document.content_hash}")
         canvas.setCreator("Portfolio resume export service")
 
