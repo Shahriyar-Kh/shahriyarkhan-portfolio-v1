@@ -83,7 +83,7 @@ describe("AssistantLauncher", () => {
     await screen.findByRole("dialog");
     await user.click(screen.getByRole("button", { name: "Start a project" }));
 
-    expect(screen.getByLabelText(/^Name/i)).toBeInTheDocument();
+    expect(await screen.findByLabelText(/^Name/i)).toBeInTheDocument();
   });
 
   it("clearly labels the experience as an AI-assisted guide, not a live chat", async () => {
@@ -93,5 +93,87 @@ describe("AssistantLauncher", () => {
     await user.click(screen.getByRole("button", { name: /ask about shahriyar/i }));
 
     expect(await screen.findByText(/ai-assisted portfolio guide|ai-assisted guide/i)).toBeInTheDocument();
+  });
+
+  // PORTFOLIO-ASSISTANTS-02: regression coverage for the confirmed visual
+  // defect (the launcher disappeared on mobile/tablet and never
+  // recovered, even back at a working desktop width). Root cause: the
+  // ENTIRE launcher, trigger button included, was gated behind
+  // `next/dynamic(..., { ssr: false })` with no loading fallback - if
+  // that chunk ever failed or stalled to load, the always-visible button
+  // silently rendered nothing and never retried. The fix moves the lazy
+  // `dynamic()` boundary to only the heavy interior panels (AssistantChat,
+  // ProjectDiscoveryWizard), which are rendered only after the visitor
+  // opens the dialog - the trigger button itself is now a plain,
+  // synchronously-rendered element with no async/chunk-loading gap at all.
+  describe("launcher availability (PA-02 regression)", () => {
+    it("the trigger button is present synchronously on the very first render - not gated behind any async/lazy loader", () => {
+      render(<AssistantLauncher />);
+
+      // Deliberately getByRole, not findByRole/await: if the button were
+      // ever put back behind a dynamic()/Suspense boundary, it would not
+      // exist in the DOM on this first synchronous assertion and this
+      // test would fail immediately, catching the exact regression class.
+      expect(screen.getByRole("button", { name: /ask about shahriyar/i })).toBeInTheDocument();
+    });
+
+    it("the trigger button's own classes never hide it responsively (no hidden/sm:hidden/md:hidden/lg:hidden tokens)", () => {
+      render(<AssistantLauncher />);
+
+      const button = screen.getByRole("button", { name: /ask about shahriyar/i });
+      const classes = button.className.split(/\s+/);
+      expect(classes.some((c) => /(^|:)hidden$/.test(c))).toBe(false);
+    });
+
+    it("closing the assistant chat leaves the launcher button in the document", async () => {
+      const user = userEvent.setup();
+      render(<AssistantLauncher />);
+
+      await user.click(screen.getByRole("button", { name: /ask about shahriyar/i }));
+      await screen.findByRole("dialog");
+      await user.click(screen.getByRole("button", { name: /close/i }));
+
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+      expect(screen.getByRole("button", { name: /ask about shahriyar/i })).toBeInTheDocument();
+    });
+
+    it("closing project discovery (via Escape) leaves the launcher button in the document", async () => {
+      const user = userEvent.setup();
+      render(<AssistantLauncher />);
+
+      await user.click(screen.getByRole("button", { name: /ask about shahriyar/i }));
+      await screen.findByRole("dialog");
+      await user.click(screen.getByRole("button", { name: "Start a project" }));
+      await screen.findByLabelText(/^Name/i);
+
+      await user.keyboard("{Escape}");
+
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+      expect(screen.getByRole("button", { name: /ask about shahriyar/i })).toBeInTheDocument();
+    });
+
+    it("switching between Ask and Start a project and back leaves the launcher trigger present throughout", async () => {
+      // Once the dialog is open, both the persistent trigger and the
+      // dialog's own "Ask about Shahriyar" tab button match the same
+      // accessible name - the trigger is the one that opens/closes the
+      // dialog (aria-haspopup="dialog"), so that's what distinguishes it.
+      const getTrigger = () =>
+        screen.getAllByRole("button", { name: /ask about shahriyar/i }).find((btn) => btn.getAttribute("aria-haspopup") === "dialog");
+
+      const user = userEvent.setup();
+      render(<AssistantLauncher />);
+
+      await user.click(getTrigger()!);
+      await screen.findByRole("dialog");
+      expect(getTrigger()).toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: "Start a project" }));
+      await screen.findByLabelText(/^Name/i);
+      expect(getTrigger()).toBeInTheDocument();
+
+      const dialog = screen.getByRole("dialog");
+      await user.click(within(dialog).getByRole("button", { name: "Ask about Shahriyar" }));
+      expect(getTrigger()).toBeInTheDocument();
+    });
   });
 });
