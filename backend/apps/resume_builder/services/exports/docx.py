@@ -13,9 +13,9 @@ from lxml import etree
 
 from .security import split_text_and_links
 
-NAVY = RGBColor(0x17, 0x32, 0x4D)
-DARK = RGBColor(0x1F, 0x29, 0x33)
-MUTED = RGBColor(0x47, 0x55, 0x69)
+ACCENT = RGBColor(0x24, 0x57, 0xD6)
+DARK = RGBColor(0x18, 0x20, 0x33)
+MUTED = RGBColor(0x66, 0x70, 0x85)
 FIXED_TIME = datetime(2000, 1, 1, tzinfo=timezone.utc)
 
 
@@ -29,34 +29,49 @@ def _set_font(style, *, name="Arial", size=10, bold=False, color=DARK):
     style.element.rPr.rFonts.set(qn("w:eastAsia"), name)
 
 
+def _add_bottom_rule(style):
+    p_pr = style.element.get_or_add_pPr()
+    p_bdr = p_pr.find(qn("w:pBdr"))
+    if p_bdr is None:
+        p_bdr = OxmlElement("w:pBdr")
+        p_pr.append(p_bdr)
+    bottom = OxmlElement("w:bottom")
+    bottom.set(qn("w:val"), "single")
+    bottom.set(qn("w:sz"), "6")
+    bottom.set(qn("w:space"), "2")
+    bottom.set(qn("w:color"), "2457D6")
+    p_bdr.append(bottom)
+
+
 def _configure_styles(document):
     styles = document.styles
     normal = styles["Normal"]
-    _set_font(normal, size=10.1)
-    normal.paragraph_format.space_after = Pt(3.5)
-    normal.paragraph_format.line_spacing = 1.05
+    _set_font(normal, size=9.55)
+    normal.paragraph_format.space_after = Pt(3.2)
+    normal.paragraph_format.line_spacing = 1.04
 
     definitions = (
-        ("Resume Name", 18, True, DARK, 0, 3),
-        ("Resume Title", 10.8, False, NAVY, 0, 3),
-        ("Resume Contact", 9.2, False, MUTED, 0, 1.2),
-        ("Resume Heading", 10.4, True, NAVY, 9, 3.5),
-        ("Resume Body", 10.1, False, DARK, 0, 3.5),
-        ("Resume Skill", 9.8, False, DARK, 0, 2.2),
-        ("Resume Entry Heading", 10.1, True, DARK, 3.5, 2),
-        ("Resume Detail", 9.4, False, MUTED, 0, 2),
-        ("Resume Bullet", 9.8, False, DARK, 0, 2.3),
+        ("Resume Name", 19, True, ACCENT, 0, 3),
+        ("Resume Title", 10.6, False, DARK, 0, 3),
+        ("Resume Contact", 8.8, False, MUTED, 0, 1),
+        ("Resume Heading", 10.1, True, ACCENT, 6, 4.5),
+        ("Resume Body", 9.55, False, DARK, 0, 3.2),
+        ("Resume Skill", 9.25, False, DARK, 0, 2),
+        ("Resume Entry Heading", 9.65, True, DARK, 2.8, 1.8),
+        ("Resume Detail", 8.9, False, MUTED, 0, 1.8),
+        ("Resume Bullet", 9.25, False, DARK, 0, 1.9),
     )
     for name, size, bold, color, before, after in definitions:
         style = styles.add_style(name, WD_STYLE_TYPE.PARAGRAPH)
         _set_font(style, size=size, bold=bold, color=color)
         style.paragraph_format.space_before = Pt(before)
         style.paragraph_format.space_after = Pt(after)
-        style.paragraph_format.line_spacing = 1.05
+        style.paragraph_format.line_spacing = 1.04
 
     styles["Resume Heading"].paragraph_format.keep_with_next = True
     styles["Resume Entry Heading"].paragraph_format.keep_with_next = True
-    styles["Resume Detail"].paragraph_format.left_indent = Inches(0.14)
+    _add_bottom_rule(styles["Resume Heading"])
+    styles["Resume Detail"].paragraph_format.left_indent = Inches(0.18)
     styles["Resume Bullet"].base_style = styles["List Bullet"]
     styles["Resume Bullet"].paragraph_format.left_indent = Inches(0.2)
     styles["Resume Bullet"].paragraph_format.first_line_indent = Inches(-0.13)
@@ -77,7 +92,7 @@ def _add_hyperlink(paragraph, visible, url):
     run = OxmlElement("w:r")
     properties = OxmlElement("w:rPr")
     color = OxmlElement("w:color")
-    color.set(qn("w:val"), "17324D")
+    color.set(qn("w:val"), "2457D6")
     underline = OxmlElement("w:u")
     underline.set(qn("w:val"), "single")
     properties.extend((color, underline))
@@ -146,16 +161,16 @@ def render_docx(document_model):
     section = document.sections[0]
     section.page_width = Inches(8.5)
     section.page_height = Inches(11)
-    section.left_margin = Inches(0.68)
-    section.right_margin = Inches(0.68)
-    section.top_margin = Inches(0.58)
-    section.bottom_margin = Inches(0.58)
+    section.left_margin = Inches(0.62)
+    section.right_margin = Inches(0.62)
+    section.top_margin = Inches(0.48)
+    section.bottom_margin = Inches(0.5)
     section.header_distance = Inches(0.2)
     section.footer_distance = Inches(0.2)
     _configure_styles(document)
 
     properties = document.core_properties
-    properties.title = f"{document_model.name} - Resume" if document_model.name else "Resume"
+    properties.title = f"{document_model.name} - Software Engineer CV" if document_model.name else "Software Engineer CV"
     properties.subject = f"resume-content-sha256:{document_model.content_hash}"
     properties.author = document_model.name or "Portfolio resume export service"
     properties.last_modified_by = document_model.name or "Portfolio resume export service"
@@ -167,7 +182,7 @@ def render_docx(document_model):
     properties.comments = ""
 
     identity = (
-        (document_model.name, "Resume Name"),
+        (document_model.name.upper() if document_model.name else "", "Resume Name"),
         (document_model.professional_title, "Resume Title"),
         *((contact, "Resume Contact") for contact in document_model.contacts),
     )
