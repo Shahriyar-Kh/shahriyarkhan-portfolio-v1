@@ -14,7 +14,8 @@ from lxml import etree
 from .security import split_text_and_links
 
 NAVY = RGBColor(0x17, 0x32, 0x4D)
-DARK = RGBColor(0x18, 0x21, 0x2B)
+DARK = RGBColor(0x1F, 0x29, 0x33)
+MUTED = RGBColor(0x47, 0x55, 0x69)
 FIXED_TIME = datetime(2000, 1, 1, tzinfo=timezone.utc)
 
 
@@ -31,28 +32,34 @@ def _set_font(style, *, name="Arial", size=10, bold=False, color=DARK):
 def _configure_styles(document):
     styles = document.styles
     normal = styles["Normal"]
-    _set_font(normal)
-    normal.paragraph_format.space_after = Pt(2.2)
-    normal.paragraph_format.line_spacing = 1.0
+    _set_font(normal, size=10.1)
+    normal.paragraph_format.space_after = Pt(3.5)
+    normal.paragraph_format.line_spacing = 1.05
 
     definitions = (
-        ("Resume Name", 17, True, NAVY, 0, 3),
-        ("Resume Title", 10.8, False, DARK, 0, 2),
-        ("Resume Contact", 9, False, DARK, 0, 1),
-        ("Resume Heading", 10.5, True, NAVY, 7.5, 2.5),
-        ("Resume Body", 10, False, DARK, 0, 2.2),
-        ("Resume Bullet", 10, False, DARK, 0, 1.7),
+        ("Resume Name", 18, True, DARK, 0, 3),
+        ("Resume Title", 10.8, False, NAVY, 0, 3),
+        ("Resume Contact", 9.2, False, MUTED, 0, 1.2),
+        ("Resume Heading", 10.4, True, NAVY, 9, 3.5),
+        ("Resume Body", 10.1, False, DARK, 0, 3.5),
+        ("Resume Skill", 9.8, False, DARK, 0, 2.2),
+        ("Resume Entry Heading", 10.1, True, DARK, 3.5, 2),
+        ("Resume Detail", 9.4, False, MUTED, 0, 2),
+        ("Resume Bullet", 9.8, False, DARK, 0, 2.3),
     )
     for name, size, bold, color, before, after in definitions:
         style = styles.add_style(name, WD_STYLE_TYPE.PARAGRAPH)
         _set_font(style, size=size, bold=bold, color=color)
         style.paragraph_format.space_before = Pt(before)
         style.paragraph_format.space_after = Pt(after)
-        style.paragraph_format.line_spacing = 1.0
+        style.paragraph_format.line_spacing = 1.05
+
     styles["Resume Heading"].paragraph_format.keep_with_next = True
+    styles["Resume Entry Heading"].paragraph_format.keep_with_next = True
+    styles["Resume Detail"].paragraph_format.left_indent = Inches(0.14)
     styles["Resume Bullet"].base_style = styles["List Bullet"]
-    styles["Resume Bullet"].paragraph_format.left_indent = Inches(0.18)
-    styles["Resume Bullet"].paragraph_format.first_line_indent = Inches(-0.12)
+    styles["Resume Bullet"].paragraph_format.left_indent = Inches(0.2)
+    styles["Resume Bullet"].paragraph_format.first_line_indent = Inches(-0.13)
 
 
 def _add_text(paragraph, text):
@@ -139,16 +146,16 @@ def render_docx(document_model):
     section = document.sections[0]
     section.page_width = Inches(8.5)
     section.page_height = Inches(11)
-    section.left_margin = Inches(0.62)
-    section.right_margin = Inches(0.62)
-    section.top_margin = Inches(0.55)
-    section.bottom_margin = Inches(0.55)
+    section.left_margin = Inches(0.68)
+    section.right_margin = Inches(0.68)
+    section.top_margin = Inches(0.58)
+    section.bottom_margin = Inches(0.58)
     section.header_distance = Inches(0.2)
     section.footer_distance = Inches(0.2)
     _configure_styles(document)
 
     properties = document.core_properties
-    properties.title = f"{document_model.name} — Resume" if document_model.name else "Resume"
+    properties.title = f"{document_model.name} - Resume" if document_model.name else "Resume"
     properties.subject = f"resume-content-sha256:{document_model.content_hash}"
     properties.author = document_model.name or "Portfolio resume export service"
     properties.last_modified_by = document_model.name or "Portfolio resume export service"
@@ -170,12 +177,19 @@ def render_docx(document_model):
             paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
             _fill_paragraph(paragraph, value)
 
+    style_by_kind = {
+        "body": "Resume Body",
+        "skill": "Resume Skill",
+        "entry_heading": "Resume Entry Heading",
+        "detail": "Resume Detail",
+        "bullet": "Resume Bullet",
+    }
+
     for section_model in document_model.sections:
         heading = document.add_paragraph(style="Resume Heading")
         heading.add_run(section_model.heading)
-        style_name = "Resume Body" if section_model.key == "summary" else "Resume Bullet"
         for item in section_model.items:
-            paragraph = document.add_paragraph(style=style_name)
+            paragraph = document.add_paragraph(style=style_by_kind.get(item.kind, "Resume Body"))
             _fill_paragraph(paragraph, item.text)
 
     buffer = BytesIO()
