@@ -18,7 +18,7 @@ DARK = RGBColor(0x18, 0x21, 0x2B)
 FIXED_TIME = datetime(2000, 1, 1, tzinfo=timezone.utc)
 
 
-def _set_font(style, *, name="Arial", size=9.5, bold=False, color=DARK):
+def _set_font(style, *, name="Arial", size=10, bold=False, color=DARK):
     style.font.name = name
     style.font.size = Pt(size)
     style.font.bold = bold
@@ -32,16 +32,16 @@ def _configure_styles(document):
     styles = document.styles
     normal = styles["Normal"]
     _set_font(normal)
-    normal.paragraph_format.space_after = Pt(2)
+    normal.paragraph_format.space_after = Pt(2.2)
     normal.paragraph_format.line_spacing = 1.0
 
     definitions = (
-        ("Resume Name", 16, True, NAVY, 0, 2),
-        ("Resume Title", 10.5, False, DARK, 0, 2),
-        ("Resume Contact", 8.5, False, DARK, 0, 1),
-        ("Resume Heading", 10.2, True, NAVY, 7, 2),
-        ("Resume Body", 9.5, False, DARK, 0, 2),
-        ("Resume Bullet", 9.5, False, DARK, 0, 1.5),
+        ("Resume Name", 17, True, NAVY, 0, 3),
+        ("Resume Title", 10.8, False, DARK, 0, 2),
+        ("Resume Contact", 9, False, DARK, 0, 1),
+        ("Resume Heading", 10.5, True, NAVY, 7.5, 2.5),
+        ("Resume Body", 10, False, DARK, 0, 2.2),
+        ("Resume Bullet", 10, False, DARK, 0, 1.7),
     )
     for name, size, bold, color, before, after in definitions:
         style = styles.add_style(name, WD_STYLE_TYPE.PARAGRAPH)
@@ -148,10 +148,10 @@ def render_docx(document_model):
     _configure_styles(document)
 
     properties = document.core_properties
-    properties.title = "Resume"
+    properties.title = f"{document_model.name} — Resume" if document_model.name else "Resume"
     properties.subject = f"resume-content-sha256:{document_model.content_hash}"
-    properties.author = "Portfolio resume export service"
-    properties.last_modified_by = "Portfolio resume export service"
+    properties.author = document_model.name or "Portfolio resume export service"
+    properties.last_modified_by = document_model.name or "Portfolio resume export service"
     properties.created = FIXED_TIME
     properties.modified = FIXED_TIME
     properties.revision = 1
