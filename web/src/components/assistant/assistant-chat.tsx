@@ -1,11 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useId, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icon";
 import { Textarea } from "@/components/ui/textarea";
 import { ASSISTANT_DISCLAIMER, ASSISTANT_STARTER_QUESTIONS } from "@/content/assistant";
 import { postAssistantQuery } from "@/lib/api";
-import type { AssistantQueryResponse } from "@/lib/api/types";
+import type { AssistantQueryResponse, AssistantSource } from "@/lib/api/types";
 
 interface ChatTurn {
   id: string;
@@ -19,6 +21,18 @@ export interface AssistantChatProps {
 }
 
 type SendState = "idle" | "sending";
+
+function titleFromSlug(slug: string) {
+  return slug
+    .split("-")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function sourceForRecommendation(sources: AssistantSource[], type: "project" | "service", slug: string) {
+  return sources.find((source) => source.type === type && source.source_id === `${type}:${slug}`);
+}
 
 export function AssistantChat({ onStartProject }: AssistantChatProps) {
   const formId = useId();
@@ -69,7 +83,7 @@ export function AssistantChat({ onStartProject }: AssistantChatProps) {
                   key={question}
                   type="button"
                   onClick={() => void send(question)}
-                  className="border border-border px-3 py-2 text-left text-body-sm text-ink-primary hover:border-primary/60"
+                  className="border border-border px-3 py-2 text-left text-body-sm text-ink-primary transition-colors hover:border-primary/60 hover:bg-input"
                 >
                   {question}
                 </button>
@@ -81,7 +95,7 @@ export function AssistantChat({ onStartProject }: AssistantChatProps) {
         <ul className="flex flex-col gap-4">
           {turns.map((turn) => (
             <li key={turn.id} className="flex flex-col gap-2">
-              <p className="self-end border border-border bg-input px-3 py-2 text-body-sm text-ink-primary">{turn.question}</p>
+              <p className="max-w-[88%] self-end border border-border bg-input px-3 py-2 text-body-sm text-ink-primary">{turn.question}</p>
 
               {turn.errorMessage && (
                 <p role="alert" className="border border-destructive px-3 py-2 text-caption-sm text-destructive">
@@ -95,7 +109,13 @@ export function AssistantChat({ onStartProject }: AssistantChatProps) {
                 </p>
               )}
 
-              {turn.response && <AssistantAnswer response={turn.response} onStartProject={onStartProject} />}
+              {turn.response && (
+                <AssistantAnswer
+                  response={turn.response}
+                  onStartProject={onStartProject}
+                  onAskProject={(title) => void send(`Tell me more about the ${title} project.`)}
+                />
+              )}
             </li>
           ))}
         </ul>
@@ -126,33 +146,92 @@ export function AssistantChat({ onStartProject }: AssistantChatProps) {
   );
 }
 
-function AssistantAnswer({ response, onStartProject }: { response: AssistantQueryResponse; onStartProject: () => void }) {
+function AssistantAnswer({
+  response,
+  onStartProject,
+  onAskProject,
+}: {
+  response: AssistantQueryResponse;
+  onStartProject: () => void;
+  onAskProject: (title: string) => void;
+}) {
   return (
-    <div className="flex flex-col gap-2 border border-border px-3 py-2">
-      <p className="text-body-sm text-ink-primary">{response.answer}</p>
+    <div className="flex flex-col gap-3 border border-border bg-paper-primary px-3 py-3">
+      <p className="text-body-sm leading-relaxed text-ink-primary">{response.answer}</p>
 
-      {response.sources.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {response.sources.map((source) =>
-            source.public_path ? (
-              <a
-                key={source.source_id}
-                href={source.public_path}
-                className="border border-border px-2 py-1 text-caption-sm text-ink-secondary hover:border-primary/60 hover:text-ink-primary"
-              >
-                View {source.type}: {source.title}
-              </a>
-            ) : (
-              <span key={source.source_id} className="border border-border px-2 py-1 text-caption-sm text-ink-hint">
-                {source.title}
-              </span>
-            ),
-          )}
+      {response.recommended_projects.length > 0 && (
+        <div className="border-t border-border pt-3">
+          <p className="mb-2 text-caption-sm font-medium uppercase tracking-wide text-ink-hint">Recommended work</p>
+          <div className="flex flex-col gap-2">
+            {response.recommended_projects.map((slug) => {
+              const source = sourceForRecommendation(response.sources, "project", slug);
+              const title = source?.title || titleFromSlug(slug);
+              const href = source?.public_path || `/work/${slug}`;
+              return (
+                <div key={slug} className="border border-border bg-input/40 p-3">
+                  <p className="text-body-sm font-medium text-ink-primary">{title}</p>
+                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
+                    <Link href={href} className="inline-flex items-center gap-1 text-caption-sm font-medium text-primary hover:underline">
+                      View case study <Icon.ArrowRight size={13} aria-hidden />
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => onAskProject(title)}
+                      className="text-caption-sm font-medium text-ink-secondary hover:text-ink-primary hover:underline"
+                    >
+                      Ask about this project
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
+      {response.recommended_services.length > 0 && (
+        <div className="border-t border-border pt-3">
+          <p className="mb-2 text-caption-sm font-medium uppercase tracking-wide text-ink-hint">Relevant services</p>
+          <div className="flex flex-wrap gap-2">
+            {response.recommended_services.map((slug) => {
+              const source = sourceForRecommendation(response.sources, "service", slug);
+              const title = source?.title || titleFromSlug(slug);
+              const href = source?.public_path || `/services/${slug}`;
+              return (
+                <Link key={slug} href={href} className="border border-border px-2.5 py-1.5 text-caption-sm text-ink-secondary hover:border-primary/60 hover:text-ink-primary">
+                  {title}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {response.sources.length > 0 && (
+        <details className="border-t border-border pt-2">
+          <summary className="cursor-pointer text-caption-sm text-ink-hint">Sources</summary>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {response.sources.map((source) =>
+              source.public_path ? (
+                <Link
+                  key={source.source_id}
+                  href={source.public_path}
+                  className="border border-border px-2 py-1 text-caption-sm text-ink-secondary hover:border-primary/60 hover:text-ink-primary"
+                >
+                  {source.title}
+                </Link>
+              ) : (
+                <span key={source.source_id} className="border border-border px-2 py-1 text-caption-sm text-ink-hint">
+                  {source.title}
+                </span>
+              ),
+            )}
+          </div>
+        </details>
+      )}
+
       {response.handoff.active && (
-        <div className="flex flex-wrap gap-2 pt-1">
+        <div className="flex flex-wrap gap-2 border-t border-border pt-3">
           {response.handoff.reason === "project_discovery" ? (
             <Button type="button" size="sm" onClick={onStartProject}>
               Start a project
