@@ -1,9 +1,11 @@
-<h2>New Service Request</h2>
+<h2>{% if obj.source == "project_discovery" %}New Project Discovery Enquiry{% else %}New Service Request{% endif %}</h2>
 <p><strong>Reference:</strong> {{ obj.reference_id }}</p>
 <p><strong>Intent:</strong> {{ obj.intent|default:"(not provided)" }}</p>
 <p><strong>Submitted:</strong> {{ obj.created_at }}</p>
 <p><strong>Name:</strong> {{ obj.sender_name }}</p>
 <p><strong>Email:</strong> {{ obj.email }}</p>
+{% if obj.phone %}<p><strong>Phone:</strong> {{ obj.phone }}</p>{% endif %}
+{% if obj.organization %}<p><strong>Organization:</strong> {{ obj.organization }}</p>{% endif %}
 <p><strong>Subject:</strong> {{ obj.subject }}</p>
 <p><strong>Service:</strong> {{ obj.service.title|default:obj.service_type_text }}</p>
 <p><strong>Budget:</strong> {{ obj.budget_range }}</p>

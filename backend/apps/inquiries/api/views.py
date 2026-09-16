@@ -11,6 +11,7 @@ from apps.inquiries.api.serializers import (
     AdminContactMessageSerializer,
     AdminServiceRequestSerializer,
     ContactMessageSerializer,
+    ProjectDiscoverySerializer,
     ServiceRequestSerializer,
 )
 from apps.inquiries.models import ContactMessage, ServiceRequest
@@ -57,6 +58,13 @@ class IdempotentPublicCreateMixin:
        never the internal DB id, never delivery/internal error detail.
     """
 
+    def _response_payload(self, obj: object) -> dict:
+        """Overridable hook for a subclass that needs to echo back more
+        than the bare reference_id - see PublicProjectDiscoveryCreateView,
+        which also returns the generated discovery_summary for the
+        wizard's success screen."""
+        return {"reference_id": obj.reference_id}
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -66,7 +74,7 @@ class IdempotentPublicCreateMixin:
         if submission_id:
             existing = model.objects.filter(submission_id=submission_id).first()
             if existing is not None:
-                return Response({"reference_id": existing.reference_id}, status=status.HTTP_200_OK)
+                return Response(self._response_payload(existing), status=status.HTTP_200_OK)
 
         try:
             with transaction.atomic():
@@ -77,10 +85,10 @@ class IdempotentPublicCreateMixin:
             existing = model.objects.filter(submission_id=submission_id).first()
             if existing is None:
                 raise
-            return Response({"reference_id": existing.reference_id}, status=status.HTTP_200_OK)
+            return Response(self._response_payload(existing), status=status.HTTP_200_OK)
 
         process_new_enquiry(obj)
-        return Response({"reference_id": obj.reference_id}, status=status.HTTP_201_CREATED)
+        return Response(self._response_payload(obj), status=status.HTTP_201_CREATED)
 
 
 class PublicContactMessageCreateView(IdempotentPublicCreateMixin, generics.CreateAPIView):
@@ -97,6 +105,24 @@ class PublicServiceRequestCreateView(IdempotentPublicCreateMixin, generics.Creat
     queryset = ServiceRequest.objects.all()
     throttle_classes = (ContactFormThrottle,)
     throttle_scope = "contact_form"
+
+
+class PublicProjectDiscoveryCreateView(IdempotentPublicCreateMixin, generics.CreateAPIView):
+    """The structured Client Project Discovery intake endpoint
+    (PORTFOLIO-ASSISTANTS-01 section 12). Same idempotent-create,
+    honeypot, and persist-then-notify contract as the two views above -
+    a notification failure can never undo the already-committed row, and
+    a retried submission_id returns the original reference_id rather than
+    creating a duplicate enquiry."""
+
+    permission_classes = (AllowAny,)
+    serializer_class = ProjectDiscoverySerializer
+    queryset = ServiceRequest.objects.all()
+    throttle_classes = (ContactFormThrottle,)
+    throttle_scope = "project_discovery"
+
+    def _response_payload(self, obj):
+        return {"reference_id": obj.reference_id, "discovery_summary": obj.discovery_summary}
 
 
 class RetryDeliveryActionsMixin:

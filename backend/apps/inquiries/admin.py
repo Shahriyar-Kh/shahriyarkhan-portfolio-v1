@@ -120,14 +120,39 @@ class ServiceRequestAdmin(BaseEnquiryAdmin):
         "reply_email",
         "subject",
         "service",
+        "source",
+        "project_type",
+        "budget_range",
+        "timeline",
         "intent",
         "status",
         "delivery_state",
         "created_at",
     )
-    list_filter = BaseEnquiryAdmin.list_filter + ("service",)
-    search_fields = BaseEnquiryAdmin.search_fields + ("service_type_text",)
-    # service/budget_range/timeline are ServiceRequest-only original
-    # visitor-submitted fields, not present on ContactMessage, so they
-    # aren't in the shared ORIGINAL_SUBMISSION_READONLY_FIELDS tuple.
-    readonly_fields = BaseEnquiryAdmin.readonly_fields + ("service", "budget_range", "timeline")
+    list_filter = BaseEnquiryAdmin.list_filter + ("service", "source")
+    search_fields = BaseEnquiryAdmin.search_fields + ("service_type_text", "organization", "project_type")
+    # service/budget_range/timeline and everything from "phone" onward are
+    # ServiceRequest-only original visitor-submitted fields (the latter
+    # group added for Project Discovery, PORTFOLIO-ASSISTANTS-01 section
+    # 13/21), not present on ContactMessage, so they aren't in the shared
+    # ORIGINAL_SUBMISSION_READONLY_FIELDS tuple.
+    readonly_fields = BaseEnquiryAdmin.readonly_fields + (
+        "service",
+        "budget_range",
+        "timeline",
+        "phone",
+        "source",
+        "organization",
+        "project_type",
+        "project_stage",
+        "business_problem",
+        "target_users",
+        "expected_outcome",
+        "required_features",
+        "optional_features",
+        "existing_assets",
+        "technical_preferences",
+        "preferred_contact_method",
+        "discovery_summary",
+        "consent_given",
+    )
