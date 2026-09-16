@@ -18,6 +18,14 @@ export interface ResumeViewProps {
   state: ResumePageState;
 }
 
+type HeroContactKind = "email" | "phone" | "location" | "github" | "linkedin" | "whatsapp" | "website";
+
+interface HeroContactItem {
+  kind: HeroContactKind;
+  label: string;
+  href?: string;
+}
+
 function DocumentLine({ line }: { line: ResumeDocumentLine }) {
   return (
     <>
@@ -68,6 +76,114 @@ function UnavailableNotice({ state }: { state: ResumePageState }) {
   if (state.downloads.pdf || state.downloads.docx) return null;
   if (state.usedFallback) return null;
   return <p className="mt-5 text-caption-sm text-paper-tertiary">A downloadable résumé document is not available right now.</p>;
+}
+
+function contactLineText(line: ResumeDocumentLine) {
+  return line.map((segment) => segment.text).join("").trim();
+}
+
+function contactKindFromHref(href: string): HeroContactKind {
+  const lowered = href.toLowerCase();
+  if (lowered.includes("github.com")) return "github";
+  if (lowered.includes("linkedin.com")) return "linkedin";
+  if (lowered.includes("wa.me") || lowered.includes("whatsapp")) return "whatsapp";
+  return "website";
+}
+
+function heroContactItems(state: ResumePageState): HeroContactItem[] {
+  if (state.usedFallback) {
+    const items: HeroContactItem[] = [
+      { kind: "email", label: state.contactEmail, href: `mailto:${state.contactEmail}` },
+    ];
+    if (state.contactLocation) items.push({ kind: "location", label: state.contactLocation });
+    for (const link of state.contactLinks) {
+      items.push({ kind: contactKindFromHref(link.href), label: link.label, href: link.href });
+    }
+    return items;
+  }
+
+  const items: HeroContactItem[] = [];
+  const seen = new Set<string>();
+  const add = (item: HeroContactItem) => {
+    const key = `${item.kind}:${item.href ?? item.label}`.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      items.push(item);
+    }
+  };
+
+  for (const line of state.contacts) {
+    const linkedSegments = line.filter((segment) => Boolean(segment.href));
+    if (linkedSegments.length > 0) {
+      for (const segment of linkedSegments) {
+        const href = segment.href!;
+        const kind = contactKindFromHref(href);
+        const label = kind === "github" ? "GitHub" : kind === "linkedin" ? "LinkedIn" : kind === "whatsapp" ? "WhatsApp" : "Portfolio";
+        add({ kind, label, href });
+      }
+      continue;
+    }
+
+    const text = contactLineText(line);
+    if (!text) continue;
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text)) {
+      add({ kind: "email", label: text, href: `mailto:${text}` });
+    } else if (/^\+?[\d\s().-]{7,}/.test(text)) {
+      const dialable = text.replace(/[^+\d]/g, "");
+      add({ kind: "phone", label: text, href: `tel:${dialable}` });
+    } else {
+      add({ kind: "location", label: text });
+    }
+  }
+
+  return items;
+}
+
+function HeroContactIcon({ kind }: { kind: HeroContactKind }) {
+  if (kind === "email") return <Icon.Mail size={16} aria-hidden />;
+  if (kind === "phone") return <Icon.Phone size={16} aria-hidden />;
+  if (kind === "location") return <Icon.MapPin size={16} aria-hidden />;
+  if (kind === "github") return <Icon.Github size={16} aria-hidden />;
+  if (kind === "linkedin") return <Icon.Linkedin size={16} aria-hidden />;
+  if (kind === "whatsapp") return <Icon.MessageCircle size={16} aria-hidden />;
+  return <Icon.ArrowUpRight size={16} aria-hidden />;
+}
+
+function HeroContacts({ state }: { state: ResumePageState }) {
+  const items = heroContactItems(state);
+  if (items.length === 0) return null;
+
+  return (
+    <ul className="mt-6 flex max-w-4xl flex-wrap items-center justify-center gap-x-5 gap-y-3 text-caption-sm text-paper-secondary sm:text-body-sm">
+      {items.map((item) => (
+        <li key={`${item.kind}:${item.href ?? item.label}`}>
+          {item.href ? (
+            item.href.startsWith("http") ? (
+              <a
+                href={item.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 transition-colors hover:text-paper-primary"
+              >
+                <HeroContactIcon kind={item.kind} />
+                <span>{item.label}</span>
+              </a>
+            ) : (
+              <a href={item.href} className="inline-flex items-center gap-2 transition-colors hover:text-paper-primary">
+                <HeroContactIcon kind={item.kind} />
+                <span>{item.label}</span>
+              </a>
+            )
+          ) : (
+            <span className="inline-flex items-center gap-2">
+              <HeroContactIcon kind={item.kind} />
+              <span>{item.label}</span>
+            </span>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 /**
@@ -215,41 +331,6 @@ function FallbackResumeSections({ state }: { state: Extract<ResumePageState, { s
   );
 }
 
-function ContactRow({ state, onInk = false, centered = false }: { state: ResumePageState; onInk?: boolean; centered?: boolean }) {
-  const tone = onInk ? "text-paper-secondary" : "text-ink-secondary";
-  const hover = onInk ? "hover:text-paper-primary" : "hover:text-ink-primary";
-  const layout = cn(
-    "mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-caption-sm sm:text-body-sm",
-    centered && "justify-center",
-    tone,
-  );
-
-  if (!state.usedFallback) {
-    return (
-      <div className={layout}>
-        {state.contacts.map((line, index) => (
-          <span key={index as Key} className="break-words">
-            <DocumentLine line={line} />
-          </span>
-        ))}
-      </div>
-    );
-  }
-  return (
-    <div className={layout}>
-      <a href={`mailto:${state.contactEmail}`} className={hover}>
-        {state.contactEmail}
-      </a>
-      {state.contactLocation && <span>{state.contactLocation}</span>}
-      {state.contactLinks.map((link) => (
-        <ExternalLink key={link.label} href={link.href} className={hover}>
-          {link.label}
-        </ExternalLink>
-      ))}
-    </div>
-  );
-}
-
 function fallbackNotice(state: ResumePageState): ReactNode {
   if (!state.usedFallback) return null;
   return (
@@ -268,14 +349,11 @@ export function ResumeView({ state }: ResumeViewProps) {
   return (
     <>
       <Section shell="readable" className="border-b border-border-on-ink bg-ink">
-        <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
+        <div className="mx-auto flex max-w-4xl flex-col items-center text-center">
           <p className="font-mono text-label uppercase tracking-[0.12em] text-primary-on-ink">Resume</p>
           <h1 className="mt-3 break-words font-heading text-display-sm text-paper-primary sm:text-display-md">{state.name}</h1>
-          {state.professionalTitle && <p className="mt-3 max-w-2xl text-body text-paper-secondary">{state.professionalTitle}</p>}
-          <p className="mt-4 max-w-2xl text-body-sm leading-relaxed text-paper-tertiary">
-            A concise professional profile covering verified experience, selected projects, education, and technical skills.
-          </p>
-          <ContactRow state={state} onInk centered />
+          {state.professionalTitle && <p className="mt-3 max-w-3xl text-body text-paper-secondary">{state.professionalTitle}</p>}
+          <HeroContacts state={state} />
           <div className="mt-7">
             <DownloadButtons downloads={state.downloads} onInk />
           </div>
