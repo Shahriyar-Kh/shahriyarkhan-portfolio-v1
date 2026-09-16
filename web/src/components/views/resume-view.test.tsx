@@ -16,9 +16,9 @@ const PUBLISHED_STATE: PublishedResumePageState = {
   ],
   sections: [
     { key: "summary", heading: "PROFESSIONAL SUMMARY", items: [[{ text: "Backend engineer with a track record of measurable delivery.", href: null }]] },
-    { key: "skills", heading: "SKILLS", items: [[{ text: "Python, Django, PostgreSQL", href: null }]] },
-    { key: "experience", heading: "EXPERIENCE", items: [[{ text: "Software Engineer, Example Systems Inc. (2021-2025)", href: null }]] },
-    { key: "projects", heading: "PROJECTS", items: [[{ text: "Portfolio Résumé Platform", href: null }]] },
+    { key: "skills", heading: "TECHNICAL SKILLS", items: [[{ text: "Python, Django, PostgreSQL", href: null }]] },
+    { key: "experience", heading: "PROFESSIONAL EXPERIENCE", items: [[{ text: "Software Engineer, Example Systems Inc. (2021-2025)", href: null }]] },
+    { key: "projects", heading: "SELECTED PROJECTS", items: [[{ text: "Portfolio Résumé Platform", href: null }]] },
     { key: "education", heading: "EDUCATION", items: [[{ text: "BSc Computer Science - Example University", href: null }]] },
     {
       key: "certifications",
@@ -140,9 +140,9 @@ describe("ResumeView (published snapshot)", () => {
       "Jordan Ashworth",
       "Professional profile",
       "PROFESSIONAL SUMMARY",
-      "SKILLS",
-      "EXPERIENCE",
-      "PROJECTS",
+      "TECHNICAL SKILLS",
+      "PROFESSIONAL EXPERIENCE",
+      "SELECTED PROJECTS",
       "EDUCATION",
       "CERTIFICATIONS",
     ]);
@@ -152,7 +152,7 @@ describe("ResumeView (published snapshot)", () => {
     const state: PublishedResumePageState = { ...PUBLISHED_STATE, sections: PUBLISHED_STATE.sections.filter((s) => s.key !== "certifications") };
     render(<ResumeView state={state} />);
     expect(screen.queryByText("CERTIFICATIONS")).not.toBeInTheDocument();
-    expect(screen.getByText("SKILLS")).toBeInTheDocument();
+    expect(screen.getByText("TECHNICAL SKILLS")).toBeInTheDocument();
   });
 
   it("shows one download action group with both real backend formats", () => {
@@ -202,7 +202,7 @@ describe("ResumeView (published snapshot)", () => {
   it("renders no governance, provenance, ATS score, or application data", () => {
     const { container } = render(<ResumeView state={PUBLISHED_STATE} />);
     const text = container.textContent ?? "";
-    expect(text).not.toMatch(/ats score|readiness score|approved by|published by|source_facts|source_hash|claim_id|job application/i);
+    expect(text).not.toMatch(/ats|readiness score|approved by|published by|source_facts|source_hash|claim_id|job application/i);
   });
 
   it("has no skipped heading levels", () => {
@@ -214,12 +214,12 @@ describe("ResumeView (published snapshot)", () => {
     }
   });
 
-  it("labels the page as Resume and presents the approved document as a distinct preview", () => {
-    render(<ResumeView state={PUBLISHED_STATE} />);
+  it("presents the resume as a professional profile without implementation-facing copy", () => {
+    const { container } = render(<ResumeView state={PUBLISHED_STATE} />);
     expect(screen.getByText(/^Resume$/)).toBeInTheDocument();
     expect(screen.getByText(/resume document/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/resume document preview/i)).toBeInTheDocument();
-    expect(screen.getByText(/published master · ats-ready pdf \+ docx/i)).toBeInTheDocument();
+    expect(container.textContent).not.toMatch(/ATS-safe|ATS-ready|published master|recruiter copy/i);
   });
 
   it("does not repeat PDF or DOCX download actions after the document", () => {
