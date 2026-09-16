@@ -155,6 +155,17 @@ function AssistantAnswer({
   onStartProject: () => void;
   onAskProject: (title: string) => void;
 }) {
+  // Recommendations already expose their corresponding published source as
+  // the primary case-study/service link. Do not repeat that exact same link
+  // again inside the Sources disclosure: duplicate same-destination links
+  // add visual noise and give assistive technology two indistinguishable
+  // controls. Keep any additional evidence sources available below.
+  const surfacedRecommendationIds = new Set([
+    ...response.recommended_projects.map((slug) => `project:${slug}`),
+    ...response.recommended_services.map((slug) => `service:${slug}`),
+  ]);
+  const additionalSources = response.sources.filter((source) => !surfacedRecommendationIds.has(source.source_id));
+
   return (
     <div className="flex flex-col gap-3 border border-border bg-paper-primary px-3 py-3">
       <p className="text-body-sm leading-relaxed text-ink-primary">{response.answer}</p>
@@ -207,11 +218,11 @@ function AssistantAnswer({
         </div>
       )}
 
-      {response.sources.length > 0 && (
+      {additionalSources.length > 0 && (
         <details className="border-t border-border pt-2">
-          <summary className="cursor-pointer text-caption-sm text-ink-hint">Sources</summary>
+          <summary className="cursor-pointer text-caption-sm text-ink-hint">Additional sources</summary>
           <div className="mt-2 flex flex-wrap gap-2">
-            {response.sources.map((source) =>
+            {additionalSources.map((source) =>
               source.public_path ? (
                 <Link
                   key={source.source_id}
