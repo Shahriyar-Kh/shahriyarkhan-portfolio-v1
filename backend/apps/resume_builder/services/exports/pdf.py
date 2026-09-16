@@ -19,7 +19,8 @@ from .security import split_text_and_links
 FONT_REGULAR = "ResumeVera"
 FONT_BOLD = "ResumeVeraBold"
 NAVY = colors.HexColor("#17324D")
-DARK = colors.HexColor("#18212B")
+DARK = colors.HexColor("#1F2933")
+MUTED = colors.HexColor("#475569")
 
 
 def _register_fonts():
@@ -43,16 +44,102 @@ def _markup(value):
 
 
 def render_pdf(document):
+    """Render a conservative, ATS-readable recruiter resume.
+
+    Presentation decisions are intentionally restrained: one column, real
+    selectable text, conventional headings, no tables/text boxes/images and
+    no information hidden in headers or footers.  The normalized document's
+    governed text remains unchanged; item.kind only controls hierarchy.
+    """
     _register_fonts()
     buffer = BytesIO()
     styles = {
-        "name": ParagraphStyle("ResumeName", fontName=FONT_BOLD, fontSize=17, leading=19, textColor=NAVY, alignment=TA_CENTER, spaceAfter=3),
-        "title": ParagraphStyle("ResumeTitle", fontName=FONT_REGULAR, fontSize=10.8, leading=13.2, textColor=DARK, alignment=TA_CENTER, spaceAfter=2),
-        "contact": ParagraphStyle("ResumeContact", fontName=FONT_REGULAR, fontSize=9, leading=11, textColor=DARK, alignment=TA_CENTER, spaceAfter=1),
-        "heading": ParagraphStyle("ResumeHeading", fontName=FONT_BOLD, fontSize=10.5, leading=12.5, textColor=NAVY, spaceBefore=7.5, spaceAfter=2.5, keepWithNext=True),
-        "body": ParagraphStyle("ResumeBody", fontName=FONT_REGULAR, fontSize=9.6, leading=12, textColor=DARK, spaceAfter=2.2),
-        "bullet": ParagraphStyle("ResumeBullet", fontName=FONT_REGULAR, fontSize=9.6, leading=12, textColor=DARK, leftIndent=12, firstLineIndent=-7, bulletIndent=0, spaceAfter=1.7),
+        "name": ParagraphStyle(
+            "ResumeName",
+            fontName=FONT_BOLD,
+            fontSize=18,
+            leading=21,
+            textColor=DARK,
+            alignment=TA_CENTER,
+            spaceAfter=3,
+        ),
+        "title": ParagraphStyle(
+            "ResumeTitle",
+            fontName=FONT_REGULAR,
+            fontSize=10.8,
+            leading=13,
+            textColor=NAVY,
+            alignment=TA_CENTER,
+            spaceAfter=3,
+        ),
+        "contact": ParagraphStyle(
+            "ResumeContact",
+            fontName=FONT_REGULAR,
+            fontSize=9.2,
+            leading=11.2,
+            textColor=MUTED,
+            alignment=TA_CENTER,
+            spaceAfter=1.2,
+        ),
+        "heading": ParagraphStyle(
+            "ResumeHeading",
+            fontName=FONT_BOLD,
+            fontSize=10.4,
+            leading=12.5,
+            textColor=NAVY,
+            spaceBefore=9,
+            spaceAfter=3.5,
+            keepWithNext=True,
+        ),
+        "body": ParagraphStyle(
+            "ResumeBody",
+            fontName=FONT_REGULAR,
+            fontSize=10.1,
+            leading=13.1,
+            textColor=DARK,
+            spaceAfter=3.5,
+        ),
+        "skill": ParagraphStyle(
+            "ResumeSkill",
+            fontName=FONT_REGULAR,
+            fontSize=9.8,
+            leading=12.2,
+            textColor=DARK,
+            leftIndent=0,
+            spaceAfter=2.2,
+        ),
+        "entry_heading": ParagraphStyle(
+            "ResumeEntryHeading",
+            fontName=FONT_BOLD,
+            fontSize=10.1,
+            leading=12.5,
+            textColor=DARK,
+            spaceBefore=3.5,
+            spaceAfter=2,
+            keepWithNext=True,
+        ),
+        "detail": ParagraphStyle(
+            "ResumeDetail",
+            fontName=FONT_REGULAR,
+            fontSize=9.4,
+            leading=11.8,
+            textColor=MUTED,
+            leftIndent=10,
+            spaceAfter=2,
+        ),
+        "bullet": ParagraphStyle(
+            "ResumeBullet",
+            fontName=FONT_REGULAR,
+            fontSize=9.8,
+            leading=12.5,
+            textColor=DARK,
+            leftIndent=14,
+            firstLineIndent=-8,
+            bulletIndent=0,
+            spaceAfter=2.3,
+        ),
     }
+
     story = []
     if document.name:
         story.append(Paragraph(_markup(document.name), styles["name"]))
@@ -60,22 +147,24 @@ def render_pdf(document):
         story.append(Paragraph(_markup(document.professional_title), styles["title"]))
     for contact in document.contacts:
         story.append(Paragraph(_markup(contact), styles["contact"]))
-    story.append(Spacer(1, 4))
+    story.append(Spacer(1, 5))
+
     for section in document.sections:
         story.append(Paragraph(escape(section.heading), styles["heading"]))
-        style = styles["body"] if section.key == "summary" else styles["bullet"]
         for item in section.items:
-            story.append(Paragraph(_markup(item.text), style, bulletText=None if section.key == "summary" else "•"))
+            kind = item.kind if item.kind in styles else "body"
+            bullet_text = "•" if kind == "bullet" else None
+            story.append(Paragraph(_markup(item.text), styles[kind], bulletText=bullet_text))
 
-    title = f"{document.name} — Resume" if document.name else "Resume"
+    title = f"{document.name} - Resume" if document.name else "Resume"
     author = document.name or "Portfolio resume export service"
     pdf = SimpleDocTemplate(
         buffer,
         pagesize=LETTER,
-        leftMargin=0.62 * inch,
-        rightMargin=0.62 * inch,
-        topMargin=0.55 * inch,
-        bottomMargin=0.55 * inch,
+        leftMargin=0.68 * inch,
+        rightMargin=0.68 * inch,
+        topMargin=0.58 * inch,
+        bottomMargin=0.58 * inch,
         pageCompression=1,
         invariant=1,
         title=title,
