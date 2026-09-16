@@ -1,9 +1,8 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { AssistantChat } from "@/components/assistant/assistant-chat";
-import { ProjectDiscoveryWizard } from "@/components/assistant/project-discovery-wizard";
 import { useDialogBehavior } from "@/components/assistant/use-dialog-behavior";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -11,17 +10,35 @@ import { ASSISTANT_LAUNCHER_LABEL } from "@/content/assistant";
 
 type Mode = "closed" | "ask" | "discover";
 
+// PORTFOLIO-ASSISTANTS-02: the always-visible trigger button below is
+// rendered directly and unconditionally - it must never depend on a lazy
+// chunk load to exist. Only the two heavy, interaction-gated panels
+// (chat, wizard) are code-split, and only AFTER the visitor has actually
+// opened the dialog. This file itself is a Client Component ("use client"
+// above), so `ssr: false` is allowed here per Next.js/Turbopack's rule
+// (PA-01 section 27's original build failure was from putting `dynamic`
+// with `ssr:false` in the Server Component layout.tsx instead).
+//
+// Root cause of the PA-02 visual-QA defect (launcher vanishing on
+// mobile/tablet and never recovering, even back at desktop width): the
+// ENTIRE launcher - including this trigger button - was previously
+// wrapped in `dynamic(..., { ssr: false })` with no `loading` fallback and
+// no retry. `next/dynamic` renders nothing while its chunk is loading and
+// stays that way indefinitely if the fetch stalls or errors - since nothing
+// in this component's always-rendered path (the button) touches any
+// browser-only API during its first render, there was never a real reason
+// to gate its own existence behind a lazy import at all.
+const AssistantChat = dynamic(() => import("@/components/assistant/assistant-chat").then((mod) => mod.AssistantChat), { ssr: false });
+const ProjectDiscoveryWizard = dynamic(
+  () => import("@/components/assistant/project-discovery-wizard").then((mod) => mod.ProjectDiscoveryWizard),
+  { ssr: false },
+);
+
 export function AssistantLauncher() {
   const [mode, setMode] = useState<Mode>("closed");
-  const [mounted, setMounted] = useState(false);
   const panelId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const open = mode !== "closed";
-
-  // Portal target only exists client-side; avoids an SSR/CSR markup
-  // mismatch without needing a separate `typeof window` branch at every
-  // call site.
-  if (!mounted && typeof window !== "undefined") setMounted(true);
 
   useDialogBehavior(open, () => setMode("closed"), panelRef);
 
@@ -33,16 +50,16 @@ export function AssistantLauncher() {
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setMode((current) => (current === "closed" ? "ask" : "closed"))}
-        className="fixed bottom-5 right-5 z-(--z-mobile-nav) flex items-center gap-2 border border-border bg-primary px-4 py-3 text-body-sm font-medium text-primary-foreground shadow-lg hover:opacity-90"
+        style={{ bottom: "max(1.25rem, calc(env(safe-area-inset-bottom) + 0.75rem))" }}
+        className="fixed right-5 z-(--z-assistant) flex min-h-11 items-center gap-2 border border-border bg-primary px-4 py-3 text-body-sm font-medium text-primary-foreground shadow-lg hover:opacity-90"
       >
         <Icon.MessageCircle size={18} aria-hidden />
         {ASSISTANT_LAUNCHER_LABEL}
       </button>
 
-      {mounted &&
-        open &&
+      {open &&
         createPortal(
-          <div className="fixed inset-0 z-(--z-mobile-nav) flex items-end justify-end bg-ink/40 p-0 sm:items-end sm:p-5">
+          <div className="fixed inset-0 z-(--z-assistant) flex items-end justify-end bg-ink/40 p-0 sm:items-end sm:p-5">
             <div
               id={panelId}
               ref={panelRef}
@@ -50,6 +67,7 @@ export function AssistantLauncher() {
               aria-modal="true"
               aria-label={mode === "discover" ? "Start a project" : "Ask about Shahriyar"}
               className="flex h-[85dvh] w-full flex-col border border-border bg-paper-primary shadow-xl sm:h-[32rem] sm:w-[26rem]"
+              style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
             >
               <div className="flex items-center justify-between border-b border-border px-4 py-3">
                 <div className="flex gap-1">

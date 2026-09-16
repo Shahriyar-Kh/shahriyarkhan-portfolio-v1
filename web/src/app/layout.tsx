@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Fraunces, JetBrains_Mono, Manrope } from "next/font/google";
 import "./globals.css";
 import { AnalyticsListener } from "@/components/analytics/analytics-listener";
-import { AssistantLauncher } from "@/components/assistant/assistant-launcher-client";
+import { AssistantLauncher } from "@/components/assistant/assistant-launcher";
 import { RouteScrollReset } from "@/components/layout/route-scroll-reset";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
