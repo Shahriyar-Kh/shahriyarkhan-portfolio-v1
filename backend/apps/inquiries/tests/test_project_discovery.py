@@ -69,6 +69,22 @@ class ProjectDiscoveryPersistenceTests(ThrottleSafeAPITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_oversized_business_problem_is_rejected(self):
+        """PORTFOLIO-ASSISTANTS-02 section 9: an unbounded TextField-backed
+        field could otherwise produce a discovery_summary approaching
+        Google Sheets' ~50,000 character cell limit."""
+        payload = {**VALID_PAYLOAD, "business_problem": "x" * 5001}
+        response = self.client.post(DISCOVERY_URL, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(ServiceRequest.objects.count(), 0)
+
+    def test_excessive_required_features_count_is_rejected(self):
+        payload = {**VALID_PAYLOAD, "required_features": [f"feature-{i}" for i in range(31)]}
+        response = self.client.post(DISCOVERY_URL, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_consent_is_required(self):
         payload = {**VALID_PAYLOAD, "consent_given": False}
         response = self.client.post(DISCOVERY_URL, payload, format="json")

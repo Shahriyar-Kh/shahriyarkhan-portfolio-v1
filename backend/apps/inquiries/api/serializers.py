@@ -76,19 +76,29 @@ class ProjectDiscoverySerializer(HoneypotMixin, serializers.ModelSerializer):
     # blank=True (business_problem, expected_outcome, etc. are all
     # blank=True so existing plain ServiceRequest rows stay valid) - these
     # four are semantically required for THIS flow, so they're declared
-    # explicitly here to override that inference.
+    # explicitly here to override that inference. Every free-text field
+    # also gets an explicit max_length here (PORTFOLIO-ASSISTANTS-02
+    # section 9 review): the underlying TextField columns are themselves
+    # unbounded, and an unbounded business_problem/expected_outcome/
+    # existing_assets/additional_notes could otherwise produce a
+    # discovery_summary approaching or exceeding Google Sheets' ~50,000
+    # character cell limit, breaking that sync for a pathological
+    # submission. The caps below are generous for a genuine enquiry
+    # (thousands of characters each) while keeping the total summary
+    # safely bounded.
     name = serializers.CharField(source="sender_name", max_length=150)
     project_type = serializers.CharField(max_length=120)
     project_stage = serializers.CharField(max_length=120)
-    business_problem = serializers.CharField()
-    expected_outcome = serializers.CharField()
+    business_problem = serializers.CharField(max_length=5000)
+    expected_outcome = serializers.CharField(max_length=3000)
+    existing_assets = serializers.CharField(max_length=3000, required=False, allow_blank=True, default="")
     consent_given = serializers.BooleanField()
-    required_features = serializers.ListField(child=serializers.CharField(max_length=200), allow_empty=False)
-    optional_features = serializers.ListField(child=serializers.CharField(max_length=200), required=False, default=list)
+    required_features = serializers.ListField(child=serializers.CharField(max_length=200), allow_empty=False, max_length=30)
+    optional_features = serializers.ListField(child=serializers.CharField(max_length=200), required=False, default=list, max_length=30)
     preferred_contact_method = serializers.ChoiceField(
         choices=[("email", "email"), ("phone", "phone"), ("whatsapp", "whatsapp")], required=False, allow_blank=True, default=""
     )
-    additional_notes = serializers.CharField(required=False, allow_blank=True, write_only=True, default="")
+    additional_notes = serializers.CharField(max_length=2000, required=False, allow_blank=True, write_only=True, default="")
 
     class Meta:
         model = ServiceRequest
