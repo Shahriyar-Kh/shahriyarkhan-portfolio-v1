@@ -33,14 +33,45 @@ class ResumeDraftForm(forms.Form):
 
 
 class ResumeContentForm(forms.Form):
+    EDITABLE_SECTIONS = {"summary", "contact", "experience", "education", "skills", "projects", "certifications"}
+    SECTION_LABELS = {
+        "summary": "Professional summary",
+        "contact": "Contact",
+        "experience": "Experience",
+        "education": "Education",
+        "skills": "Skills",
+        "projects": "Project",
+        "certifications": "Certification",
+    }
+
     def __init__(self, *args, content=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.allowed_names = set()
+        section_counts = {}
         for index, item in enumerate((content or {}).get("items", [])):
-            if item.get("section") in {"summary", "experience", "education", "skills", "projects", "certifications"}:
-                name = f"item_{index}"
-                self.allowed_names.add(name)
-                self.fields[name] = forms.CharField(label=item.get("section", "Content").title(), initial=item.get("text", ""), required=False)
+            section = item.get("section")
+            if section not in self.EDITABLE_SECTIONS:
+                continue
+
+            name = f"item_{index}"
+            self.allowed_names.add(name)
+            section_counts[section] = section_counts.get(section, 0) + 1
+            base_label = self.SECTION_LABELS[section]
+            label = base_label if section == "summary" else f"{base_label} {section_counts[section]}"
+
+            if section == "summary":
+                widget = forms.Textarea(attrs={"rows": 4, "cols": 100})
+            elif section in {"experience", "projects"} and len(item.get("text", "")) > 90:
+                widget = forms.Textarea(attrs={"rows": 2, "cols": 100})
+            else:
+                widget = forms.TextInput(attrs={"size": 100})
+
+            self.fields[name] = forms.CharField(
+                label=label,
+                initial=item.get("text", ""),
+                required=False,
+                widget=widget,
+            )
         self.content = content or {}
 
     def clean(self):
