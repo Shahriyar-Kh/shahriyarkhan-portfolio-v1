@@ -44,15 +44,25 @@ def generate_json(*, system_instruction: str, user_content: str, max_output_toke
     if not is_gemini_configured():
         raise GeminiUnavailableError("Gemini is not configured.")
 
-    endpoint = _ENDPOINT_TEMPLATE.format(model=settings.GEMINI_MODEL, api_key=settings.GEMINI_API_KEY)
+    model = settings.GEMINI_MODEL
+    endpoint = _ENDPOINT_TEMPLATE.format(model=model, api_key=settings.GEMINI_API_KEY)
+    generation_config = {
+        "maxOutputTokens": max_output_tokens,
+        "responseMimeType": "application/json",
+    }
+    # Gemini 3 models think by default. For this portfolio assistant we need
+    # low-latency grounded extraction/composition, not deep reasoning. A low
+    # thinking level also prevents the model from spending a small output
+    # budget entirely on hidden thought tokens and returning no text.
+    if model.startswith("gemini-3"):
+        generation_config["thinkingConfig"] = {"thinkingLevel": "low"}
+    else:
+        generation_config["temperature"] = 0.2
+
     payload = {
         "system_instruction": {"parts": [{"text": system_instruction}]},
         "contents": [{"role": "user", "parts": [{"text": user_content}]}],
-        "generationConfig": {
-            "temperature": 0.2,
-            "maxOutputTokens": max_output_tokens,
-            "responseMimeType": "application/json",
-        },
+        "generationConfig": generation_config,
     }
     request = urllib.request.Request(
         endpoint,
@@ -94,8 +104,29 @@ def generate_json(*, system_instruction: str, user_content: str, max_output_toke
         raise GeminiUnavailableError("Gemini request failed.")
 
     try:
-        text = body["candidates"][0]["content"]["parts"][0]["text"]
-        return json.loads(text)
-    except (KeyError, IndexError, TypeError, json.JSONDecodeError) as exc:
+        candidates = body.get("candidates") if isinstance(body, dict) else None
+        if not candidates or not isinstance(candidates[0], dict):
+            raise ValueError("missing candidate")
+
+        candidate = candidates[0]
+        content = candidate.get("content") or {}
+        parts = content.get("parts") or []
+        text_parts = [
+            part.get("text")
+            for part in parts
+            if isinstance(part, dict)
+            and isinstance(part.get("text"), str)
+            and part.get("text")
+            and not part.get("thought", False)
+        ]
+        if not text_parts:
+            finish_reason = candidate.get("finishReason", "UNKNOWN")
+            logger.warning("Gemini response had no text parts: finish_reason=%s", finish_reason)
+            raise GeminiUnavailableError("Gemini returned no text response.")
+
+        return json.loads("".join(text_parts))
+    except GeminiUnavailableError:
+        raise
+    except (KeyError, IndexError, TypeError, ValueError, json.JSONDecodeError) as exc:
         logger.warning("Gemini response was malformed: exception_class=%s", type(exc).__name__)
         raise GeminiUnavailableError("Gemini response was malformed.") from exc
