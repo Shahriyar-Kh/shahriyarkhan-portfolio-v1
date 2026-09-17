@@ -86,6 +86,13 @@ class DeterministicProviderTests(TestCase):
         self.assertEqual(answer.intent, "CLIENT_QUESTION")
         self.assertTrue(answer.handoff)
 
+    def test_natural_client_project_request_triggers_handoff(self):
+        answer = self._ask("I want to build a booking platform for my salon. Can Shahriyar help me?")
+
+        self.assertEqual(answer.intent, "CLIENT_QUESTION")
+        self.assertTrue(answer.handoff)
+        self.assertEqual(answer.handoff_reason, "project_discovery")
+
     def test_deterministic_answer_always_passes_its_own_schema_validation(self):
         answer = self._ask("What does Shahriyar specialize in?")
 
