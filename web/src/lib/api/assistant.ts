@@ -3,6 +3,8 @@ import type { ApiResult } from "@/lib/api/errors";
 import type {
   AssistantQueryPayload,
   AssistantQueryResponse,
+  ProjectDiscoveryAnalysisPayload,
+  ProjectDiscoveryAnalysisResponse,
   ProjectDiscoveryPayload,
   ProjectDiscoveryReceipt,
 } from "@/lib/api/types";
@@ -16,6 +18,16 @@ export async function postProjectDiscovery(
 ): Promise<ApiResult<ProjectDiscoveryReceipt>> {
   return apiPost<ProjectDiscoveryReceipt, ProjectDiscoveryPayload>(
     "/api/v1/public/inquiries/project-discovery/",
+    payload,
+  );
+}
+
+
+export async function postProjectDiscoveryAnalysis(
+  payload: ProjectDiscoveryAnalysisPayload,
+): Promise<ApiResult<ProjectDiscoveryAnalysisResponse>> {
+  return apiPost<ProjectDiscoveryAnalysisResponse, ProjectDiscoveryAnalysisPayload>(
+    "/api/v1/public/assistant/project-discovery-analysis/",
     payload,
   );
 }
