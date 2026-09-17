@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, fieldDescribedBy } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -16,11 +16,12 @@ import {
   TIMELINE_OPTIONS,
   type DiscoveryStepKey,
 } from "@/content/assistant";
-import { postProjectDiscovery } from "@/lib/api";
+import { postProjectDiscovery, postProjectDiscoveryAnalysis } from "@/lib/api";
 import type { ProjectDiscoveryPayload } from "@/lib/api/types";
 
 export interface ProjectDiscoveryWizardProps {
   sourcePage: string;
+  initialDescription?: string;
 }
 
 interface FormState {
@@ -151,7 +152,7 @@ function FeatureListInput({
   );
 }
 
-export function ProjectDiscoveryWizard({ sourcePage }: ProjectDiscoveryWizardProps) {
+export function ProjectDiscoveryWizard({ sourcePage, initialDescription = "" }: ProjectDiscoveryWizardProps) {
   const formId = useId();
   const [stepIndex, setStepIndex] = useState(0);
   const [values, setValues] = useState<FormState>(EMPTY_STATE);
@@ -159,10 +160,55 @@ export function ProjectDiscoveryWizard({ sourcePage }: ProjectDiscoveryWizardPro
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<{ referenceId: string; summary: string } | null>(null);
+  const [analysisStatus, setAnalysisStatus] = useState<"idle" | "loading" | "ready">("idle");
+  const [followUpQuestions, setFollowUpQuestions] = useState<string[]>([]);
   const honeypotRef = useRef<HTMLInputElement>(null);
   const submissionIdRef = useRef<string>(crypto.randomUUID());
 
   const step = DISCOVERY_STEPS[stepIndex]!;
+
+  useEffect(() => {
+    const seed = initialDescription.trim();
+    if (seed.length < 10) return;
+
+    let active = true;
+    setAnalysisStatus("loading");
+    setValues((prev) => ({
+      ...prev,
+      businessProblem: prev.businessProblem || seed,
+    }));
+
+    void postProjectDiscoveryAnalysis({ description: seed }).then((result) => {
+      if (!active) return;
+      if (result.ok) {
+        const ai = result.data;
+        setValues((prev) => ({
+          ...prev,
+          projectType: prev.projectType || ai.project_type,
+          projectStage: prev.projectStage || ai.project_stage,
+          businessProblem: prev.businessProblem || ai.summary || seed,
+          targetUsers: prev.targetUsers || ai.target_users,
+          expectedOutcome: prev.expectedOutcome || ai.expected_outcome,
+          requiredFeatures: prev.requiredFeatures.length ? prev.requiredFeatures : ai.required_features,
+          optionalFeatures: prev.optionalFeatures.length ? prev.optionalFeatures : ai.optional_features,
+          technicalPreferences: prev.technicalPreferences || ai.technical_preferences,
+        }));
+        setFollowUpQuestions(ai.follow_up_questions);
+      } else {
+        setFollowUpQuestions([
+          "Who will use this product?",
+          "What result should the project achieve?",
+          "Which features are essential for the first version?",
+        ]);
+      }
+      setAnalysisStatus("ready");
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [initialDescription]);
+
 
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -262,6 +308,26 @@ export function ProjectDiscoveryWizard({ sourcePage }: ProjectDiscoveryWizardPro
       </p>
 
       <div className="flex-1 overflow-y-auto px-4 py-3">
+        {initialDescription.trim().length >= 10 && (
+          <div className="mb-4 border border-border bg-input/30 p-3 text-caption-sm text-ink-secondary">
+            <p className="font-medium text-ink-primary">
+              {analysisStatus === "loading" ? "Analyzing your project idea…" : "AI-assisted draft"}
+            </p>
+            <p className="mt-1">
+              Your original description has been carried into this form. Review and edit every suggestion before submitting.
+            </p>
+            {analysisStatus === "ready" && followUpQuestions.length > 0 && (
+              <div className="mt-2">
+                <p className="font-medium text-ink-primary">Helpful questions to consider</p>
+                <ul className="mt-1 list-disc space-y-1 pl-4">
+                  {followUpQuestions.map((question) => (
+                    <li key={question}>{question}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
         {step.key === "contact" && (
           <div className="flex flex-col gap-4">
             <Field label="Name" htmlFor={`${formId}-name`} required error={errors.name}>
