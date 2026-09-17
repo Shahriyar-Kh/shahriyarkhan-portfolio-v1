@@ -81,10 +81,11 @@ class ATSScoringTests(TestCase):
         )
         self.assertFalse(assessment_is_current(assessment))
 
-    def test_exact_duplicate_assessment_is_rejected(self):
-        run_readiness_assessment(version=self.version)
-        with self.assertRaises(Exception):
-            run_readiness_assessment(version=self.version)
+    def test_exact_duplicate_assessment_is_idempotent(self):
+        first = run_readiness_assessment(version=self.version)
+        second = run_readiness_assessment(version=self.version)
+        self.assertEqual(first.pk, second.pk)
+        self.assertEqual(ResumeAssessment.objects.filter(resume_version=self.version, assessment_type="readiness").count(), 1)
 
     def test_stale_hash_blocks_assessment_without_lifecycle_change(self):
         self.version.source_hash = "0" * 64
@@ -112,6 +113,8 @@ class ATSScoringTests(TestCase):
         }
         self.assertTrue(set(result["evidence_ids"]).issubset(valid_claim_ids))
         assessment = run_job_match_assessment(version=self.version, application=application)
+        repeated = run_job_match_assessment(version=self.version, application=application)
+        self.assertEqual(assessment.pk, repeated.pk)
         self.assertEqual(assessment.job_application, application)
         self.assertEqual(assessment.job_description_hash, application.job_description_hash)
         self.assertEqual(assessment.report, result)
