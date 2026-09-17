@@ -17,7 +17,7 @@ interface ChatTurn {
 }
 
 export interface AssistantChatProps {
-  onStartProject: () => void;
+  onStartProject: (initialDescription?: string) => void;
 }
 
 type SendState = "idle" | "sending";
@@ -112,7 +112,7 @@ export function AssistantChat({ onStartProject }: AssistantChatProps) {
               {turn.response && (
                 <AssistantAnswer
                   response={turn.response}
-                  onStartProject={onStartProject}
+                  onStartProject={() => onStartProject(turn.question)}
                   onAskProject={(title) => void send(`Tell me more about the ${title} project.`)}
                 />
               )}
