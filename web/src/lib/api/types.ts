@@ -401,3 +401,20 @@ export interface ProjectDiscoveryReceipt {
   reference_id: string;
   discovery_summary: string;
 }
+
+export interface ProjectDiscoveryAnalysisPayload {
+  description: string;
+}
+
+export interface ProjectDiscoveryAnalysisResponse {
+  summary: string;
+  project_type: string;
+  project_stage: string;
+  target_users: string;
+  expected_outcome: string;
+  required_features: string[];
+  optional_features: string[];
+  technical_preferences: string;
+  follow_up_questions: string[];
+  fallback_used: boolean;
+}
