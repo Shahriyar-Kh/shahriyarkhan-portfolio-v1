@@ -114,15 +114,27 @@ def _apply_routing_guard(raw: object, message: str) -> object:
     return guarded
 
 
+def _domain_tokens(message_tokens: set[str]) -> set[str]:
+    domain: set[str] = set()
+    if message_tokens & {"elearning", "e-learning", "lms", "academy", "college"}:
+        domain.update({"learning", "education", "student", "course", "lms", "quiz", "assignment", "instructor", "certificate"})
+    if message_tokens & {"ecommerce", "e-commerce", "store", "shop", "products", "product"}:
+        domain.update({"ecommerce", "catalog", "cart", "payment", "inventory", "order", "product"})
+    if message_tokens & {"saas", "subscription"}:
+        domain.update({"saas", "subscription", "dashboard", "authentication"})
+    if message_tokens & {"website", "web"}:
+        domain.update({"website", "web", "frontend", "responsive", "seo", "deployment"})
+    if message_tokens & {"booking", "appointment", "reservation"}:
+        domain.update({"booking", "appointment", "reservation", "schedule"})
+    if message_tokens & {"mobile", "android", "ios"}:
+        domain.update({"mobile", "android", "ios", "app"})
+    if message_tokens & {"api", "backend"}:
+        domain.update({"api", "backend", "database", "authentication"})
+    return domain
+
+
 def _expanded_query_tokens(message_tokens: set[str]) -> set[str]:
-    expanded = set(message_tokens)
-    if expanded & {"elearning", "e-learning", "lms", "academy", "college"}:
-        expanded.update({"learning", "education", "student", "course", "lms"})
-    if expanded & {"ecommerce", "e-commerce", "store", "shop", "products", "product"}:
-        expanded.update({"ecommerce", "catalog", "cart", "payment", "inventory", "order", "product"})
-    if expanded & {"saas", "subscription"}:
-        expanded.update({"saas", "subscription", "dashboard", "authentication"})
-    return expanded
+    return set(message_tokens) | _domain_tokens(message_tokens)
 
 
 def _rank_evidence(
@@ -131,13 +143,20 @@ def _rank_evidence(
     *,
     limit: int = 4,
     allowed_types: set[str] | None = None,
+    min_score: int = 1,
 ) -> list[EvidenceItem]:
     query_tokens = _expanded_query_tokens(message_tokens) - _STOPWORDS
+    domain_tokens = _domain_tokens(message_tokens)
     if not query_tokens:
         return []
     candidate_items = [item for item in items if allowed_types is None or item.source_type in allowed_types]
-    scored = [(len(query_tokens & _tokenize(item.searchable_text)), item) for item in candidate_items]
-    scored = [(score, item) for score, item in scored if score > 0]
+    scored = []
+    for item in candidate_items:
+        item_tokens = _tokenize(item.searchable_text)
+        base_score = len(query_tokens & item_tokens)
+        domain_bonus = 2 * len(domain_tokens & item_tokens)
+        scored.append((base_score + domain_bonus, item))
+    scored = [(score, item) for score, item in scored if score >= min_score]
     scored.sort(key=lambda pair: pair[0], reverse=True)
     return [item for _, item in scored[:limit]]
 
@@ -170,7 +189,16 @@ def _select_prompt_evidence(message: str, evidence_bundle: list[EvidenceItem]) -
     """
     tokens = _tokenize(message)
     intent = _classify_intent(tokens, message.casefold())
-    ranked = _rank_evidence(evidence_bundle, tokens, limit=6)
+    if intent == "CLIENT_QUESTION":
+        ranked = _rank_evidence(
+            evidence_bundle,
+            tokens,
+            limit=8,
+            allowed_types={"project", "service"},
+            min_score=2,
+        )
+    else:
+        ranked = _rank_evidence(evidence_bundle, tokens, limit=6)
 
     selected: list[EvidenceItem] = []
     seen: set[str] = set()
@@ -183,6 +211,9 @@ def _select_prompt_evidence(message: str, evidence_bundle: list[EvidenceItem]) -
 
     for item in ranked:
         add(item)
+
+    if intent == "CLIENT_QUESTION":
+        return selected
 
     priorities = _INTENT_TYPE_PRIORITY.get(
         intent or "",
@@ -219,7 +250,12 @@ class DeterministicFallbackProvider(AssistantProvider):
         message_lower = message.casefold()
         intent = _classify_intent(tokens, message_lower)
         allowed_types = {"service", "project"} if intent == "CLIENT_QUESTION" else None
-        matches = _rank_evidence(evidence_bundle, tokens, allowed_types=allowed_types)
+        matches = _rank_evidence(
+            evidence_bundle,
+            tokens,
+            allowed_types=allowed_types,
+            min_score=2 if intent == "CLIENT_QUESTION" else 1,
+        )
 
         if intent is None:
             if matches:
@@ -261,6 +297,7 @@ class DeterministicFallbackProvider(AssistantProvider):
         # `matches` is empty.
         if intent in {"CLIENT_QUESTION", "RECRUITER_QUESTION"}:
             source_ids = [item.source_id for item in matches]
+            recommended_projects = [item.source_id.split(":", 1)[1] for item in matches if item.source_type == "project"]
             recommended_services = [item.source_id.split(":", 1)[1] for item in matches if item.source_type == "service"]
             if matches and intent == "CLIENT_QUESTION":
                 answer = (
@@ -281,6 +318,7 @@ class DeterministicFallbackProvider(AssistantProvider):
                 answer=answer[:MAX_ANSWER_LENGTH],
                 intent=intent,
                 source_ids=source_ids,
+                recommended_project_slugs=recommended_projects,
                 recommended_service_slugs=recommended_services,
                 handoff=True,
                 handoff_reason="project_discovery" if intent == "CLIENT_QUESTION" else "recruiter",
