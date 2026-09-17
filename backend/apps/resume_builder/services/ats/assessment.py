@@ -1,5 +1,6 @@
 import hashlib
 
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 
 from apps.resume_builder.models import JobApplicationRecord, ResumeAssessment
@@ -28,21 +29,36 @@ def _validate_version(version):
 @transaction.atomic
 def run_readiness_assessment(*, version, actor=None):
     _validate_version(version)
+    identity = {
+        "resume_version": version,
+        "assessment_type": ResumeAssessment.AssessmentType.READINESS,
+        "ruleset_version": ATS_RULESET_VERSION,
+        "resume_content_hash": version.resume_content_hash,
+        "job_description_hash": "",
+    }
+    existing = ResumeAssessment.objects.filter(**identity).first()
+    if existing is not None:
+        return existing
+
     result = score_readiness(version)
     try:
         return ResumeAssessment.objects.create(
-            resume_version=version,
-            assessment_type=ResumeAssessment.AssessmentType.READINESS,
+            **identity,
             score=result["score"],
-            ruleset_version=ATS_RULESET_VERSION,
-            resume_content_hash=version.resume_content_hash,
             source_hash=version.source_hash,
             report=result,
             critical_blockers=result["critical_blockers"],
             created_by=actor,
         )
-    except IntegrityError as exc:
-        raise ATSAssessmentError("An identical assessment already exists.") from exc
+    except (IntegrityError, ValidationError) as exc:
+        # Model.save() calls full_clean(), so an exact duplicate may surface
+        # as ValidationError before the database unique constraint is reached.
+        # Treat repeat clicks/retries as idempotent and return the canonical
+        # historical assessment instead of exposing a 500/debug traceback.
+        existing = ResumeAssessment.objects.filter(**identity).first()
+        if existing is not None:
+            return existing
+        raise ATSAssessmentError("Unable to create ATS readiness assessment.") from exc
 
 
 @transaction.atomic
@@ -53,26 +69,37 @@ def run_job_match_assessment(*, version, application, actor=None):
     jd = application.job_description_snapshot or ""
     if len(jd) > MAX_JOB_DESCRIPTION_LENGTH:
         raise ATSInputError("Job description exceeds the safe maximum length.")
-    result = score_job_match(version, application)
     digest = _hash_text(jd)
     if application.job_description_hash and application.job_description_hash != digest:
         raise ATSInputError("Stored job description hash is stale.")
+
+    identity = {
+        "resume_version": version,
+        "assessment_type": ResumeAssessment.AssessmentType.JOB_MATCH,
+        "ruleset_version": ATS_RULESET_VERSION,
+        "resume_content_hash": version.resume_content_hash,
+        "job_description_hash": digest,
+    }
+    existing = ResumeAssessment.objects.filter(**identity).first()
+    if existing is not None:
+        return existing
+
+    result = score_job_match(version, application)
     try:
         return ResumeAssessment.objects.create(
-            resume_version=version,
-            assessment_type=ResumeAssessment.AssessmentType.JOB_MATCH,
+            **identity,
             score=result["score"],
-            ruleset_version=ATS_RULESET_VERSION,
-            resume_content_hash=version.resume_content_hash,
             source_hash=version.source_hash,
             job_application=application,
-            job_description_hash=digest,
             report=result,
             critical_blockers=result["critical_blockers"],
             created_by=actor,
         )
-    except IntegrityError as exc:
-        raise ATSAssessmentError("An identical assessment already exists.") from exc
+    except (IntegrityError, ValidationError) as exc:
+        existing = ResumeAssessment.objects.filter(**identity).first()
+        if existing is not None:
+            return existing
+        raise ATSAssessmentError("Unable to create ATS job-match assessment.") from exc
 
 
 def assessment_is_current(assessment):
