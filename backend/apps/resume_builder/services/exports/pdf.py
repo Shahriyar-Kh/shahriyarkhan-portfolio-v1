@@ -49,8 +49,13 @@ def render_pdf(document):
     The layout intentionally mirrors international software-engineering CV
     conventions: single column, clear identity block, restrained blue accent,
     conventional section headings, strong role/project hierarchy and simple
-    bullets.  There are no tables, columns, text boxes or images, and all core
+    bullets. There are no tables, columns, text boxes or images, and all core
     content remains selectable text sourced from the governed snapshot.
+
+    Visible text must preserve the normalized snapshot verbatim. Styling may
+    change case visually only through font treatment, never by rewriting the
+    stored text, because artifact integrity validation compares the exported
+    semantic text to the immutable approved snapshot.
     """
     _register_fonts()
     buffer = BytesIO()
@@ -143,7 +148,7 @@ def render_pdf(document):
 
     story = []
     if document.name:
-        story.append(Paragraph(_markup(document.name.upper()), styles["name"]))
+        story.append(Paragraph(_markup(document.name), styles["name"]))
     if document.professional_title:
         story.append(Paragraph(_markup(document.professional_title), styles["title"]))
     for contact in document.contacts:
