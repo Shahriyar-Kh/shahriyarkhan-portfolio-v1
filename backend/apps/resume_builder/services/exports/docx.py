@@ -182,7 +182,7 @@ def render_docx(document_model):
     properties.comments = ""
 
     identity = (
-        (document_model.name.upper() if document_model.name else "", "Resume Name"),
+        (document_model.name, "Resume Name"),
         (document_model.professional_title, "Resume Title"),
         *((contact, "Resume Contact") for contact in document_model.contacts),
     )
