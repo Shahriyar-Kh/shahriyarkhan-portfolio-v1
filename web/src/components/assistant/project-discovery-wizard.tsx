@@ -155,12 +155,17 @@ function FeatureListInput({
 export function ProjectDiscoveryWizard({ sourcePage, initialDescription = "" }: ProjectDiscoveryWizardProps) {
   const formId = useId();
   const [stepIndex, setStepIndex] = useState(0);
-  const [values, setValues] = useState<FormState>(EMPTY_STATE);
+  const [values, setValues] = useState<FormState>(() => {
+    const seed = initialDescription.trim();
+    return seed.length >= 10 ? { ...EMPTY_STATE, businessProblem: seed } : EMPTY_STATE;
+  });
   const [errors, setErrors] = useState<Errors>({});
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<{ referenceId: string; summary: string } | null>(null);
-  const [analysisStatus, setAnalysisStatus] = useState<"idle" | "loading" | "ready">("idle");
+  const [analysisStatus, setAnalysisStatus] = useState<"idle" | "loading" | "ready">(
+    initialDescription.trim().length >= 10 ? "loading" : "idle",
+  );
   const [followUpQuestions, setFollowUpQuestions] = useState<string[]>([]);
   const honeypotRef = useRef<HTMLInputElement>(null);
   const submissionIdRef = useRef<string>(crypto.randomUUID());
@@ -172,11 +177,6 @@ export function ProjectDiscoveryWizard({ sourcePage, initialDescription = "" }: 
     if (seed.length < 10) return;
 
     let active = true;
-    setAnalysisStatus("loading");
-    setValues((prev) => ({
-      ...prev,
-      businessProblem: prev.businessProblem || seed,
-    }));
 
     void postProjectDiscoveryAnalysis({ description: seed }).then((result) => {
       if (!active) return;
