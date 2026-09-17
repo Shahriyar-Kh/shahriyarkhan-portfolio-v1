@@ -5,8 +5,9 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
-from apps.assistant.api.serializers import AssistantQuerySerializer
+from apps.assistant.api.serializers import AssistantQuerySerializer, ProjectDiscoveryAnalysisSerializer
 from apps.assistant.services.assistant import answer_query
+from apps.assistant.services.discovery_analysis import analyze_project_idea
 from apps.assistant.services.usage import anonymous_key_hash, check_and_increment
 
 
@@ -83,6 +84,32 @@ class PublicAssistantQueryView(APIView):
                 "recommended_services": answer.recommended_service_slugs,
                 "handoff": {"active": answer.handoff, "reason": answer.handoff_reason} if answer.handoff else {"active": False, "reason": None},
                 "remaining_requests": remaining,
+                "fallback_used": fallback_used,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+
+class PublicProjectDiscoveryAnalysisView(APIView):
+    """Stateless, non-persisting AI assistance for Project Discovery.
+
+    This endpoint only returns reviewable suggestions. The visitor must still
+    review/edit and submit the normal Project Discovery form before anything
+    is persisted to ServiceRequest, email, or Google Sheets.
+    """
+
+    permission_classes = (AllowAny,)
+    throttle_classes = (AssistantQueryThrottle,)
+    throttle_scope = "assistant_query"
+
+    def post(self, request):
+        serializer = ProjectDiscoveryAnalysisSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        analysis, fallback_used = analyze_project_idea(serializer.validated_data["description"])
+        return Response(
+            {
+                **analysis,
                 "fallback_used": fallback_used,
             },
             status=status.HTTP_200_OK,
