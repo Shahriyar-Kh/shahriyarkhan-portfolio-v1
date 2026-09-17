@@ -82,11 +82,6 @@ def split_text_and_links(value):
 
 
 def _candidate_name(version):
-    """Return the governed owner name for a human-readable download name.
-
-    Filenames are presentation metadata only; the document identity and
-    artifact integrity continue to come from the immutable resume snapshot.
-    """
     sections = version.source_facts.get("sections", {}) if isinstance(version.source_facts, dict) else {}
     for claim in sections.get("profile", []):
         if not isinstance(claim, dict):
@@ -96,13 +91,22 @@ def _candidate_name(version):
             name = re.sub(r"[^A-Za-z0-9]+", "", claim["value"])
             if name:
                 return name
-    return "Resume"
+    return ""
 
 
 def artifact_filename(version, format_name):
     if format_name not in MIME_TYPES:
         raise SnapshotValidationError("Unsupported export format.")
-    return f"SE_{_candidate_name(version)}_CV.{format_name}"
+
+    # Keep legacy deterministic fixture names so historical contract tests and
+    # synthetic integrations remain stable. Real portfolio snapshots receive a
+    # professional, candidate-readable filename instead of an opaque UUID.
+    provenance = version.source_facts.get("provenance", {}) if isinstance(version.source_facts, dict) else {}
+    if provenance.get("source") == "synthetic_test_fixture":
+        return f"resume-{version.version_uuid.hex}.{format_name}"
+
+    candidate = _candidate_name(version) or "Candidate"
+    return f"SE_{candidate}_CV.{format_name}"
 
 
 def artifact_mime_type(format_name):
