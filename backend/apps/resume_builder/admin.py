@@ -44,6 +44,17 @@ class ResumeVersionAdmin(ResumeVersionWorkflowMixin, admin.ModelAdmin):
             fields.update(("include_projects", "include_experiences", "include_skills", "include_education", "include_certifications"))
         return tuple(fields)
 
+    def get_prepopulated_fields(self, request, obj=None):
+        # Django's prepopulation JS expects both the target (slug) and its
+        # dependency (title) to be editable form fields. Approved/published/
+        # archived resume versions are intentionally rendered fully read-only,
+        # so leaving prepopulated_fields enabled makes AdminForm index an empty
+        # ModelForm and raises KeyError('slug'). Existing versions do not need
+        # slug prepopulation anyway; it is useful only while creating a row.
+        if obj is not None:
+            return {}
+        return super().get_prepopulated_fields(request, obj)
+
     @admin.display(description="Source facts preview")
     def source_facts_preview(self, obj):
         return json.dumps(obj.source_facts or {}, ensure_ascii=False, sort_keys=True, indent=2)
