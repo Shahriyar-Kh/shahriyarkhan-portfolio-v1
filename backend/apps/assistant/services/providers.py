@@ -81,6 +81,64 @@ def _rank_evidence(items: list[EvidenceItem], message_tokens: set[str], *, limit
     return [item for _, item in scored[:limit]]
 
 
+_PROMPT_EVIDENCE_LIMIT = 12
+_PROMPT_FACT_LIMIT = 4
+_PROMPT_FACT_CHAR_LIMIT = 600
+
+_INTENT_TYPE_PRIORITY: dict[str, tuple[str, ...]] = {
+    "CLIENT_QUESTION": ("service", "project", "profile", "skill"),
+    "PROJECTS": ("project", "service", "skill", "profile"),
+    "PROJECT_RECOMMENDATION": ("project", "service", "skill", "profile"),
+    "SERVICES": ("service", "project", "skill", "profile"),
+    "SKILLS": ("skill", "project", "experience", "profile"),
+    "EXPERIENCE": ("experience", "skill", "project", "education", "profile"),
+    "RECRUITER_QUESTION": ("experience", "skill", "project", "education", "profile"),
+    "HIRING_AVAILABILITY_HANDOFF": ("experience", "skill", "project", "education", "profile"),
+    "PORTFOLIO_OVERVIEW": ("profile", "project", "experience", "service", "skill", "education"),
+}
+
+
+def _select_prompt_evidence(message: str, evidence_bundle: list[EvidenceItem]) -> list[EvidenceItem]:
+    """Return a compact, relevance-first subset for the LLM prompt.
+
+    The full published bundle remains the validation/source-of-truth set;
+    this function only limits what is sent over the network for one query.
+    That keeps latency predictable when the portfolio has many skills,
+    projects, or long achievement lists while still giving Gemini the
+    evidence types most useful for the detected visitor intent.
+    """
+    tokens = _tokenize(message)
+    intent = _classify_intent(tokens, message.casefold())
+    ranked = _rank_evidence(evidence_bundle, tokens, limit=6)
+
+    selected: list[EvidenceItem] = []
+    seen: set[str] = set()
+
+    def add(item: EvidenceItem) -> None:
+        if len(selected) >= _PROMPT_EVIDENCE_LIMIT or item.source_id in seen:
+            return
+        selected.append(item)
+        seen.add(item.source_id)
+
+    for item in ranked:
+        add(item)
+
+    priorities = _INTENT_TYPE_PRIORITY.get(
+        intent or "",
+        ("profile", "project", "service", "experience", "skill", "education"),
+    )
+    for source_type in priorities:
+        for item in evidence_bundle:
+            if item.source_type == source_type:
+                add(item)
+            if len(selected) >= _PROMPT_EVIDENCE_LIMIT:
+                break
+        if len(selected) >= _PROMPT_EVIDENCE_LIMIT:
+            break
+
+    return selected
+
+
 class AssistantProvider(ABC):
     @abstractmethod
     def generate_grounded_answer(
@@ -225,10 +283,16 @@ __EVIDENCE_JSON__
 def _evidence_to_prompt_json(evidence_bundle: list[EvidenceItem]) -> str:
     return json.dumps(
         [
-            {"source_id": item.source_id, "type": item.source_type, "title": item.title, "facts": item.facts}
+            {
+                "source_id": item.source_id,
+                "type": item.source_type,
+                "title": item.title,
+                "facts": [fact[:_PROMPT_FACT_CHAR_LIMIT] for fact in item.facts[:_PROMPT_FACT_LIMIT]],
+            }
             for item in evidence_bundle
         ],
         ensure_ascii=False,
+        separators=(",", ":"),
     )
 
 
@@ -241,7 +305,8 @@ class GeminiAssistantProvider(AssistantProvider):
     (services/assistant.py) falls back to `DeterministicFallbackProvider`."""
 
     def generate_grounded_answer(self, *, message, evidence_bundle, project_slugs, service_slugs) -> StructuredAnswer:
-        system_instruction = _SYSTEM_INSTRUCTION_TEMPLATE.replace("__EVIDENCE_JSON__", _evidence_to_prompt_json(evidence_bundle))
+        prompt_evidence = _select_prompt_evidence(message, evidence_bundle)
+        system_instruction = _SYSTEM_INSTRUCTION_TEMPLATE.replace("__EVIDENCE_JSON__", _evidence_to_prompt_json(prompt_evidence))
         raw = generate_json(system_instruction=system_instruction, user_content=message)
         validated = validate_structured_response(raw, evidence_bundle=evidence_bundle, project_slugs=project_slugs, service_slugs=service_slugs)
         if validated is None:
