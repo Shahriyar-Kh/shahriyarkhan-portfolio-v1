@@ -15,3 +15,13 @@ class AssistantQuerySerializer(serializers.Serializer):
         if len(stripped) > max_length:
             raise serializers.ValidationError(f"Message must be at most {max_length} characters.")
         return stripped
+
+
+class ProjectDiscoveryAnalysisSerializer(serializers.Serializer):
+    description = serializers.CharField(trim_whitespace=True, max_length=2000)
+
+    def validate_description(self, value: str) -> str:
+        stripped = value.strip()
+        if len(stripped) < 10:
+            raise serializers.ValidationError("Describe the project in a little more detail.")
+        return stripped
