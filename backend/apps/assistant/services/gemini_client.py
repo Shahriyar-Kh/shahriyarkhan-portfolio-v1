@@ -13,6 +13,7 @@ that knows how to reach Gemini, timeout, and handle its errors.
 
 import json
 import logging
+import time
 import urllib.error
 import urllib.request
 
@@ -61,15 +62,36 @@ def generate_json(*, system_instruction: str, user_content: str, max_output_toke
     )
     timeout = getattr(settings, "ASSISTANT_PROVIDER_TIMEOUT_SECONDS", 8)
 
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            body = json.loads(response.read().decode("utf-8"))
-    except urllib.error.HTTPError as exc:
-        logger.warning("Gemini request failed: exception_class=%s status=%s", type(exc).__name__, exc.code)
-        raise GeminiUnavailableError("Gemini returned an error response.") from exc
-    except Exception as exc:
-        logger.warning("Gemini request failed: exception_class=%s", type(exc).__name__)
-        raise GeminiUnavailableError("Gemini request failed.") from exc
+    # Treat Google's transient capacity/server failures as retryable, but
+    # keep the retry inside the existing total provider timeout budget so a
+    # temporary 503 can recover without turning the public assistant into a
+    # long-hanging request. Invalid auth/config responses are never retried.
+    deadline = time.monotonic() + timeout
+    body = None
+    for attempt in range(2):
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise GeminiUnavailableError("Gemini request timed out.")
+
+        try:
+            with urllib.request.urlopen(request, timeout=remaining) as response:
+                body = json.loads(response.read().decode("utf-8"))
+            break
+        except urllib.error.HTTPError as exc:
+            transient = exc.code in {500, 502, 503, 504}
+            if transient and attempt == 0:
+                sleep_for = min(0.35, max(0.0, deadline - time.monotonic() - 0.05))
+                if sleep_for > 0:
+                    time.sleep(sleep_for)
+                    continue
+            logger.warning("Gemini request failed: exception_class=%s status=%s", type(exc).__name__, exc.code)
+            raise GeminiUnavailableError("Gemini returned an error response.") from exc
+        except Exception as exc:
+            logger.warning("Gemini request failed: exception_class=%s", type(exc).__name__)
+            raise GeminiUnavailableError("Gemini request failed.") from exc
+
+    if body is None:
+        raise GeminiUnavailableError("Gemini request failed.")
 
     try:
         text = body["candidates"][0]["content"]["parts"][0]["text"]
