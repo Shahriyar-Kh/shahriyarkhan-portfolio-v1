@@ -11,6 +11,7 @@ from apps.portfolio.models import Skill, SkillCategory
 from apps.site_config.models import SiteSetting
 
 QUERY_URL = "/api/v1/public/assistant/query/"
+DISCOVERY_ANALYSIS_URL = "/api/v1/public/assistant/project-discovery-analysis/"
 
 
 class AssistantQueryApiTests(APITestCase):
@@ -127,3 +128,28 @@ class AssistantQueryApiTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn(response.data["intent"], {"INSUFFICIENT_EVIDENCE", "OFF_TOPIC"})
+
+
+
+class ProjectDiscoveryAnalysisApiTests(APITestCase):
+    def test_project_discovery_analysis_is_stateless_and_returns_reviewable_fields(self):
+        response = self.client.post(
+            DISCOVERY_ANALYSIS_URL,
+            {"description": "I want to build a booking platform for my salon."},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("summary", response.data)
+        self.assertIn("follow_up_questions", response.data)
+        self.assertIn("fallback_used", response.data)
+        self.assertNotIn("reference_id", response.data)
+
+    def test_project_discovery_analysis_rejects_too_short_input(self):
+        response = self.client.post(
+            DISCOVERY_ANALYSIS_URL,
+            {"description": "website"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
