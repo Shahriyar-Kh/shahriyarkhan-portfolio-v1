@@ -1,4 +1,4 @@
-import type { Key, ReactNode } from "react";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { Node } from "@/components/motif/node";
 import { Tick } from "@/components/motif/tick";
@@ -90,6 +90,30 @@ function contactKindFromHref(href: string): HeroContactKind {
   return "website";
 }
 
+function socialItemsFromText(value: string): HeroContactItem[] {
+  const items: HeroContactItem[] = [];
+  for (const part of value.split("|")) {
+    const cleaned = part.trim().replace(/^WhatsApp:\s*/i, "");
+    const lowered = cleaned.toLowerCase();
+    let kind: HeroContactKind | null = null;
+    let label = "";
+    if (lowered.includes("github.com/")) {
+      kind = "github";
+      label = "GitHub";
+    } else if (lowered.includes("linkedin.com/")) {
+      kind = "linkedin";
+      label = "LinkedIn";
+    } else if (lowered.includes("wa.me/") || lowered.includes("whatsapp")) {
+      kind = "whatsapp";
+      label = "WhatsApp";
+    }
+    if (!kind) continue;
+    const href = /^https?:\/\//i.test(cleaned) ? cleaned : `https://${cleaned}`;
+    items.push({ kind, label, href });
+  }
+  return items;
+}
+
 function heroContactItems(state: ResumePageState): HeroContactItem[] {
   if (state.usedFallback) {
     const items: HeroContactItem[] = [
@@ -126,11 +150,18 @@ function heroContactItems(state: ResumePageState): HeroContactItem[] {
 
     const text = contactLineText(line);
     if (!text) continue;
+
+    const socials = socialItemsFromText(text);
+    if (socials.length > 0) {
+      socials.forEach(add);
+      continue;
+    }
+
     if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text)) {
       add({ kind: "email", label: text, href: `mailto:${text}` });
     } else if (/^\+?[\d\s().-]{7,}/.test(text)) {
-      const dialable = text.replace(/[^+\d]/g, "");
-      add({ kind: "phone", label: text, href: `tel:${dialable}` });
+      const dialable = text.replace(/\s*\(also WhatsApp\)\s*/i, "").replace(/[^+\d]/g, "");
+      add({ kind: "phone", label: text.replace(/\s*\(also WhatsApp\)\s*/i, "").trim(), href: `tel:${dialable}` });
     } else {
       add({ kind: "location", label: text });
     }
@@ -139,50 +170,62 @@ function heroContactItems(state: ResumePageState): HeroContactItem[] {
   return items;
 }
 
-function HeroContactIcon({ kind }: { kind: HeroContactKind }) {
-  if (kind === "email") return <Icon.Mail size={16} aria-hidden />;
-  if (kind === "phone") return <Icon.Phone size={16} aria-hidden />;
-  if (kind === "location") return <Icon.MapPin size={16} aria-hidden />;
-  if (kind === "github") return <Icon.Github size={16} aria-hidden />;
-  if (kind === "linkedin") return <Icon.Linkedin size={16} aria-hidden />;
-  if (kind === "whatsapp") return <Icon.MessageCircle size={16} aria-hidden />;
-  return <Icon.ArrowUpRight size={16} aria-hidden />;
+function HeroContactIcon({ kind, size = 16 }: { kind: HeroContactKind; size?: number }) {
+  if (kind === "email") return <Icon.Mail size={size} aria-hidden />;
+  if (kind === "phone") return <Icon.Phone size={size} aria-hidden />;
+  if (kind === "location") return <Icon.MapPin size={size} aria-hidden />;
+  if (kind === "github") return <Icon.Github size={size} aria-hidden />;
+  if (kind === "linkedin") return <Icon.Linkedin size={size} aria-hidden />;
+  if (kind === "whatsapp") return <Icon.MessageCircle size={size} aria-hidden />;
+  return <Icon.ArrowUpRight size={size} aria-hidden />;
 }
 
 function HeroContacts({ state }: { state: ResumePageState }) {
   const items = heroContactItems(state);
   if (items.length === 0) return null;
 
+  const primaryItems = items.filter((item) => item.kind === "email" || item.kind === "phone" || item.kind === "location");
+  const socialItems = items.filter((item) => item.kind === "github" || item.kind === "linkedin" || item.kind === "whatsapp" || item.kind === "website");
+
   return (
-    <ul className="mt-6 flex max-w-4xl flex-wrap items-center justify-center gap-x-5 gap-y-3 text-caption-sm text-paper-secondary sm:text-body-sm">
-      {items.map((item) => (
-        <li key={`${item.kind}:${item.href ?? item.label}`}>
-          {item.href ? (
-            item.href.startsWith("http") ? (
-              <a
-                href={item.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 transition-colors hover:text-paper-primary"
-              >
-                <HeroContactIcon kind={item.kind} />
-                <span>{item.label}</span>
-              </a>
-            ) : (
-              <a href={item.href} className="inline-flex items-center gap-2 transition-colors hover:text-paper-primary">
-                <HeroContactIcon kind={item.kind} />
-                <span>{item.label}</span>
-              </a>
-            )
-          ) : (
-            <span className="inline-flex items-center gap-2">
-              <HeroContactIcon kind={item.kind} />
-              <span>{item.label}</span>
-            </span>
-          )}
-        </li>
-      ))}
-    </ul>
+    <div className="mt-6 flex max-w-4xl flex-col items-center">
+      {primaryItems.length > 0 && (
+        <ul className="flex flex-wrap items-center justify-center gap-x-5 gap-y-3 text-caption-sm text-paper-secondary sm:text-body-sm">
+          {primaryItems.map((item) => (
+            <li key={`${item.kind}:${item.href ?? item.label}`}>
+              {item.href ? (
+                <a href={item.href} className="inline-flex items-center gap-2 transition-colors hover:text-paper-primary">
+                  <HeroContactIcon kind={item.kind} />
+                  <span>{item.label}</span>
+                </a>
+              ) : (
+                <span className="inline-flex items-center gap-2">
+                  <HeroContactIcon kind={item.kind} />
+                  <span>{item.label}</span>
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {socialItems.length > 0 && (
+        <div className="mt-4 flex items-center justify-center gap-5" aria-label="Professional profiles">
+          {socialItems.map((item) => (
+            <ExternalLink
+              key={`${item.kind}:${item.href}`}
+              href={item.href!}
+              aria-label={item.label}
+              title={item.label}
+              className="inline-flex min-h-10 min-w-10 items-center justify-center text-paper-tertiary transition-colors hover:text-primary-on-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-on-ink/70"
+              data-analytics-event={item.kind === "github" ? "outbound_github" : item.kind === "linkedin" ? "outbound_linkedin" : item.kind === "whatsapp" ? "outbound_whatsapp" : undefined}
+            >
+              <HeroContactIcon kind={item.kind} size={19} />
+            </ExternalLink>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
