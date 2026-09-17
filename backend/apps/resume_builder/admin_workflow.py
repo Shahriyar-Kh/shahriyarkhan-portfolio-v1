@@ -4,7 +4,7 @@ from django.core.exceptions import PermissionDenied
 from django.db import IntegrityError, transaction
 from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import path, reverse
+from django.urls import path, re_path, reverse
 
 from apps.accounts.permissions import is_portfolio_admin_user
 from apps.resume_builder.admin_forms import JobApplicationAdminForm, ResumeContentForm, ResumeDraftForm
@@ -260,7 +260,16 @@ class ResumeVersionWorkflowMixin(OwnerAdminMixin):
             path("<path:object_id>/ats-readiness/", self.admin_site.admin_view(readiness_assessment_view), name="resume_builder_ats_readiness"),
             path("<path:object_id>/generate-export/<str:format_name>/", self.admin_site.admin_view(generate_export_view), name="resume_builder_generate_export"),
             path("<path:object_id>/download-export/<str:format_name>/", self.admin_site.admin_view(download_export_view), name="resume_builder_download_export"),
-            path("<path:object_id>/<str:action>/", self.admin_site.admin_view(action_view), name="resume_builder_version_action"),
+            # Restrict the catch-all workflow route to the five supported
+            # lifecycle actions. The previous <str:action> pattern also
+            # matched Django admin's built-in /<pk>/change/ route, so a
+            # normal change-form POST was misrouted into action_view and
+            # returned 404 for the unknown action "change".
+            re_path(
+                r"^(?P<object_id>.+)/(?P<action>clone|regenerate|approve|publish|archive)/$",
+                self.admin_site.admin_view(action_view),
+                name="resume_builder_version_action",
+            ),
         ]
         return custom + urls
 
