@@ -18,6 +18,7 @@ const ProjectDiscoveryWizard = dynamic(
 
 export function AssistantLauncher() {
   const [mode, setMode] = useState<Mode>("closed");
+  const [discoverySeed, setDiscoverySeed] = useState("");
   const panelId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const open = mode !== "closed";
@@ -65,7 +66,10 @@ export function AssistantLauncher() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setMode("discover")}
+                    onClick={() => {
+                      setDiscoverySeed("");
+                      setMode("discover");
+                    }}
                     aria-current={mode === "discover" || undefined}
                     className={`px-3 py-1.5 text-caption-sm font-medium ${mode === "discover" ? "border border-border bg-input text-ink-primary" : "text-ink-hint hover:text-ink-primary"}`}
                   >
@@ -86,9 +90,17 @@ export function AssistantLauncher() {
 
               <div className="min-h-0 flex-1">
                 {mode === "ask" ? (
-                  <AssistantChat onStartProject={() => setMode("discover")} />
+                  <AssistantChat
+                    onStartProject={(initialDescription) => {
+                      setDiscoverySeed(initialDescription || "");
+                      setMode("discover");
+                    }}
+                  />
                 ) : (
-                  <ProjectDiscoveryWizard sourcePage={typeof window !== "undefined" ? window.location.pathname : "/"} />
+                  <ProjectDiscoveryWizard
+                    sourcePage={typeof window !== "undefined" ? window.location.pathname : "/"}
+                    initialDescription={discoverySeed}
+                  />
                 )}
               </div>
             </div>
