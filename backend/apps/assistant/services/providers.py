@@ -55,7 +55,7 @@ _INTENT_KEYWORDS: list[tuple[str, tuple[str, ...]]] = [
     ("SKILLS", ("skill", "skills", "know", "worked with", "familiar with", "tech stack", "technology", "language", "framework", "database")),
     ("EXPERIENCE", ("experience", "worked at", "job history", "career", "background", "years")),
     ("SERVICES", ("service", "services", "offer", "package", "pricing")),
-    ("CLIENT_QUESTION", ("can you build", "build me", "need a website", "need an app", "cost", "price", "quote", "budget", "freelance")),
+    ("CLIENT_QUESTION", ("can you build", "build me", "want to build", "looking to build", "help me build", "need to build", "need a website", "need an app", "cost", "price", "quote", "budget", "freelance")),
     ("PORTFOLIO_OVERVIEW", ("specialize", "specialise", "about him", "who is", "overview", "tell me about")),
 ]
 
