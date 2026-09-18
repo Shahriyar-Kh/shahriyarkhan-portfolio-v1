@@ -209,8 +209,8 @@ def _domain_tokens(message_tokens: set[str]) -> set[str]:
         domain.update({"booking", "appointment", "reservation", "schedule"})
     if message_tokens & {"mobile", "android", "ios"}:
         domain.update({"mobile", "android", "ios", "app"})
-    if message_tokens & {"api", "backend"}:
-        domain.update({"api", "backend", "database", "authentication"})
+    if message_tokens & {"api", "backend", "django", "fastapi", "drf"}:
+        domain.update({"api", "backend", "database", "authentication", "django", "fastapi", "drf", "postgresql"})
     return domain
 
 
