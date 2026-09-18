@@ -26,7 +26,15 @@ export interface PrivacySection {
 export const PRIVACY_SECTIONS: ReadonlyArray<PrivacySection> = [
   {
     heading: "What the contact and project forms collect",
-    body: "Name, email address, subject, and message are always collected. Depending on the form, an optional service, budget range, timeline, and the page the form was opened from may also be sent. No other field is collected, and submitting a form never creates a marketing subscription - nothing here is used to send anything other than a reply to that specific enquiry.",
+    body: "The general contact form collects name, email address, subject, and message. Project enquiries can additionally include phone/WhatsApp, organization, project type and stage, business problem, target users, expected outcome, required and optional features, existing assets, budget range, timeline, technical preferences, preferred contact method, and the page the form was opened from. Submitting a form never creates a marketing subscription - the information is used to review and respond to that specific enquiry.",
+  },
+  {
+    heading: "AI-assisted portfolio guide",
+    body: "The portfolio assistant does not save a chat transcript in this site's database. The browser may send up to four recent visitor messages with the current question so short follow-ups can keep their context; those messages are used for that request only. When the optional Gemini provider is enabled, the current question and only the recent context needed for that follow-up are sent to Google's Gemini API together with published portfolio evidence. If Gemini is unavailable, a local deterministic fallback answers from the same published evidence. The server stores only a one-way HMAC-based daily usage counter, not the raw message, generated answer, raw IP address, or user agent.",
+  },
+  {
+    heading: "AI-assisted project discovery",
+    body: "If a visitor starts Project Discovery from an assistant conversation, recent visitor-written project messages can be carried into the form in the browser. The optional AI analysis endpoint may suggest draft fields and follow-up questions, but those suggestions are not saved automatically. The visitor can review and edit them, and only the structured form they explicitly submit is persisted. The final stored project summary is generated deterministically from those submitted fields so an AI model cannot add requirements to the saved record.",
   },
   {
     heading: "Where it goes",
@@ -42,7 +50,7 @@ export const PRIVACY_SECTIONS: ReadonlyArray<PrivacySection> = [
   },
   {
     heading: "Who else processes this data",
-    body: "Google (Gmail, for the owner's email notification, and Google Sheets, for the optional operational record above) and this site's hosting and database providers process submission data as part of running the site. None of them use it for their own purposes, and it is never sold, used for advertising, or shared with anyone else.",
+    body: "Google may process data through Gmail (the owner's email notification), Google Sheets (the optional operational record), and, only when the optional Gemini provider is enabled, the current assistant/discovery text needed to generate an AI response. This site's hosting and database providers also process data as part of running the service. This site does not sell enquiry or assistant data or use it for advertising.",
   },
   {
     heading: "Who can review a submission",
