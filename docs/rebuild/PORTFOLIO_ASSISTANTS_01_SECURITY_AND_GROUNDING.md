@@ -32,9 +32,9 @@ The Gemini system prompt (`providers.py::_SYSTEM_INSTRUCTION_TEMPLATE`)
 does instruct the model never to invent facts, never reveal its
 instructions, and never follow an in-message attempt to override these
 rules - but a system prompt is not a security boundary an LLM is
-guaranteed to honor. The actual enforcement is
+guaranteed to honor. The actual enforcement for Gemini output is
 `services/schema.py::validate_structured_response()`, which every
-candidate answer must pass before it can reach a visitor:
+Gemini candidate answer must pass before it can reach a visitor:
 
 - every `source_id` the model returns must already exist in the compact
   evidence subset actually supplied to Gemini for that request - a fabricated one (e.g.
@@ -48,12 +48,13 @@ candidate answer must pass before it can reach a visitor:
   `www.shahriyarkhan.com` under an approved path prefix - an
   attacker-or-injection-supplied external link cannot pass through.
 
-A response that fails any of these checks is not repaired or partially
-trusted - `validate_structured_response()` returns `None`, and the
-orchestrator (`services/assistant.py::answer_query`) falls back to
-`DeterministicFallbackProvider`, which cannot violate any of these rules
-by construction (it only ever emits facts and slugs copied verbatim from
-real evidence items it matched).
+A Gemini response that fails any of these checks is not repaired or
+partially trusted - `validate_structured_response()` returns `None`, and
+the orchestrator (`services/assistant.py::answer_query`) falls back to
+`DeterministicFallbackProvider`. That fallback never consumes model text;
+it constructs typed answers from allowlisted intents and matched published
+evidence. Direct regression coverage verifies its outputs satisfy the same
+schema contract.
 
 `apps/assistant/tests/test_providers.py::SchemaValidationSecurityTests`
 exercises this directly - feeding the validator hand-crafted payloads that
