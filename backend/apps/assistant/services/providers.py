@@ -552,7 +552,18 @@ class GeminiAssistantProvider(AssistantProvider):
             raw = guarded
         else:
             raw = _apply_routing_guard(raw, message)
-        validated = validate_structured_response(raw, evidence_bundle=evidence_bundle, project_slugs=project_slugs, service_slugs=service_slugs)
+        prompt_project_slugs = {
+            item.source_id.split(":", 1)[1] for item in prompt_evidence if item.source_type == "project"
+        }
+        prompt_service_slugs = {
+            item.source_id.split(":", 1)[1] for item in prompt_evidence if item.source_type == "service"
+        }
+        validated = validate_structured_response(
+            raw,
+            evidence_bundle=prompt_evidence,
+            project_slugs=prompt_project_slugs,
+            service_slugs=prompt_service_slugs,
+        )
         if validated is None:
             raise GeminiUnavailableError("Gemini response failed grounding validation.")
         return validated
