@@ -1,13 +1,13 @@
 """Structured-output contract for every assistant answer, and the
 validator that enforces it (PORTFOLIO-ASSISTANTS-01, section 7-8).
 
-No AI provider's raw text is ever trusted as application output. Every
-candidate response - from Gemini or from the deterministic fallback - is
-built into a `StructuredAnswer` only by passing through
-`validate_structured_response()`. Anything that fails validation is
-rejected outright; the caller (services/assistant.py) then falls back to
-the deterministic provider, which by construction always produces a
-schema-valid answer."""
+No AI provider's raw text is ever trusted as application output. Gemini
+responses must pass `validate_structured_response()` before they can leave
+the provider. Anything that fails validation is rejected outright and the
+orchestrator falls back to the deterministic provider. The deterministic
+provider does not parse external/raw model text; it constructs
+`StructuredAnswer` values directly from allowlisted intents and published
+evidence, with regression tests proving those values satisfy this schema."""
 
 from dataclasses import dataclass, field
 from urllib.parse import urlsplit
