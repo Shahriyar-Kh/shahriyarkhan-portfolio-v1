@@ -2,6 +2,7 @@ import uuid
 from unittest.mock import patch
 
 from django.core import mail
+from django.test import override_settings
 from rest_framework import status
 
 from apps.inquiries.models import EnquirySource, EmailDeliveryStatus, ServiceRequest
@@ -112,15 +113,18 @@ class ProjectDiscoveryPersistenceTests(ThrottleSafeAPITestCase):
         # outside the submitted fields should ever appear in the summary.
         self.assertNotIn("Kubernetes", summary)
 
-    def test_deterministic_summary_used_when_ai_provider_is_not_gemini(self):
-        """Default test settings have AI_PROVIDER="deterministic" - this
-        proves the discovery pipeline never attempts a network call in
-        that mode (build_summary short-circuits before touching Gemini)."""
-        with patch("apps.inquiries.services.discovery_summary._ai_summary") as mock_ai:
-            response = self.client.post(DISCOVERY_URL, VALID_PAYLOAD, format="json")
+    def test_persisted_summary_is_deterministic_even_when_gemini_is_enabled(self):
+        """Final persisted intake must contain only visitor-approved
+        structured fields; Gemini may assist before review, but never
+        rewrites the canonical stored summary."""
+        with override_settings(AI_PROVIDER="gemini", GEMINI_API_KEY="test-key"):
+            with patch("apps.assistant.services.gemini_client.generate_json") as mock_gemini:
+                response = self.client.post(DISCOVERY_URL, VALID_PAYLOAD, format="json")
 
-        mock_ai.assert_not_called()
+        mock_gemini.assert_not_called()
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertIn("Project stage: Idea", response.data["discovery_summary"])
+        self.assertIn("Core scope: Order tracking, Customer database", response.data["discovery_summary"])
 
     def test_notification_failure_does_not_undo_persistence(self):
         with patch("apps.inquiries.services.delivery.send_enquiry_notification", side_effect=RuntimeError("smtp down")):
