@@ -1,6 +1,6 @@
 <div align="center">
 <p align="center">
-  <img src="./portfolio"
+  <img src="portfolio.png"
        alt="Project GitHub Cover"
        width="100%" />
 </p>
