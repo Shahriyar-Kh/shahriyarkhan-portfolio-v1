@@ -152,6 +152,29 @@ describe("AssistantChat", () => {
     expect(onStartProject).toHaveBeenCalledTimes(1);
   });
 
+
+  it("includes recent visitor questions as bounded context on a follow-up", async () => {
+    postAssistantQueryMock
+      .mockResolvedValueOnce(projectResponse())
+      .mockResolvedValueOnce(projectResponse());
+
+    const user = userEvent.setup();
+    render(<AssistantChat onStartProject={vi.fn()} />);
+
+    const textbox = screen.getByRole("textbox", { name: /ask a question/i });
+    await user.type(textbox, "I run an online academy and want a learning system.");
+    await user.click(screen.getByRole("button", { name: /^ask$/i }));
+    await waitFor(() => expect(postAssistantQueryMock).toHaveBeenCalledTimes(1));
+
+    await user.type(textbox, "What similar system has Shahriyar built?");
+    await user.click(screen.getByRole("button", { name: /^ask$/i }));
+    await waitFor(() => expect(postAssistantQueryMock).toHaveBeenCalledTimes(2));
+
+    expect(postAssistantQueryMock.mock.calls[1]?.[0].context).toEqual([
+      "I run an online academy and want a learning system.",
+    ]);
+  });
+
   it("shows a provider/network fallback error state on a failed request", async () => {
     postAssistantQueryMock.mockResolvedValue({
       ok: false,
