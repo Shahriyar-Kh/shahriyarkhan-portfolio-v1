@@ -7,6 +7,7 @@ from rest_framework.test import APITestCase
 
 from apps.assistant.models import AssistantUsageBucket
 from apps.assistant.services.gemini_client import GeminiUnavailableError
+from apps.assistant.services.schema import StructuredAnswer
 from apps.portfolio.models import Skill, SkillCategory
 from apps.site_config.models import SiteSetting
 
@@ -76,6 +77,52 @@ class AssistantQueryApiTests(APITestCase):
             value = getattr(bucket, field.name, None)
             if isinstance(value, str):
                 self.assertNotIn(distinctive_message, value)
+
+
+    @patch("apps.assistant.api.views.answer_query")
+    def test_recent_context_is_passed_without_persistence(self, mock_answer_query):
+        mock_answer_query.return_value = (
+            StructuredAnswer(
+                answer="A grounded follow-up answer.",
+                intent="CLIENT_QUESTION",
+                handoff=True,
+                handoff_reason="project_discovery",
+            ),
+            False,
+            [],
+        )
+        context = [
+            "I run an online academy and want a learning system.",
+            "Students need courses and quizzes.",
+        ]
+
+        response = self.client.post(
+            QUERY_URL,
+            {"message": "What similar system has Shahriyar built?", "context": context},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_answer_query.assert_called_once_with(
+            "What similar system has Shahriyar built?",
+            context=context,
+        )
+        bucket = AssistantUsageBucket.objects.get()
+        for field in bucket._meta.get_fields():
+            value = getattr(bucket, field.name, None)
+            if isinstance(value, str):
+                self.assertNotIn("online academy", value)
+
+    def test_more_than_four_context_messages_is_rejected(self):
+        response = self.client.post(
+            QUERY_URL,
+            {
+                "message": "What similar system has Shahriyar built?",
+                "context": [f"turn {index}" for index in range(5)],
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_provider_api_key_is_never_present_in_the_response(self):
         with override_settings(GEMINI_API_KEY="secret-test-key-should-never-leak"):
