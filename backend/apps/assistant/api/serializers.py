@@ -6,6 +6,15 @@ from django.conf import settings
 class AssistantQuerySerializer(serializers.Serializer):
     message = serializers.CharField(trim_whitespace=True)
     session_id = serializers.CharField(required=False, allow_blank=True, allow_null=True, max_length=64, default=None)
+    # Browser-held recent visitor messages only. This gives short follow-up
+    # questions enough topic context without persisting a chat transcript on
+    # the server. Assistant answers are intentionally not accepted here.
+    context = serializers.ListField(
+        child=serializers.CharField(trim_whitespace=True, max_length=600),
+        required=False,
+        default=list,
+        max_length=4,
+    )
 
     def validate_message(self, value: str) -> str:
         max_length = getattr(settings, "ASSISTANT_MAX_MESSAGE_LENGTH", 600)
