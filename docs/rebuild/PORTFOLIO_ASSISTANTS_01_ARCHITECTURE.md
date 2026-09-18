@@ -28,15 +28,15 @@ querysets the existing public portfolio API already uses
 `apps.accounts` - private, governance, and ATS data are structurally
 unreachable, not just policy-excluded.
 
-Every candidate answer - from Gemini or from the deterministic fallback -
-passes through `validate_structured_response()` before it can leave the
-view. A `source_id` that doesn't exist in the evidence bundle, a
+Every Gemini candidate answer passes through
+`validate_structured_response()` before it can leave the provider. A `source_id` that doesn't exist in the evidence bundle, a
 `recommended_project_slugs`/`recommended_service_slugs` value that isn't a
 real published slug, an unknown `intent`, an overlong answer, or a URL
 outside the public domain allowlist is rejected outright - not repaired,
 not partially trusted. A rejected Gemini response falls back to
-`DeterministicFallbackProvider`, which builds its answer only from matched
-evidence items and therefore always passes its own validation.
+`DeterministicFallbackProvider`, which does not consume external model
+text and constructs a typed answer only from matched published evidence;
+regression tests assert its outputs satisfy the same schema contract.
 
 ## Why no vector database (section 9)
 
