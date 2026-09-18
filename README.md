@@ -4,6 +4,9 @@
        width="100%" />
 </p>
 <div align="center">
+
+
+  
 ### Personal Brand, Project Showcase, AI Portfolio Assistant & Resume Operations System
 
 **Next.js 16 · React 19 · Django REST Framework · PostgreSQL · Cloudflare Workers · Railway**
