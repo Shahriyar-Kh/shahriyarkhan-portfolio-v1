@@ -55,6 +55,7 @@ class PublicAssistantQueryView(APIView):
         serializer = AssistantQuerySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         message = serializer.validated_data["message"]
+        context = serializer.validated_data.get("context", [])
 
         key_hash = anonymous_key_hash(request)
         daily_limit = getattr(settings, "ASSISTANT_DAILY_LIMIT", 40)
@@ -73,7 +74,7 @@ class PublicAssistantQueryView(APIView):
                 status=status.HTTP_429_TOO_MANY_REQUESTS,
             )
 
-        answer, fallback_used, evidence_bundle = answer_query(message)
+        answer, fallback_used, evidence_bundle = answer_query(message, context=context)
 
         return Response(
             {
