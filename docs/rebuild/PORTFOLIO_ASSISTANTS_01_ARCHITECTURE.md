@@ -40,13 +40,13 @@ evidence items and therefore always passes its own validation.
 
 ## Why no vector database (section 9)
 
-The published dataset is small and fully structured: ~6 projects, 3
-experiences, ~20 skills, a handful of services, one education record.
-`build_evidence_bundle()` runs a handful of `filter(status="published")`
-queries per request and returns well under 100 KB of text - the entire
-bundle comfortably fits in a single LLM context window with room to spare,
-and a plain token-overlap ranker (`_rank_evidence` in
-`services/providers.py`) retrieves relevant items in microseconds. Adding
+The published dataset is small and fully structured: projects,
+experiences, skills, services, education, and public profile fields.
+`build_evidence_bundle()` queries only published data, then
+`_select_prompt_evidence()` sends a compact relevance-first subset to
+Gemini for each question. A plain token/domain-overlap ranker
+(`_rank_evidence` in `services/providers.py`) keeps provider latency and
+prompt size bounded without introducing embeddings infrastructure. Adding
 Pinecone/Weaviate/Qdrant/pgvector or an embeddings pipeline would add
 infrastructure, an embedding-generation step to keep in sync with every
 portfolio edit, and an external dependency - for no retrieval-quality
@@ -129,9 +129,12 @@ scoped-rate throttle (default `20/hour`, per-request, not persisted) -
 `AssistantUsageBucket` adds a persisted daily cap (default 40/day) that
 survives process restarts and multiple throttle windows.
 
-No visitor conversation content - neither the submitted `message` nor the
-generated `answer` - is persisted anywhere. `AssistantUsageBucket` has no
-text field for either.
+No visitor conversation content - neither submitted messages nor generated
+answers - is persisted by the assistant backend. The browser may include up
+to four recent visitor-written messages with a request so short follow-ups
+can resolve references such as "this" or "similar system"; that bounded
+context exists only for the request and is never written to
+`AssistantUsageBucket` or another assistant table.
 
 ## Public knowledge boundary (sections 3-4)
 
