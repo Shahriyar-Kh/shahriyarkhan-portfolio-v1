@@ -6,9 +6,9 @@ from .security import MAX_SECTION_ITEMS, MAX_TOTAL_CHARS, MAX_TOTAL_ITEMS, clean
 
 SECTION_ORDER = (
     ("summary", "PROFESSIONAL SUMMARY"),
-    ("skills", "SKILLS"),
-    ("experience", "EXPERIENCE"),
-    ("projects", "PROJECTS"),
+    ("skills", "TECHNICAL SKILLS"),
+    ("experience", "PROFESSIONAL EXPERIENCE"),
+    ("projects", "SELECTED PROJECTS"),
     ("education", "EDUCATION"),
     ("certifications", "CERTIFICATIONS"),
 )
@@ -31,6 +31,7 @@ SECTION_ALIASES = {
 class NormalizedItem:
     text: str
     source_claim_ids: tuple[str, ...]
+    kind: str = "body"
 
 
 @dataclass(frozen=True)
@@ -75,6 +76,46 @@ def _claim_index(facts):
     return claims, claim_sections
 
 
+def _item_kind(section, source_ids, claims):
+    """Derive presentation semantics only from governed source fields.
+
+    The immutable visible text is never rewritten here.  We only classify a
+    line so PDF/DOCX renderers can distinguish entry headings from bullets,
+    technical-skill rows and ordinary body copy.  This keeps export styling
+    professional without weakening provenance or changing resume facts.
+    """
+    fields = {claims[value].get("source", {}).get("field") for value in source_ids}
+    models = {claims[value].get("source", {}).get("model") for value in source_ids}
+
+    if section == "summary":
+        return "body"
+    if section == "skills":
+        return "skill"
+    if section == "experience":
+        if "role_title" in fields or "company_name" in fields:
+            return "entry_heading"
+        if "achievement" in fields or "description" in fields:
+            return "bullet"
+        return "detail"
+    if section == "projects":
+        if "title" in fields:
+            return "entry_heading"
+        if "description" in fields:
+            return "bullet"
+        if any(model == "portfolio.project.technology" for model in models):
+            return "detail"
+        return "bullet"
+    if section == "education":
+        if "degree" in fields or "institution" in fields:
+            return "entry_heading"
+        return "detail"
+    if section == "certifications":
+        if "name" in fields:
+            return "entry_heading"
+        return "detail"
+    return "body"
+
+
 def normalize_resume(version):
     claims, claim_sections = _claim_index(version.source_facts)
     content = version.resume_content
@@ -108,7 +149,11 @@ def normalize_resume(version):
         if total_chars > MAX_TOTAL_CHARS:
             raise SnapshotValidationError("Resume content exceeds the safe total length limit.")
 
-        item = NormalizedItem(text=text, source_claim_ids=tuple(source_ids))
+        item = NormalizedItem(
+            text=text,
+            source_claim_ids=tuple(source_ids),
+            kind=_item_kind(section, source_ids, claims) if section != "profile" else "body",
+        )
         if section == "profile":
             fields = {claims[value].get("source", {}).get("field") for value in source_ids}
             if raw_section == "positioning" or "professional_title" in fields:

@@ -1,4 +1,4 @@
-New service request submitted.
+{% if obj.source == "project_discovery" %}New project discovery enquiry submitted.{% else %}New service request submitted.{% endif %}
 
 Reference: {{ obj.reference_id }}
 Intent: {{ obj.intent|default:"(not provided)" }}
@@ -6,7 +6,9 @@ Submitted: {{ obj.created_at }}
 
 Name: {{ obj.sender_name }}
 Email: {{ obj.email }}
-Subject: {{ obj.subject }}
+{% if obj.phone %}Phone: {{ obj.phone }}
+{% endif %}{% if obj.organization %}Organization: {{ obj.organization }}
+{% endif %}Subject: {{ obj.subject }}
 Service: {{ obj.service.title|default:obj.service_type_text }}
 Budget: {{ obj.budget_range }}
 Timeline: {{ obj.timeline }}

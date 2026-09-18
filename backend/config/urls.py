@@ -79,6 +79,7 @@ urlpatterns = [
     path("api/v1/public/analytics/", include("apps.analytics_app.api.urls")),
     path("api/v1/public/seo/", include("apps.seo.api.urls")),
     path("api/v1/public/site/", include("apps.site_config.api.urls")),
+    path("api/v1/public/assistant/", include("apps.assistant.api.urls")),
     path("api/v1/admin/portfolio/", include("apps.portfolio.api.admin_urls")),
     path("api/v1/admin/inquiries/", include("apps.inquiries.api.admin_urls")),
     path("api/v1/admin/resume/", include("apps.resume_builder.api.admin_urls")),

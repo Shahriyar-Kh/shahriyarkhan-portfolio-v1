@@ -32,17 +32,33 @@ class ResumeVersionAdmin(ResumeVersionWorkflowMixin, admin.ModelAdmin):
         ("Identity", {"fields": ("title", "slug", "resume_type", "version_uuid")}),
         ("Target", {"fields": ("target_role", "target_organization", "custom_summary")}),
         ("Portfolio selections", {"fields": ("include_projects", "include_experiences", "include_skills", "include_education", "include_certifications")}),
-        ("Snapshot integrity", {"fields": ("snapshot_schema_version", "source_hash", "resume_content_hash", "source_facts_preview", "resume_content_preview")}),
+        ("Snapshot integrity", {"fields": ("snapshot_schema_version", "source_hash", "resume_content_hash", "source_facts_preview", "resume_content_preview"), "classes": ("collapse",)}),
         ("Governance", {"fields": ("status", "is_default", "created_by", "approved_by", "published_by", "approved_at", "published_at", "archived_at")}),
         ("History", {"fields": ("created_at", "updated_at")}),
     )
 
     def get_readonly_fields(self, request, obj=None):
         fields = set(super().get_readonly_fields(request, obj)) | {"source_facts_preview", "resume_content_preview"}
-        if obj and obj.status != ResumeVersion.Status.DRAFT:
+        if obj and (obj.status != ResumeVersion.Status.DRAFT or obj.source_hash):
+            # A stored snapshot is governed even while the version is still a
+            # draft. Editing model fields or selections directly would leave
+            # source_facts/resume_content hashes stale and the M2M guards would
+            # reject selection changes anyway. Use the dedicated wording and
+            # workflow actions instead.
             fields.update(field.name for field in ResumeVersion._meta.fields)
             fields.update(("include_projects", "include_experiences", "include_skills", "include_education", "include_certifications"))
         return tuple(fields)
+
+    def get_prepopulated_fields(self, request, obj=None):
+        # Django's prepopulation JS expects both the target (slug) and its
+        # dependency (title) to be editable form fields. Approved/published/
+        # archived resume versions are intentionally rendered fully read-only,
+        # so leaving prepopulated_fields enabled makes AdminForm index an empty
+        # ModelForm and raises KeyError('slug'). Existing versions do not need
+        # slug prepopulation anyway; it is useful only while creating a row.
+        if obj is not None:
+            return {}
+        return super().get_prepopulated_fields(request, obj)
 
     @admin.display(description="Source facts preview")
     def source_facts_preview(self, obj):

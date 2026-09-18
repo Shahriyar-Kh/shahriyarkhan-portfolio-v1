@@ -190,9 +190,23 @@ class ContactMessage(EnquiryTrackingFields, TimeStampedModel):
         return f"{self.sender_name} - {self.subject}"
 
 
+class EnquirySource(models.TextChoices):
+    """Where a ServiceRequest row originated. CONTACT_FORM (the default,
+    for backward compatibility with every existing row) is the classic
+    free-form project intent on the Contact page; PROJECT_DISCOVERY is
+    the structured guided-intake wizard (PORTFOLIO-ASSISTANTS-01 section
+    12); ASSISTANT is reserved for a future assistant-initiated submission
+    and is not produced by anything in this phase."""
+
+    CONTACT_FORM = "contact_form", "Contact form"
+    PROJECT_DISCOVERY = "project_discovery", "Project discovery"
+    ASSISTANT = "assistant", "Assistant"
+
+
 class ServiceRequest(EnquiryTrackingFields, TimeStampedModel):
     sender_name = models.CharField(max_length=150)
     email = models.EmailField()
+    phone = models.CharField(max_length=40, blank=True)
     service = models.ForeignKey(Service, on_delete=models.SET_NULL, null=True, blank=True, related_name="service_requests")
     service_type_text = models.CharField(max_length=255, blank=True)
     subject = models.CharField(max_length=200)
@@ -201,6 +215,30 @@ class ServiceRequest(EnquiryTrackingFields, TimeStampedModel):
     timeline = models.CharField(max_length=120, blank=True)
     status = models.CharField(max_length=12, choices=ReviewStatus.choices, default=ReviewStatus.NEW)
     admin_notes = models.TextField(blank=True)
+
+    # --- PORTFOLIO-ASSISTANTS-01 section 13: additive, nullable/blank-safe
+    # fields for the structured Client Project Discovery intake. Every
+    # existing ServiceRequest row (source defaults to CONTACT_FORM) is
+    # unaffected - these are simply blank/empty for it, as they always
+    # were before this migration. `message`/`subject` above remain the
+    # single required free-text fields for both flows: for a discovery
+    # submission they are populated from `discovery_summary` /
+    # `project_type` rather than typed by hand - see
+    # apps.inquiries.api.serializers.ProjectDiscoverySerializer. ---
+    source = models.CharField(max_length=20, choices=EnquirySource.choices, default=EnquirySource.CONTACT_FORM)
+    organization = models.CharField(max_length=200, blank=True)
+    project_type = models.CharField(max_length=120, blank=True)
+    project_stage = models.CharField(max_length=120, blank=True)
+    business_problem = models.TextField(blank=True)
+    target_users = models.CharField(max_length=300, blank=True)
+    expected_outcome = models.TextField(blank=True)
+    required_features = models.JSONField(default=list, blank=True)
+    optional_features = models.JSONField(default=list, blank=True)
+    existing_assets = models.TextField(blank=True)
+    technical_preferences = models.CharField(max_length=300, blank=True)
+    preferred_contact_method = models.CharField(max_length=20, blank=True)
+    discovery_summary = models.TextField(blank=True)
+    consent_given = models.BooleanField(default=False)
 
     class Meta:
         ordering = ("-created_at",)

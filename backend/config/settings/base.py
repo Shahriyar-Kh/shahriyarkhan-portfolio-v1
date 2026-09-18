@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     "apps.analytics_app",
     "apps.seo",
     "apps.site_config",
+    "apps.assistant",
 ]
 
 USE_CLOUDINARY = env_bool("USE_CLOUDINARY", False) or bool(
@@ -218,6 +219,8 @@ REST_FRAMEWORK = {
     # directly. CONTACT-OPS-01: keep this scoped, never global.
     "DEFAULT_THROTTLE_RATES": {
         "contact_form": os.getenv("CONTACT_FORM_THROTTLE_RATE", "5/hour"),
+        "project_discovery": os.getenv("PROJECT_DISCOVERY_THROTTLE_RATE", "5/hour"),
+        "assistant_query": os.getenv("ASSISTANT_QUERY_THROTTLE_RATE", "20/hour"),
     },
     # How many trusted reverse-proxy hops sit in front of this API, for
     # DRF's own X-Forwarded-For parsing (it trusts exactly this many
@@ -258,6 +261,25 @@ GOOGLE_SHEETS_ENABLED = env_bool(
     "GOOGLE_SHEETS_ENABLED",
     bool(GOOGLE_SHEETS_SPREADSHEET_ID and GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON),
 )
+
+# --- Portfolio assistant AI provider (apps/assistant, PORTFOLIO-ASSISTANTS-01) ---
+# AI_PROVIDER "deterministic" (the default) never calls any external
+# service - the keyword-grounded DeterministicFallbackProvider answers
+# every request. Setting it to "gemini" additionally tries Gemini first;
+# any Gemini failure (unset key, timeout, rate limit, malformed/
+# ungrounded response) still falls back to the same deterministic
+# provider for that one request - see apps/assistant/services/assistant.py.
+# GEMINI_API_KEY is never read by the frontend and must never be exposed
+# through a NEXT_PUBLIC_* variable.
+AI_PROVIDER = os.getenv("AI_PROVIDER", "deterministic").strip().lower()
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash").strip()
+ASSISTANT_PROVIDER_TIMEOUT_SECONDS = float(os.getenv("ASSISTANT_PROVIDER_TIMEOUT_SECONDS", "8"))
+# Anonymous, database-backed daily quota (apps/assistant/services/usage.py)
+# - independent of, and in addition to, the assistant_query DRF throttle
+# rate configured above.
+ASSISTANT_DAILY_LIMIT = int(os.getenv("ASSISTANT_DAILY_LIMIT", "40"))
+ASSISTANT_MAX_MESSAGE_LENGTH = int(os.getenv("ASSISTANT_MAX_MESSAGE_LENGTH", "600"))
 
 
 # The default below is a local-development fallback only: production sets

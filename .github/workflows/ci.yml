@@ -54,7 +54,9 @@ jobs:
 
       - name: Backend test suite
         working-directory: backend
-        run: python manage.py test apps.portfolio apps.site_config apps.resume_builder apps.core apps.inquiries -v 2
+        # Run Django's complete discovered suite so a newly-added app can
+        # never be omitted from CI by an explicit app list.
+        run: python manage.py test -v 2
 
   web:
     name: Web (Next.js)

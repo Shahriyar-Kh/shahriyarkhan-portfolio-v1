@@ -324,3 +324,98 @@ export interface ServiceRequestPayload {
 export interface InquiryReceipt {
   reference_id: string;
 }
+
+// ---- Portfolio assistant (PORTFOLIO-ASSISTANTS-01) ----
+
+/** Mirrors apps.assistant.services.schema.INTENTS exactly. */
+export type AssistantIntent =
+  | "PORTFOLIO_OVERVIEW"
+  | "SKILLS"
+  | "EXPERIENCE"
+  | "PROJECTS"
+  | "PROJECT_RECOMMENDATION"
+  | "SERVICES"
+  | "RECRUITER_QUESTION"
+  | "HIRING_AVAILABILITY_HANDOFF"
+  | "CLIENT_QUESTION"
+  | "CONTACT_HANDOFF"
+  | "OFF_TOPIC"
+  | "INSUFFICIENT_EVIDENCE";
+
+export interface AssistantSource {
+  source_id: string;
+  type: string;
+  title: string;
+  public_path: string | null;
+}
+
+export interface AssistantHandoff {
+  active: boolean;
+  reason: string | null;
+}
+
+export interface AssistantQueryPayload {
+  message: string;
+  session_id?: string | null;
+  context?: string[];
+}
+
+export interface AssistantQueryResponse {
+  answer: string;
+  intent: AssistantIntent;
+  sources: AssistantSource[];
+  recommended_projects: string[];
+  recommended_services: string[];
+  handoff: AssistantHandoff;
+  remaining_requests: number;
+  fallback_used?: boolean;
+}
+
+// ---- Client Project Discovery (PORTFOLIO-ASSISTANTS-01 section 12-14) ----
+
+export interface ProjectDiscoveryPayload {
+  name: string;
+  email: string;
+  phone?: string;
+  organization?: string;
+  preferred_contact_method?: "email" | "phone" | "whatsapp" | "";
+  project_type: string;
+  project_stage: string;
+  business_problem: string;
+  target_users?: string;
+  expected_outcome: string;
+  required_features: string[];
+  optional_features?: string[];
+  existing_assets?: string;
+  budget_range?: string;
+  timeline?: string;
+  technical_preferences?: string;
+  additional_notes?: string;
+  consent_given: boolean;
+  source_page?: string;
+  intent?: string;
+  submission_id?: string;
+  website?: string;
+}
+
+export interface ProjectDiscoveryReceipt {
+  reference_id: string;
+  discovery_summary: string;
+}
+
+export interface ProjectDiscoveryAnalysisPayload {
+  description: string;
+}
+
+export interface ProjectDiscoveryAnalysisResponse {
+  summary: string;
+  project_type: string;
+  project_stage: string;
+  target_users: string;
+  expected_outcome: string;
+  required_features: string[];
+  optional_features: string[];
+  technical_preferences: string;
+  follow_up_questions: string[];
+  fallback_used: boolean;
+}
