@@ -46,11 +46,16 @@ export function AssistantChat({ onStartProject }: AssistantChatProps) {
     if (!trimmed || state === "sending") return;
 
     const turnId = crypto.randomUUID();
+    const context = turns.slice(-4).map((turn) => turn.question);
     setTurns((prev) => [...prev, { id: turnId, question: trimmed, response: null, errorMessage: null }]);
     setDraft("");
     setState("sending");
 
-    const result = await postAssistantQuery({ message: trimmed, session_id: sessionIdRef.current });
+    const result = await postAssistantQuery({
+      message: trimmed,
+      session_id: sessionIdRef.current,
+      context,
+    });
 
     setTurns((prev) =>
       prev.map((turn) =>
@@ -93,7 +98,7 @@ export function AssistantChat({ onStartProject }: AssistantChatProps) {
         )}
 
         <ul className="flex flex-col gap-4">
-          {turns.map((turn) => (
+          {turns.map((turn, turnIndex) => (
             <li key={turn.id} className="flex flex-col gap-2">
               <p className="max-w-[88%] self-end border border-border bg-input px-3 py-2 text-body-sm text-ink-primary">{turn.question}</p>
 
@@ -112,7 +117,14 @@ export function AssistantChat({ onStartProject }: AssistantChatProps) {
               {turn.response && (
                 <AssistantAnswer
                   response={turn.response}
-                  onStartProject={() => onStartProject(turn.question)}
+                  onStartProject={() =>
+                    onStartProject(
+                      turns
+                        .slice(Math.max(0, turnIndex - 3), turnIndex + 1)
+                        .map((item) => item.question)
+                        .join("\n"),
+                    )
+                  }
                   onAskProject={(title) => void send(`Tell me more about the ${title} project.`)}
                 />
               )}
