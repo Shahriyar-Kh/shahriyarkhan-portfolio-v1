@@ -54,7 +54,7 @@ _ROUTING_GUARDS: dict[str, tuple[bool, str]] = {
 }
 
 _INTENT_KEYWORDS: list[tuple[str, tuple[str, ...]]] = [
-    ("CONTACT_HANDOFF", ("contact shahriyar", "email him", "email shahriyar", "reach out", "get in touch", "phone number", "whatsapp number", "contact on whatsapp")),
+    ("CONTACT_HANDOFF", ("contact shahriyar", "contact him", "email him", "email shahriyar", "reach out", "get in touch", "phone number", "whatsapp number", "contact on whatsapp")),
     ("HIRING_AVAILABILITY_HANDOFF", ("hire you", "hire him", "available for hire", "open to work", "full-time role", "full time role", "job offer", "available for a role")),
     ("RECRUITER_QUESTION", ("recruiter", "hiring for", "candidate", "years of experience", "resume", "cv")),
     ("PROJECT_RECOMMENDATION", ("which project", "recommend a project", "strongest project", "best project", "show me a project", "relevant project", "should i look at", "similar system", "similar project")),
@@ -109,23 +109,57 @@ def _needs_recent_context(message: str) -> bool:
         "what information", "what details", "what do you need", "what would shahriyar need",
         "what similar", "similar system", "something like this", "not technical",
         "what should i tell", "should i use", "how much", "what would the cost",
+        "before we start", "before starting",
     )
     if any(marker in lower for marker in followup_markers):
         return True
     followup_terms = {
         "certificate", "certificates", "payment", "payments", "subscription", "subscriptions",
         "dashboard", "reminder", "reminders", "timeline", "budget", "features", "review",
+        "student", "students", "teacher", "teachers", "course", "courses", "quiz", "quizzes",
+        "assignment", "assignments", "progress", "admin", "accounts", "users",
     }
-    return len(tokens) <= 14 and bool(tokens & followup_terms)
+    return len(tokens) <= 24 and bool(tokens & followup_terms)
 
 
 def _contextual_message(message: str, context: list[str] | None) -> str:
     if not context or not _needs_recent_context(message):
         return message
-    recent = [item.strip() for item in context[-3:] if isinstance(item, str) and item.strip()]
+    recent = [item.strip() for item in context[-2:] if isinstance(item, str) and item.strip()]
     if not recent:
         return message
     return " ".join([*recent, message])
+
+
+def _resolve_intent(message: str, context: list[str] | None) -> str | None:
+    current_intent = _classify_intent(_tokenize(message), message.casefold())
+    if current_intent is not None:
+        return current_intent
+    if context and _needs_recent_context(message):
+        for previous in reversed(context[-3:]):
+            prior = _classify_intent(_tokenize(previous), previous.casefold())
+            if prior == "CLIENT_QUESTION":
+                return "CLIENT_QUESTION"
+    return None
+
+
+def _is_intake_guidance(message: str) -> bool:
+    lower = message.casefold()
+    return any(
+        marker in lower
+        for marker in (
+            "what information do you need",
+            "what details do you need",
+            "what do you need from me",
+            "what would shahriyar need from me",
+            "what should i tell",
+            "i'm not technical",
+            "im not technical",
+            "not technical",
+            "before we start",
+            "before starting",
+        )
+    )
 
 
 def _apply_routing_guard(raw: object, message: str) -> object:
@@ -154,8 +188,17 @@ def _apply_routing_guard(raw: object, message: str) -> object:
 
 def _domain_tokens(message_tokens: set[str]) -> set[str]:
     domain: set[str] = set()
-    if message_tokens & {"elearning", "e-learning", "lms", "academy", "college"}:
-        domain.update({"learning", "education", "student", "course", "lms", "quiz", "assignment", "instructor", "certificate"})
+    if message_tokens & {
+        "elearning", "e-learning", "lms", "academy", "college", "learning",
+        "student", "students", "teacher", "teachers", "course", "courses",
+        "quiz", "quizzes", "assignment", "assignments", "progress",
+        "certificate", "certificates",
+    }:
+        domain.update({
+            "learning", "education", "student", "students", "course", "courses",
+            "lms", "quiz", "quizzes", "assignment", "assignments", "instructor",
+            "teacher", "teachers", "certificate", "certificates", "progress",
+        })
     if message_tokens & {"ecommerce", "e-commerce", "store", "shop", "products", "product"}:
         domain.update({"ecommerce", "catalog", "cart", "payment", "inventory", "order", "product"})
     if message_tokens & {"saas", "subscription"}:
@@ -182,6 +225,7 @@ def _rank_evidence(
     limit: int = 4,
     allowed_types: set[str] | None = None,
     min_score: int = 1,
+    require_domain_match: bool = False,
 ) -> list[EvidenceItem]:
     query_tokens = _expanded_query_tokens(message_tokens) - _STOPWORDS
     domain_tokens = _domain_tokens(message_tokens)
@@ -191,8 +235,11 @@ def _rank_evidence(
     scored = []
     for item in candidate_items:
         item_tokens = _tokenize(item.searchable_text)
+        domain_overlap = len(domain_tokens & item_tokens)
+        if require_domain_match and domain_tokens and domain_overlap == 0:
+            continue
         base_score = len(query_tokens & item_tokens)
-        domain_bonus = 2 * len(domain_tokens & item_tokens)
+        domain_bonus = 3 * domain_overlap
         scored.append((base_score + domain_bonus, item))
     scored = [(score, item) for score, item in scored if score >= min_score]
     scored.sort(key=lambda pair: pair[0], reverse=True)
@@ -231,9 +278,19 @@ def _select_prompt_evidence(message: str, evidence_bundle: list[EvidenceItem]) -
         ranked = _rank_evidence(
             evidence_bundle,
             tokens,
-            limit=8,
+            limit=6,
             allowed_types={"project", "service"},
             min_score=2,
+            require_domain_match=True,
+        )
+    elif intent == "PROJECT_RECOMMENDATION":
+        ranked = _rank_evidence(
+            evidence_bundle,
+            tokens,
+            limit=4,
+            allowed_types={"project"},
+            min_score=2,
+            require_domain_match=True,
         )
     else:
         ranked = _rank_evidence(evidence_bundle, tokens, limit=6)
@@ -286,14 +343,14 @@ class DeterministicFallbackProvider(AssistantProvider):
     def generate_grounded_answer(self, *, message, evidence_bundle, project_slugs, service_slugs, context=None) -> StructuredAnswer:
         effective_message = _contextual_message(message, context)
         tokens = _tokenize(effective_message)
-        message_lower = effective_message.casefold()
-        intent = _classify_intent(tokens, message_lower)
+        intent = _resolve_intent(message, context)
         allowed_types = {"service", "project"} if intent == "CLIENT_QUESTION" else None
         matches = _rank_evidence(
             evidence_bundle,
             tokens,
             allowed_types=allowed_types,
             min_score=2 if intent == "CLIENT_QUESTION" else 1,
+            require_domain_match=intent in {"CLIENT_QUESTION", "PROJECT_RECOMMENDATION"},
         )
 
         if intent is None:
@@ -335,6 +392,19 @@ class DeterministicFallbackProvider(AssistantProvider):
         # these never fall through to INSUFFICIENT_EVIDENCE just because
         # `matches` is empty.
         if intent in {"CLIENT_QUESTION", "RECRUITER_QUESTION"}:
+            if intent == "CLIENT_QUESTION" and _is_intake_guidance(message):
+                return StructuredAnswer(
+                    answer=(
+                        "You do not need to be technical. Start with the business goal, who will use the product, "
+                        "the main features you consider essential, any existing website/code/data, your preferred "
+                        "timeline, and an approximate budget range if you have one. The project discovery form will "
+                        "organize these details for Shahriyar to review."
+                    ),
+                    intent="CLIENT_QUESTION",
+                    handoff=True,
+                    handoff_reason="project_discovery",
+                )
+
             source_ids = [item.source_id for item in matches]
             recommended_projects = [item.source_id.split(":", 1)[1] for item in matches if item.source_type == "project"]
             recommended_services = [item.source_id.split(":", 1)[1] for item in matches if item.source_type == "service"]
@@ -461,6 +531,7 @@ class GeminiAssistantProvider(AssistantProvider):
 
     def generate_grounded_answer(self, *, message, evidence_bundle, project_slugs, service_slugs, context=None) -> StructuredAnswer:
         effective_message = _contextual_message(message, context)
+        resolved_intent = _resolve_intent(message, context)
         prompt_evidence = _select_prompt_evidence(effective_message, evidence_bundle)
         system_instruction = _SYSTEM_INSTRUCTION_TEMPLATE.replace("__EVIDENCE_JSON__", _evidence_to_prompt_json(prompt_evidence))
         if effective_message == message:
@@ -472,7 +543,15 @@ class GeminiAssistantProvider(AssistantProvider):
                 f"{recent_context}\n\nCURRENT MESSAGE:\n{message}"
             )
         raw = generate_json(system_instruction=system_instruction, user_content=user_content)
-        raw = _apply_routing_guard(raw, effective_message)
+        if resolved_intent in _ROUTING_GUARDS and isinstance(raw, dict):
+            guarded = dict(raw)
+            handoff, reason = _ROUTING_GUARDS[resolved_intent]
+            guarded["intent"] = resolved_intent
+            guarded["handoff"] = handoff
+            guarded["handoff_reason"] = reason
+            raw = guarded
+        else:
+            raw = _apply_routing_guard(raw, message)
         validated = validate_structured_response(raw, evidence_bundle=evidence_bundle, project_slugs=project_slugs, service_slugs=service_slugs)
         if validated is None:
             raise GeminiUnavailableError("Gemini response failed grounding validation.")
