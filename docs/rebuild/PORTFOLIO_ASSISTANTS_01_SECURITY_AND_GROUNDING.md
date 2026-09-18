@@ -36,8 +36,8 @@ guaranteed to honor. The actual enforcement is
 `services/schema.py::validate_structured_response()`, which every
 candidate answer must pass before it can reach a visitor:
 
-- every `source_id` the model returns must already exist in the evidence
-  bundle built for that request - a fabricated one (e.g.
+- every `source_id` the model returns must already exist in the compact
+  evidence subset actually supplied to Gemini for that request - a fabricated one (e.g.
   `experience:999`, invented to support a claim like "he worked at
   Google") is rejected outright;
 - every `recommended_project_slugs`/`recommended_service_slugs` value
@@ -76,10 +76,13 @@ directly-identifying value - only an HMAC-SHA256 hash
 the existing contact-form throttle uses. `test_api.py`'s
 `test_quota_bucket_never_stores_a_raw_ip_address` asserts the stored hash
 is a 64-character hex digest that never contains the literal IP used in
-the request. No visitor conversation content (`message` or `answer`) is
-persisted anywhere in this app - `test_no_conversation_transcript_is_persisted_anywhere`
-asserts a distinctive message never appears in any string field of the
-one row a request does create.
+the request. No visitor conversation content (`message`, recent context, or `answer`)
+is persisted anywhere in this app. For follow-ups, the browser may send up
+to four recent visitor-written messages with the current request; they are
+bounded by the serializer, used only to resolve short references, and are
+not stored. `test_no_conversation_transcript_is_persisted_anywhere` and
+the bounded-context API coverage assert that visitor text never lands in
+the usage-counter row.
 
 ## Provider credential handling
 
