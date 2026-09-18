@@ -26,7 +26,7 @@ def _slugs_by_type(evidence_bundle: list[EvidenceItem], source_type: str) -> set
     return {item.source_id.split(":", 1)[1] for item in evidence_bundle if item.source_type == source_type}
 
 
-def answer_query(message: str) -> tuple[StructuredAnswer, bool, list[EvidenceItem]]:
+def answer_query(message: str, context: list[str] | None = None) -> tuple[StructuredAnswer, bool, list[EvidenceItem]]:
     """Returns (answer, fallback_used, evidence_bundle) - the bundle is
     handed back so the view can resolve `source_ids` to public
     title/path pairs without a second query. Never raises: any provider
@@ -41,7 +41,7 @@ def answer_query(message: str) -> tuple[StructuredAnswer, bool, list[EvidenceIte
     if provider_name == "gemini":
         try:
             answer = GeminiAssistantProvider().generate_grounded_answer(
-                message=message, evidence_bundle=evidence_bundle, project_slugs=project_slugs, service_slugs=service_slugs
+                message=message, evidence_bundle=evidence_bundle, project_slugs=project_slugs, service_slugs=service_slugs, context=context
             )
             return answer, False, evidence_bundle
         except GeminiUnavailableError as exc:
@@ -50,6 +50,6 @@ def answer_query(message: str) -> tuple[StructuredAnswer, bool, list[EvidenceIte
             logger.warning("Assistant provider raised an unexpected error: exception_class=%s", type(exc).__name__)
 
     answer = _FALLBACK.generate_grounded_answer(
-        message=message, evidence_bundle=evidence_bundle, project_slugs=project_slugs, service_slugs=service_slugs
+        message=message, evidence_bundle=evidence_bundle, project_slugs=project_slugs, service_slugs=service_slugs, context=context
     )
     return answer, provider_name == "gemini", evidence_bundle
