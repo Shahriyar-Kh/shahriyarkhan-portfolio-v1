@@ -357,6 +357,7 @@ export interface AssistantHandoff {
 export interface AssistantQueryPayload {
   message: string;
   session_id?: string | null;
+  context?: string[];
 }
 
 export interface AssistantQueryResponse {
