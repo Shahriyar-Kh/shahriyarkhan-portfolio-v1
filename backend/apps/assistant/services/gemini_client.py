@@ -5,10 +5,10 @@ SDK - this project already talks to another Google API (Sheets, via
 second, heavier SDK just for one JSON-in/JSON-out endpoint would be
 infrastructure added "for architectural fashion" (see
 PORTFOLIO-ASSISTANTS-01 section 9's same principle applied to the AI
-provider layer, not just retrieval). Shared by the visitor assistant
-(services/providers.py) and the project-discovery AI summary
-(apps.inquiries.services.discovery_summary), so there is exactly one place
-that knows how to reach Gemini, timeout, and handle its errors.
+provider layer, not just retrieval). Shared by the visitor assistant and the stateless Project Discovery
+analysis endpoint, so there is exactly one place that knows how to reach
+Gemini, enforce timeouts, and handle provider errors. Persisted Project
+Discovery summaries are deliberately deterministic and do not call Gemini.
 """
 
 import json
