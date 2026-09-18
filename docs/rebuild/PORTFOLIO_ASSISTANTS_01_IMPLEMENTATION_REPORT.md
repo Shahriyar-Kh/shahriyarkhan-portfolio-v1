@@ -3,14 +3,17 @@
 ## Scope delivered
 
 - Grounded Visitor Portfolio Assistant: `POST /api/v1/public/assistant/query/`,
-  a deterministic keyword-grounded fallback provider, an optional Gemini
-  provider with hard output validation, an anonymous daily quota, and a
-  globally-mounted chat UI with source links, recommendations, and
-  Contact/Start-a-project handoffs.
+  a deterministic keyword/domain-grounded fallback provider, an optional
+  Gemini provider with hard output validation, an anonymous daily quota,
+  bounded browser-supplied recent visitor context for short follow-ups,
+  and a globally-mounted chat UI with source links, recommendations, and
+  Contact/Start-a-project handoffs. No chat transcript is persisted.
 - Client Project Discovery: `POST /api/v1/public/inquiries/project-discovery/`,
   reusing the existing `ServiceRequest` model/pipeline via additive fields,
-  a deterministic-by-default structured summary generator, and a
-  six-step guided wizard UI with review/consent/success/retry states.
+  plus a stateless AI-assisted draft-analysis endpoint. Draft suggestions are
+  reviewable only; the final persisted summary is always deterministic from
+  visitor-approved structured fields. The six-step wizard includes
+  review/consent/success/retry states.
 
 See `PORTFOLIO_ASSISTANTS_01_ARCHITECTURE.md` and
 `PORTFOLIO_ASSISTANTS_01_SECURITY_AND_GROUNDING.md` for the design and
@@ -26,19 +29,18 @@ deployment was performed in this phase.
 
 ## Regression results
 
-- Backend: `manage.py test` - **334/334 pass** (280 pre-existing + 54 new).
-- Frontend: `npx vitest run` - **599/599 pass** (577 pre-existing + 22 new).
+- Backend and frontend full suites are required by `.github/workflows/ci.yml`
+  on the PR head, together with Django system/migration checks, TypeScript
+  typecheck, ESLint, frontend tests, and a production build. The PR must not
+  merge unless the final head's CI run is green.
 - `manage.py check`: clean. `makemigrations --check --dry-run`: "No
   changes detected." `migrate --plan` (already-migrated dev DB): "No
   planned migration operations." Fresh isolated-database migration test:
   all 33 migrations across 11 apps applied cleanly, `AssistantUsageBucket`/
   `ServiceRequest` both usable at 0 rows.
-- `npx tsc --noEmit`: clean (the one remaining error is the pre-existing,
-  unrelated stale `.next/types/validator.ts` generated-file artifact,
-  confirmed non-blocking by a clean production build - see the B9.1/B10
-  reports for the same finding).
-- `npm run lint`: 0 errors, 18 pre-existing unrelated `<img>` warnings.
-- `npm run build:vinext`: succeeded.
+- `npm run typecheck`, `npm run lint`, the complete frontend test suite,
+  and `npm run build` are CI gates. Existing unrelated `<img>` warnings
+  remain warnings rather than errors.
 - `npm audit --audit-level=high`: 4 pre-existing high-severity findings in
   `sharp`/`miniflare`/`wrangler`/`@cloudflare/vite-plugin` (build tooling,
   not shipped to the browser) - **not introduced by this phase**; `git
@@ -49,16 +51,19 @@ deployment was performed in this phase.
 - `git diff --check`: clean (only harmless CRLF-conversion warnings).
 - Secret scan of the full staged diff: no matches.
 
-## Visual QA: NOT PERFORMED - no browser automation tooling available
+## Manual QA status
 
-This environment has no Playwright/Puppeteer/browser-screenshot tool
-registered. `npx tsc --noEmit`, `npm run lint`, the full Vitest suite
-(which does assert `role="dialog"`, `aria-modal`, focus placement,
-keyboard Escape handling, and accessible labels), and `npm run
-build:vinext` all passed, but no actual pixel-level rendering at
-390px/768px/1440px was captured, and no screenshot exists. This is stated
-explicitly per instruction, rather than claiming visual QA that didn't
-happen.
+The owner exercised the assistant locally with real client-style ecommerce,
+LMS/academy, salon, SaaS, and existing-project questions, including a live
+Gemini smoke test and deterministic fallback behavior. Those tests exposed
+and drove fixes for third-person voice, client-intent routing, prompt-size
+timeouts, weak evidence matches, and short follow-up context.
+
+Exact screenshot-based pixel QA at 390px/768px/1440px has still not been
+captured by an automated browser in this implementation environment, so it
+is not claimed here. Component tests cover dialog semantics, focus/Escape
+behavior, launcher availability, links, handoffs, and the bounded-context
+request shape.
 
 **To perform it:** from `web/`, run `npm run dev` (or `npm run build:vinext
 && npm run start:vinext`), open any page, and:
@@ -81,14 +86,18 @@ happen.
   This is an accepted MVP trade-off (section 9's no-vector-database
   decision); Gemini (when enabled) handles paraphrased questions far
   better and always falls back to the same safe deterministic behavior.
-- `GEMINI_API_KEY` is unset in every environment touched during this
-  phase (local dev, CI, production) - `AI_PROVIDER` defaults to
-  `"deterministic"` everywhere, so the Gemini code path is covered only
-  by mocked-response tests, never a live call. This is intentional (no
-  production deployment or live credential was in scope) but means the
-  real Gemini integration's first live exercise will be whenever an
-  operator sets `AI_PROVIDER=gemini` and a real key.
-- Visual QA (above).
+- Gemini was exercised locally with a real configured key/model and returned
+  valid JSON on the minimal smoke test. The full grounded assistant also
+  returned successful Gemini answers, while intermittent timeout behavior
+  was observed and safely fell back to the deterministic provider. No Gemini
+  credential is committed to the repository; production provider enablement
+  remains an environment/deployment decision.
+- Exact screenshot-based responsive QA (above).
+- The Google Sheets operational mirror remains backward-compatible with the
+  existing generic row schema; rich Project Discovery fields are preserved
+  in the database and canonical summary/message, but are not yet split into
+  dedicated Sheets columns. That enhancement is deferred rather than hidden
+  inside this merge.
 
 ## Production status
 
