@@ -19,7 +19,12 @@ class GeminiPromptBuildingTests(TestCase):
 
     def setUp(self):
         SiteSetting.objects.create(owner_name="Shahriyar Khan", public_email="owner@example.com")
-        Project.objects.create(title="Prompt Project", slug="prompt-project", description="Used to prove prompt building works.", status="published")
+        Project.objects.create(
+            title="Prompt Project",
+            slug="prompt-project",
+            description="A Django booking platform used to prove prompt building works.",
+            status="published",
+        )
 
     @patch("apps.assistant.services.providers.generate_json")
     def test_prompt_is_built_without_raising_and_contains_the_evidence(self, mock_generate_json):
