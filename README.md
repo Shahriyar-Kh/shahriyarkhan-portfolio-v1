@@ -1,5 +1,9 @@
 <div align="center">
-
+<p align="center">
+  <img src="portfolio"
+       alt="Project GitHub Cover"
+       width="100%" />
+</p>
 # Shahriyar Khan — Engineering Portfolio Platform
 
 ### Personal Brand, Project Showcase, AI Portfolio Assistant & Resume Operations System
