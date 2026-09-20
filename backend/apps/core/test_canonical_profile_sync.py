@@ -13,7 +13,7 @@ from apps.site_config.models import SiteSetting
 
 
 class CanonicalProfileSyncTests(TestCase):
-    def test_sync_corrects_public_identity_projects_services_and_ha_history_without_guessing_tricore(self):
+    def test_sync_corrects_public_identity_projects_services_and_employment_history(self):
         Service.objects.create(
             title="Restaurant Website",
             slug="restaurant-website",
@@ -49,7 +49,10 @@ class CanonicalProfileSyncTests(TestCase):
         self.assertEqual(ha.end_date, date(2026, 4, 30))
         self.assertFalse(ha.current_role)
 
-        self.assertFalse(Experience.objects.filter(company_name="TriCore Digital Tech").exists())
+        tricore = Experience.objects.get(company_name="TriCore Digital Tech")
+        self.assertEqual(tricore.role_title, "Software Engineer (Contract)")
+        self.assertEqual(tricore.start_date, date(2026, 7, 1))
+        self.assertTrue(tricore.current_role)
 
         yango = Project.objects.get(
             slug="yango-wing-fleet-digital-registration-fleet-management-platform"
@@ -108,7 +111,7 @@ class CanonicalProfileSyncTests(TestCase):
             Experience.objects.exclude(pk=tricore.pk).filter(current_role=True).exists()
         )
 
-    def test_existing_tricore_date_is_preserved_when_sync_runs_without_date(self):
+    def test_existing_tricore_date_is_corrected_to_verified_canonical_month(self):
         existing = Experience.objects.create(
             company_name="TriCore Digital Tech",
             role_title="Software Engineer",
@@ -121,5 +124,5 @@ class CanonicalProfileSyncTests(TestCase):
 
         existing.refresh_from_db()
         self.assertEqual(existing.role_title, "Software Engineer (Contract)")
-        self.assertEqual(existing.start_date, date(2026, 8, 1))
+        self.assertEqual(existing.start_date, date(2026, 7, 1))
         self.assertTrue(existing.current_role)
