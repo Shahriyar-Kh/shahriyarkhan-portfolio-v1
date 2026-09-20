@@ -32,6 +32,9 @@ python manage.py migrate --noinput --settings=config.settings.production
 echo "==> Verifying no unapplied migrations remain"
 python manage.py migrate --check --settings=config.settings.production
 
+echo "==> Synchronizing canonical public portfolio data"
+python manage.py sync_canonical_profile_2026 --settings=config.settings.production
+
 echo "==> Collecting static files"
 python manage.py collectstatic --noinput --clear --settings=config.settings.production
 
