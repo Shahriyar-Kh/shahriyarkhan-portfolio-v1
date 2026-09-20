@@ -146,16 +146,16 @@ describe("AboutView - GSAP unavailable", () => {
     );
 
     const heroRoot = screen.getByRole("heading", { level: 1 }).closest(".bg-paper-raised") as HTMLElement;
-    expect(within(heroRoot).getByText("How I approach building software")).toBeInTheDocument();
+    expect(within(heroRoot).getByText("Backend engineering with full-product context")).toBeInTheDocument();
     expect(within(heroRoot).getByRole("link", { name: "View résumé" })).toBeInTheDocument();
     expect(within(heroRoot).getByAltText("Portrait of Shahriyar Khan")).toBeInTheDocument();
 
     expect(screen.getByText("The career story")).toBeInTheDocument();
     expect(screen.getAllByText("Software Developer").length).toBeGreaterThan(0);
     expect(screen.getByText("BS Software Engineering")).toBeInTheDocument();
-    expect(screen.getByText("The data model comes first")).toBeInTheDocument();
-    expect(screen.getByText("Core strengths")).toBeInTheDocument();
+    expect(screen.getByText("Model the domain before the endpoint")).toBeInTheDocument();
+    expect(screen.getByText("Core engineering strengths")).toBeInTheDocument();
     expect(screen.getAllByText("Interface").length).toBeGreaterThan(0);
-    expect(screen.getByText("Hiring for a role")).toBeInTheDocument();
+    expect(screen.getByText("Hiring for a software engineering role")).toBeInTheDocument();
   });
 });
