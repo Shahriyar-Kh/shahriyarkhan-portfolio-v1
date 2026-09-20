@@ -8,7 +8,6 @@ from apps.core.management.commands.sync_canonical_profile_2026 import (
     _parse_iso_date,
     sync_canonical_profile,
 )
-from apps.portfolio.models import Experience
 
 
 class Command(BaseCommand):
@@ -33,7 +32,7 @@ class Command(BaseCommand):
             "--tricore-start-date",
             dest="tricore_start_date",
             default=None,
-            help="Verified TriCore start date in YYYY-MM-DD format. Omit it rather than guessing.",
+            help="Optional TriCore start-date override in YYYY-MM-DD format. Default canonical month is July 2026.",
         )
 
     def handle(self, *args, **options):
@@ -49,16 +48,6 @@ class Command(BaseCommand):
             )
 
         counts = sync_canonical_profile(tricore_start_date=start_date)
-
-        if start_date is None and not Experience.objects.filter(
-            company_name="TriCore Digital Tech",
-        ).exists():
-            self.stdout.write(
-                self.style.WARNING(
-                    "TriCore Digital Tech was not created because its exact public start date is still unverified. "
-                    "Provide --tricore-start-date YYYY-MM-DD only after confirming the published employment record."
-                )
-            )
 
         self.stdout.write(
             self.style.SUCCESS(
