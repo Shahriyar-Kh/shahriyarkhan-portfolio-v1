@@ -9,14 +9,14 @@ import { HERO_COPY, HERO_ROLES } from "@/content/home";
 import { useScrollReveal } from "@/lib/motion/use-scroll-reveal";
 import { usePointerTilt } from "@/lib/motion/use-pointer-tilt";
 
-/** Splits HERO_COPY.lead so its verified opening claim ("Python and
- * Django") can carry a restrained color-sweep without hand-writing a
+/** Splits HERO_COPY.lead so its verified opening claim ("Python/Django")
+ * can carry a restrained color-sweep without hand-writing a
  * second, drifting copy of the sentence - if the copy ever stops
  * starting with this phrase the split just no-ops to the plain string,
  * so a future copy edit can't silently orphan a highlight around the
  * wrong words. */
 function splitLeadForSweep(lead: string): [string, string] {
-  const phrase = "Python and Django";
+  const phrase = "Python/Django";
   return lead.startsWith(phrase) ? [phrase, lead.slice(phrase.length)] : ["", lead];
 }
 
