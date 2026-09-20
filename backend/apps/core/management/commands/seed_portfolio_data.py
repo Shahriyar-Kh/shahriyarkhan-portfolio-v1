@@ -9,7 +9,6 @@ from apps.core.management.commands.sync_canonical_profile_2026 import (
     sync_canonical_profile,
 )
 from apps.portfolio.models import Experience
-from apps.resume_builder.models import ResumeVersion
 
 
 class Command(BaseCommand):
@@ -42,12 +41,12 @@ class Command(BaseCommand):
         start_date = _parse_iso_date(start_raw, "TriCore start date")
 
         if options["reset_resume"]:
-            resume = ResumeVersion.objects.filter(slug="shahriyar-khan-software-engineer").first()
-            if resume is not None:
-                resume.include_projects.clear()
-                resume.include_experiences.clear()
-                resume.include_skills.clear()
-                resume.include_education.clear()
+            self.stdout.write(
+                self.style.WARNING(
+                    "--reset-resume is retained only for command compatibility; published resume snapshots are immutable "
+                    "and are not rewritten by the canonical content sync."
+                )
+            )
 
         counts = sync_canonical_profile(tricore_start_date=start_date)
 
