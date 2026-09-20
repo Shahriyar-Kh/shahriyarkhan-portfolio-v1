@@ -1,26 +1,11 @@
-/**
- * Owner judgment call #6 (docs/rebuild/OPEN_DECISIONS.md #10): several of
- * the 7 real Service rows have no delivered project behind them (no
- * restaurant or ecommerce project exists in the portfolio). A service
- * WITHOUT an entry here gets the reduced template automatically (title,
- * description, deliverables, engagement process, CTA - no framing, no
- * related-work claim, no Service schema). This is the one place that
- * decision is encoded.
- */
 export interface ServiceFraming {
   readonly audience: string;
   readonly problemFraming: string;
   readonly whatIsNeededToBegin: readonly string[];
-  /** Must be real, published Project slugs with genuinely overlapping
-   * technology - never the unaudited techbuilt-open-school-lms project. */
   readonly relatedProjectSlugs: readonly string[];
   readonly engagementSteps: readonly string[];
 }
 
-// "Handover" not "Support" (owner judgment call #7) - "Support" implies
-// an ongoing commitment with no evidence behind it. Exported so the
-// homepage's engineering-approach.tsx section uses the identical
-// sequence, rather than a second hardcoded copy.
 export const ENGAGEMENT_STEPS: readonly string[] = [
   "Discovery",
   "Scope",
@@ -31,70 +16,95 @@ export const ENGAGEMENT_STEPS: readonly string[] = [
   "Handover",
 ];
 
-/** One-line methodology framing per step, for the homepage's richer
- * process presentation (sections/engineering-approach.tsx). Generic
- * working-method description, not a project claim - carries no metric,
- * timeframe, or guarantee, so it needs no entry in the claim register. */
 export const ENGAGEMENT_STEP_DETAILS: Readonly<Record<string, string>> = {
-  Discovery: "Understand the problem, the users, and what the system actually needs to do.",
-  Scope: "Turn that understanding into a concrete, buildable plan.",
-  Architecture: "Design the data model, API surface, and authentication before any feature code.",
-  Build: "Implement the system against that architecture, iteratively.",
-  Test: "Verify behavior against real cases, not just the happy path.",
-  Launch: "Deploy to a real, running environment.",
-  Handover: "Hand over a system you own outright, with nothing left implicit.",
+  Discovery: "Understand the business problem, users, workflows, and constraints.",
+  Scope: "Turn the problem into a concrete, reviewable delivery plan.",
+  Architecture: "Define data models, APIs, permissions, integrations, and deployment boundaries.",
+  Build: "Implement the product iteratively against the agreed architecture.",
+  Test: "Verify behavior, permissions, failure cases, and integration paths.",
+  Launch: "Prepare and deploy the application to its target environment.",
+  Handover: "Document the system and hand over the code, configuration, and operating context.",
 };
 
+const YANGO = "yango-wing-fleet-digital-registration-fleet-management-platform";
+const NOTEASSIST = "noteassist-ai-productivity-platform";
+const SK_LEARNTRACK = "sk-learntrack-ai-learning-platform";
+const FEELWISE = "feelwise-emotion-detection-system";
+const NBB = "nurses-beyond-borders-nclex-learning-exam-preparation-platform";
+const PORTFOLIO = "shahriyar-khan-full-stack-portfolio-ai-assistant-platform";
+const TBOS = "techbuilt-open-school-multilingual-education-platform-operational-lms";
+
 export const SERVICE_FRAMING: Readonly<Record<string, ServiceFraming>> = {
-  "backend-development": {
-    audience: "Teams that need an API or backend that holds up under real use.",
+  "custom-software-development": {
+    audience: "Businesses and product teams that need software built around a real workflow rather than a generic template.",
     problemFraming:
-      "A product needs a data model, authentication, and API surface that won't need to be rebuilt as it grows.",
+      "The system needs clear domain rules, permissions, integrations, and operational tooling that fit how the business actually works.",
     whatIsNeededToBegin: [
-      "The core entities and relationships the system needs to represent",
-      "Who needs to authenticate, and what they should be able to do",
-      "Any existing systems the API needs to integrate with",
+      "The business problem and the workflow that needs to be supported",
+      "The user roles and access boundaries",
+      "Required integrations, constraints, and deployment expectations",
     ],
-    relatedProjectSlugs: [
-      "yango-wing-fleet-digital-registration-fleet-management-platform",
-      "sk-learntrack-ai-learning-platform",
-    ],
+    relatedProjectSlugs: [NBB, YANGO, PORTFOLIO],
     engagementSteps: ENGAGEMENT_STEPS,
   },
-  "custom-web-application": {
-    audience: "Businesses that need a web application built around a specific workflow.",
+  "web-development": {
+    audience: "Teams that need a modern public or authenticated web product backed by maintainable application logic.",
     problemFraming:
-      "Off-the-shelf tools don't fit the actual process, and the gap is being papered over with spreadsheets or manual steps.",
+      "The product needs a responsive interface, reliable backend integration, clear content structure, and search-friendly delivery.",
     whatIsNeededToBegin: [
-      "The workflow the application needs to support, end to end",
-      "Who the users are and what each of them needs to do",
-      "Any deadlines or systems the application needs to work around",
+      "The pages, user journeys, and content requirements",
+      "Any existing brand or product assets",
+      "Whether the product needs authentication, a CMS, APIs, or integrations",
     ],
-    relatedProjectSlugs: ["yango-wing-fleet-digital-registration-fleet-management-platform"],
+    relatedProjectSlugs: [YANGO, NOTEASSIST, PORTFOLIO],
     engagementSteps: ENGAGEMENT_STEPS,
   },
-  "saas-project": {
-    audience: "Founders building a multi-user product with accounts, dashboards, and ongoing usage.",
+  "application-development": {
+    audience: "Teams building multi-screen applications with accounts, business workflows, dashboards, and administration.",
     problemFraming:
-      "The product needs authentication, role-based access, and a dashboard experience that stays maintainable as features are added.",
+      "The application needs to coordinate frontend flows, backend rules, data models, authentication, and internal operations as one maintainable system.",
     whatIsNeededToBegin: [
-      "The core user roles and what each one can access",
-      "The main dashboard views and data they need to show",
-      "Any third-party services (payments, email, analytics) that need to be integrated",
+      "The core user roles and workflows",
+      "The data the application must store and expose",
+      "The integrations and operational requirements around the product",
     ],
-    relatedProjectSlugs: ["sk-learntrack-ai-learning-platform", "noteassist-ai-productivity-platform"],
+    relatedProjectSlugs: [NBB, SK_LEARNTRACK, FEELWISE],
     engagementSteps: ENGAGEMENT_STEPS,
   },
-  "website-development": {
-    audience: "People and businesses that need a fast, clean, SEO-aware website.",
+  "saas-development": {
+    audience: "Founders and teams building authenticated, multi-user products with recurring product workflows.",
     problemFraming:
-      "The current site (or lack of one) doesn't represent the business, loads slowly, or isn't findable.",
+      "The product needs maintainable accounts, roles, dashboards, quotas or entitlements, integrations, and room for feature growth.",
     whatIsNeededToBegin: [
-      "The pages the site needs and the content for each one",
-      "Any brand assets already in use (logo, colors, existing copy)",
-      "Whether the site needs a CMS or is fully static",
+      "The core product workflow and user roles",
+      "Access, entitlement, subscription, or quota rules where applicable",
+      "The dashboard, reporting, and integration requirements",
     ],
-    relatedProjectSlugs: [],
+    relatedProjectSlugs: [NBB, NOTEASSIST, SK_LEARNTRACK],
+    engagementSteps: ENGAGEMENT_STEPS,
+  },
+  "database-development": {
+    audience: "Products that need a reliable relational data model, migration strategy, and query layer behind business workflows.",
+    problemFraming:
+      "The database should reflect the domain clearly enough that permissions, reporting, exports, and future changes remain understandable.",
+    whatIsNeededToBegin: [
+      "The core entities and their relationships",
+      "Expected reporting, filtering, and export needs",
+      "Existing data sources or migration requirements",
+    ],
+    relatedProjectSlugs: [NBB, YANGO, NOTEASSIST],
+    engagementSteps: ENGAGEMENT_STEPS,
+  },
+  "cloud-application-development": {
+    audience: "Teams that need an application prepared for repeatable deployment and operation in a cloud-hosted environment.",
+    problemFraming:
+      "The product needs environment-aware configuration, deployment workflows, health checks, background services, and clear operational boundaries.",
+    whatIsNeededToBegin: [
+      "The target hosting environment and domain setup",
+      "Database, cache, worker, storage, and external-service requirements",
+      "Release, monitoring, and operational expectations",
+    ],
+    relatedProjectSlugs: [NBB, PORTFOLIO, TBOS],
     engagementSteps: ENGAGEMENT_STEPS,
   },
 };
