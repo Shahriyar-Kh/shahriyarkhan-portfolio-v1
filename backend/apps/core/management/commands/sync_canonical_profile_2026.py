@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from datetime import date
 
@@ -34,6 +35,31 @@ def _parse_iso_date(raw: str | None, label: str) -> date | None:
         return date.fromisoformat(raw)
     except ValueError as exc:
         raise CommandError(f"{label} must use YYYY-MM-DD format.") from exc
+
+
+def _published_resume_looks_stale(version: ResumeVersion) -> bool:
+    """
+    Detect only known public inconsistencies from the pre-sync profile.
+
+    Published resume snapshots are intentionally immutable. We never rewrite
+    one in place; if an old published default still contains a known stale
+    identity marker, we archive it so /resume safely falls back to current
+    published portfolio records until a fresh governed resume is approved.
+    """
+    payload = {
+        "target_role": version.target_role,
+        "custom_summary": version.custom_summary,
+        "source_facts": version.source_facts,
+        "resume_content": version.resume_content,
+    }
+    blob = json.dumps(payload, ensure_ascii=False, sort_keys=True, default=str).lower()
+    if "shahriyarkhan786" in blob or "shahriyar-khan-developer" in blob:
+        return True
+    if "junior full stack developer" in blob:
+        return True
+    if "ha technologies" in blob and "present" in blob:
+        return True
+    return False
 
 
 @transaction.atomic
@@ -748,29 +774,17 @@ def sync_canonical_profile(*, tricore_start_date: date | None = None) -> dict[st
         Experience.objects.update(current_role=False)
 
     # ------------------------------------------------------------------
-    # Default résumé source facts. ATS internals remain private.
+    # Published resume snapshots are governed/immutable.
     # ------------------------------------------------------------------
-    resume, _ = ResumeVersion.objects.update_or_create(
-        slug="shahriyar-khan-software-engineer",
-        defaults={
-            "title": "Shahriyar Khan",
-            "target_role": "Software Engineer | Backend Engineer | Python & Django Developer",
-            "custom_summary": (
-                "Software Engineer specializing in Python/Django backend engineering and backend-heavy full-stack "
-                "product development. Experienced with REST APIs, PostgreSQL, authentication/authorization, testing, "
-                "CI/CD, Docker, and React/Next.js product delivery."
-            ),
-            "is_default": True,
-            "status": ResumeVersion.Status.PUBLISHED,
-            "published_at": now,
-            "ats_tags": "Software Engineer, Backend Engineer, Python Developer, Django Developer, Full-Stack Engineer",
-        },
-    )
-    ResumeVersion.objects.exclude(pk=resume.pk).filter(is_default=True).update(is_default=False)
-    resume.include_projects.set(project_objects)
-    resume.include_experiences.set(Experience.objects.filter(status=PublishableModel.Status.PUBLISHED))
-    resume.include_skills.set(Skill.objects.filter(published=True))
-    resume.include_education.set(Education.objects.filter(status=PublishableModel.Status.PUBLISHED))
+    published_default = ResumeVersion.objects.filter(
+        is_default=True,
+        status=ResumeVersion.Status.PUBLISHED,
+    ).first()
+    if published_default is not None and _published_resume_looks_stale(published_default):
+        published_default.is_default = False
+        published_default.status = ResumeVersion.Status.ARCHIVED
+        published_default.archived_at = now
+        published_default.save(update_fields=["is_default", "status", "archived_at", "updated_at"])
 
     return counts
 
@@ -793,7 +807,6 @@ class Command(BaseCommand):
 
         if start_date is None and not Experience.objects.filter(
             company_name="TriCore Digital Tech",
-            role_title="Software Engineer (Contract)",
         ).exists():
             self.stdout.write(
                 self.style.WARNING(
