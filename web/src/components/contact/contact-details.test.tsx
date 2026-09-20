@@ -46,9 +46,10 @@ describe("ContactDetails", () => {
     expect(screen.getByText(CONTACT_FALLBACKS.location)).toBeInTheDocument();
   });
 
-  it("falls back to the verified public phone constant when SiteSettings' own field is blank - pre-existing, unchanged fallback semantics", () => {
+  it("does not expose a phone link when SiteSettings is blank and the canonical fallback is intentionally empty", () => {
     render(<ContactDetails siteSettings={makeSiteSettings({ public_phone: "" })} />);
-    expect(document.querySelector('a[href^="tel:"]')).toHaveAttribute("href", `tel:${CONTACT_FALLBACKS.phone.replace(/\s+/g, "")}`);
+    expect(CONTACT_FALLBACKS.phone).toBe("");
+    expect(document.querySelector('a[href^="tel:"]')).not.toBeInTheDocument();
   });
 
   it("never adds WhatsApp - not currently public/rendered anywhere on the live site", () => {
