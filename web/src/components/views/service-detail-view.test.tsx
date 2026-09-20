@@ -42,22 +42,22 @@ function makeService(overrides: Partial<Service>): Service {
 }
 
 const BACKEND = makeService({
-  id: 6,
-  slug: "backend-development",
-  title: "Backend Development",
-  description: "Robust APIs, database architecture, and server-side logic using Django and FastAPI.",
-  deliverables: ["REST API", "Database modeling", "Authentication and permissions"],
+  id: 1,
+  slug: "custom-software-development",
+  title: "Custom Software Development",
+  description: "Custom software built around real business workflows, roles, integrations, and operational needs.",
+  deliverables: ["Requirements and workflow analysis", "Backend/API architecture", "Authentication and permissions"],
 });
 
 const RESTAURANT = makeService({
-  id: 2,
-  slug: "restaurant-website",
-  title: "Restaurant Website",
-  description: "Beautiful restaurant websites with menus, reservations, and online ordering.",
-  deliverables: ["Digital menu", "Reservation flow"],
+  id: 99,
+  slug: "legacy-unmapped-service",
+  title: "Legacy Unmapped Service",
+  description: "A historical service fixture with no canonical framing.",
+  deliverables: ["Historical deliverable"],
 });
 
-const OTHER = makeService({ id: 3, slug: "ecommerce-website", title: "Ecommerce Website" });
+const OTHER = makeService({ id: 2, slug: "web-development", title: "Web Development" });
 
 function setReducedMotion(matches: boolean) {
   const original = window.matchMedia;
@@ -94,7 +94,7 @@ describe("ServiceDetailView", () => {
         />,
       );
       expect(container.querySelectorAll("h1")).toHaveLength(1);
-      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Backend Development");
+      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Custom Software Development");
       expect(screen.getByText(BACKEND.description)).toBeInTheDocument();
     });
 
@@ -109,8 +109,8 @@ describe("ServiceDetailView", () => {
           allServices={null}
         />,
       );
-      expect(screen.getByText("REST API")).toBeInTheDocument();
-      expect(screen.getByText("Database modeling")).toBeInTheDocument();
+      expect(screen.getByText("Requirements and workflow analysis")).toBeInTheDocument();
+      expect(screen.getByText("Backend/API architecture")).toBeInTheDocument();
     });
 
     it("shows framing-gated sections (problem, audience, needed-to-begin) only when a real SERVICE_FRAMING entry exists", () => {
@@ -143,8 +143,8 @@ describe("ServiceDetailView", () => {
       expect(SERVICE_FRAMING[RESTAURANT.slug]).toBeUndefined();
       expect(screen.queryByText("The problem this solves")).not.toBeInTheDocument();
       expect(screen.queryByText("What's needed to begin")).not.toBeInTheDocument();
-      // The real bestFor framing (from SERVICES_MEDIA, which covers all 7) still renders.
-      expect(screen.getByText(/Best for restaurants and caf/)).toBeInTheDocument();
+      expect(SERVICES_MEDIA[RESTAURANT.slug]).toBeUndefined();
+      expect(screen.getByText("Media coming soon")).toBeInTheDocument();
     });
 
     it("shows real technology tags only from SERVICES_MEDIA, never invented technologies", () => {
@@ -317,8 +317,8 @@ describe("ServiceDetailView", () => {
             allServices={null}
           />,
         );
-        expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Backend Development");
-        expect(screen.getByText("REST API")).toBeInTheDocument();
+        expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Custom Software Development");
+        expect(screen.getByText("Requirements and workflow analysis")).toBeInTheDocument();
       } finally {
         restore();
       }
