@@ -335,10 +335,10 @@ describe("AboutView", () => {
         expect(screen.getAllByText("Software Developer").length).toBeGreaterThan(0);
         expect(screen.getByText("BS Software Engineering")).toBeInTheDocument();
         expect(screen.getByText("Model the domain before the endpoint")).toBeInTheDocument();
-        // "Interface" legitimately renders twice - the architecture
+        // "Product interface" legitimately renders twice - the architecture
         // section's mobile and desktop layouts are parallel DOM trees
         // (one hidden via CSS at each breakpoint, both present in jsdom).
-        expect(screen.getAllByText("Interface").length).toBeGreaterThan(0);
+        expect(screen.getAllByText("Product interface").length).toBeGreaterThan(0);
         expect(screen.getByText("Hiring for a software engineering role")).toBeInTheDocument();
       } finally {
         restore();
