@@ -32,7 +32,7 @@ const SITE_SETTINGS_OK: ApiResult<SiteSettings> = {
 
 const SNAPSHOT_DOCUMENT: ResumeDocument = {
   name: "Snapshot Owner Name",
-  professional_title: "Software Engineer | Python & Django Full-Stack Developer",
+  professional_title: "Software Engineer | Backend Engineer | Python & Django Developer",
   contacts: [[{ text: "snapshot@example.invalid", href: null }]],
   sections: [
     { key: "summary", heading: "PROFESSIONAL SUMMARY", items: [[{ text: "A frozen approved summary.", href: null }]] },
@@ -45,7 +45,7 @@ function resumeOk(overrides: Partial<ResumeVersion> = {}): ApiResult<ResumeVersi
     ok: true,
     data: {
       id: 1,
-      title: "Software Engineer | Python & Django Full-Stack Developer",
+      title: "Software Engineer | Backend Engineer | Python & Django Developer",
       slug: "default",
       target_role: "",
       custom_summary: "Legacy live summary - must never be used when document is present.",
@@ -77,7 +77,7 @@ describe("resolveResumePageState", () => {
     expect(state.usedFallback).toBe(false);
     if (state.usedFallback) throw new Error("unreachable");
     expect(state.name).toBe("Snapshot Owner Name");
-    expect(state.professionalTitle).toBe("Software Engineer | Python & Django Full-Stack Developer");
+    expect(state.professionalTitle).toBe("Software Engineer | Backend Engineer | Python & Django Developer");
     expect(state.sections).toEqual(SNAPSHOT_DOCUMENT.sections);
     expect(state.contacts).toEqual(SNAPSHOT_DOCUMENT.contacts);
   });
