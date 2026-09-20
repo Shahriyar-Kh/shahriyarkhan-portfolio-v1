@@ -10,7 +10,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 
 from apps.core.models import PublishableModel
-from apps.portfolio.models import Experience, Project, Service, Skill, SkillCategory, Technology
+from apps.portfolio.models import Education, Experience, Project, Service, Skill, SkillCategory, Technology
 from apps.resume_builder.models import ResumeVersion
 from apps.seo.models import PageSEO, SEOAliasKeyword
 from apps.site_config.models import SiteSetting
@@ -762,7 +762,7 @@ def sync_canonical_profile(*, tricore_start_date: date | None = None) -> dict[st
     resume.include_projects.set(project_objects)
     resume.include_experiences.set(Experience.objects.filter(status=PublishableModel.Status.PUBLISHED))
     resume.include_skills.set(Skill.objects.filter(published=True))
-    resume.include_education.set(resume.include_education.model.objects.filter(status=PublishableModel.Status.PUBLISHED))
+    resume.include_education.set(Education.objects.filter(status=PublishableModel.Status.PUBLISHED))
 
     return counts
 
