@@ -2,29 +2,36 @@ import type { CaseStudy } from "@/content/case-studies/types";
 
 export const feelwise: CaseStudy = {
   slug: "feelwise-emotion-detection-system",
-  summary: "A microservices-based emotion-detection system with a FastAPI backend and a Node.js API gateway.",
+  summary:
+    "A multi-service AI emotion-analysis platform coordinating text, facial-expression, speech, and journal workflows through a Node.js/Express gateway and specialized Python services.",
   sections: [
     {
       key: "architecture",
       heading: "Architecture",
       claims: [
         {
-          id: "stack",
-          statement: "Built as separate services: a FastAPI backend, a Node.js API gateway, and a MongoDB datastore.",
+          id: "service-boundaries",
+          statement:
+            "The system runs separate FastAPI services behind a Node.js/Express API gateway, with MongoDB used for application data.",
           status: "verified",
-          evidence: "Live API technologies field (FastAPI, Python, Node.js, MongoDB, JWT).",
+          evidence:
+            "github.com/Shahriyar-Kh/feelwise-emotion-detection README and repository evidence reviewed 2026-09-21.",
         },
         {
-          id: "deployment",
-          statement: "Deployed on Cloudflare Workers.",
+          id: "modalities",
+          statement:
+            "Dedicated workflows handle text, facial-expression, speech, and journal analysis rather than routing every input through one process.",
           status: "verified",
-          evidence: "Self-evidencing from the live URL's own hostname (feelwise-emotion-detection.feelwise.workers.dev).",
+          evidence:
+            "github.com/Shahriyar-Kh/feelwise-emotion-detection repository structure and README reviewed 2026-09-21.",
         },
         {
-          id: "multimodal",
-          statement: "Accepts text, speech, and facial input for emotion detection.",
-          status: "inferred",
-          evidence: "docs/rebuild/CONTENT_TRUTH_INVENTORY.md - restated from prior project copy, not independently re-tested per input mode.",
+          id: "ml-stack",
+          statement:
+            "The verified engineering stack includes PyTorch, DeepFace, Wav2Vec2, OpenCV, FastAPI, Node.js/Express, MongoDB, and JWT-based authentication.",
+          status: "verified",
+          evidence:
+            "github.com/Shahriyar-Kh/feelwise-emotion-detection README reviewed 2026-09-21.",
         },
       ],
     },
@@ -34,32 +41,32 @@ export const feelwise: CaseStudy = {
       kind: "live",
       label: "feelwise-emotion-detection.feelwise.workers.dev",
       href: "https://feelwise-emotion-detection.feelwise.workers.dev",
-      verifiedOn: "2026-08-27",
+      verifiedOn: "2026-09-21",
+    },
+    {
+      kind: "repo",
+      label: "GitHub repository",
+      href: "https://github.com/Shahriyar-Kh/feelwise-emotion-detection",
+      verifiedOn: "2026-09-21",
     },
   ],
   withheld: [
     {
       id: "accuracy-figure",
-      statement: "Any accuracy or confidence figure for the emotion-detection models.",
+      statement: "Any accuracy, confidence, diagnostic, or clinical-performance figure.",
       status: "prohibited",
-      evidence: "No accuracy, precision, or confidence measurement exists anywhere in the repository - exactly the kind of claim that must never be invented.",
+      evidence: "No independently measured accuracy/clinical validation supports such a claim.",
     },
     {
-      id: "model-provenance",
-      statement: "Whether the emotion-detection models are self-trained, pretrained, or third-party-licensed.",
-      status: "pending",
-      evidence: "[owner to confirm] - unanswerable from the repository, and material to what licensing notice may be required.",
-    },
-    {
-      id: "role",
-      statement: "Solo-built, or built as part of a team.",
-      status: "pending",
-      evidence: "[owner to confirm] - OPEN_DECISIONS.md #12.",
+      id: "clinical-diagnosis",
+      statement: "The platform diagnoses a mental-health or medical condition.",
+      status: "prohibited",
+      evidence: "The project is presented as emotion analysis/emotional-awareness software, not a clinical diagnostic system.",
     },
   ],
   limitations: [
-    "No accuracy or performance figures are published for the emotion-detection models, because none have been independently measured.",
-    "Source code for this project is not published publicly; the GitHub link on this project is a profile link, not a repository link.",
+    "No model-accuracy or clinical-performance claim is published without measured evidence.",
+    "The project is described as emotion analysis, not medical or psychological diagnosis.",
   ],
-  lastReviewed: "2026-08-31",
+  lastReviewed: "2026-09-21",
 };

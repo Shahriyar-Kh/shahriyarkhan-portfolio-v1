@@ -8,7 +8,7 @@ const PUBLISHED_STATE: PublishedResumePageState = {
   source: "default_version",
   usedFallback: false,
   name: "Jordan Ashworth",
-  professionalTitle: "Software Engineer | Python & Django Full-Stack Developer",
+  professionalTitle: "Software Engineer | Backend Engineer | Python & Django Developer",
   contacts: [
     [{ text: "jordan@example.invalid", href: null }],
     [{ text: "https://example.invalid/jordan", href: "https://example.invalid/jordan" }],
@@ -32,7 +32,7 @@ const FALLBACK_STATE: FallbackResumePageState = {
   source: "composed_from_lists",
   usedFallback: true,
   name: "Jordan Ashworth",
-  professionalTitle: "Software Engineer | Python & Django Full-Stack Developer",
+  professionalTitle: "Software Engineer | Backend Engineer | Python & Django Developer",
   contactEmail: "jordan@example.invalid",
   contactLocation: "Sample City",
   contactLinks: [

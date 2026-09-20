@@ -8,7 +8,7 @@ const PUBLISHED_STATE: PublishedResumePageState = {
   source: "default_version",
   usedFallback: false,
   name: "Jordan Ashworth",
-  professionalTitle: "Software Engineer | Python & Django Full-Stack Developer",
+  professionalTitle: "Software Engineer | Backend Engineer | Python & Django Developer",
   contacts: [
     [{ text: "jordan@example.invalid", href: null }],
     [{ text: "Sample City", href: null }],
@@ -33,7 +33,7 @@ const FALLBACK_STATE: FallbackResumePageState = {
   source: "composed_from_lists",
   usedFallback: true,
   name: "Jordan Ashworth",
-  professionalTitle: "Software Engineer | Python & Django Full-Stack Developer",
+  professionalTitle: "Software Engineer | Backend Engineer | Python & Django Developer",
   contactEmail: "jordan@example.invalid",
   contactLocation: "Sample City",
   contactLinks: [
@@ -130,7 +130,7 @@ describe("ResumeView (published snapshot)", () => {
     render(<ResumeView state={PUBLISHED_STATE} />);
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Jordan Ashworth");
-    expect(screen.getByText("Software Engineer | Python & Django Full-Stack Developer")).toBeInTheDocument();
+    expect(screen.getByText("Software Engineer | Backend Engineer | Python & Django Developer")).toBeInTheDocument();
   });
 
   it("renders sections in exactly the snapshot's order after the document preview heading", () => {

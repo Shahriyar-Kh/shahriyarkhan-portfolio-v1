@@ -6,7 +6,7 @@ from apps.resume_builder.models import JobApplicationRecord, ResumeVersion
 
 class ResumeDraftForm(forms.Form):
     resume_type = forms.ChoiceField(choices=ResumeVersion.ResumeType.choices)
-    title = forms.CharField(max_length=200, initial="Software Engineer | Python & Django Full-Stack Developer")
+    title = forms.CharField(max_length=200, initial="Software Engineer | Backend Engineer | Python & Django Developer")
     target_role = forms.CharField(max_length=150, required=False)
     target_organization = forms.CharField(max_length=255, required=False)
     custom_summary = forms.CharField(required=False, widget=forms.Textarea)
@@ -28,7 +28,7 @@ class ResumeDraftForm(forms.Form):
         cleaned = super().clean()
         if cleaned.get("resume_type") == ResumeVersion.ResumeType.MASTER:
             cleaned["target_organization"] = ""
-            cleaned["title"] = "Software Engineer | Python & Django Full-Stack Developer"
+            cleaned["title"] = "Software Engineer | Backend Engineer | Python & Django Developer"
         return cleaned
 
 

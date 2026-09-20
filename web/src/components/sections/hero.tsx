@@ -9,14 +9,14 @@ import { HERO_COPY, HERO_ROLES } from "@/content/home";
 import { useScrollReveal } from "@/lib/motion/use-scroll-reveal";
 import { usePointerTilt } from "@/lib/motion/use-pointer-tilt";
 
-/** Splits HERO_COPY.lead so its verified opening claim ("Python and
- * Django") can carry a restrained color-sweep without hand-writing a
+/** Splits HERO_COPY.lead so its verified opening claim ("Python/Django")
+ * can carry a restrained color-sweep without hand-writing a
  * second, drifting copy of the sentence - if the copy ever stops
  * starting with this phrase the split just no-ops to the plain string,
  * so a future copy edit can't silently orphan a highlight around the
  * wrong words. */
 function splitLeadForSweep(lead: string): [string, string] {
-  const phrase = "Python and Django";
+  const phrase = "Python/Django";
   return lead.startsWith(phrase) ? [phrase, lead.slice(phrase.length)] : ["", lead];
 }
 
@@ -158,9 +158,9 @@ export function Hero() {
           </svg>
           <span className="inline-flex items-center gap-2 font-mono text-caption text-paper-secondary">
             <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-primary-on-ink" />
-            Available for new work
+            Open to new roles & selected projects
           </span>
-          <span className="font-mono text-caption text-paper-tertiary">Islamabad, Pakistan</span>
+          <span className="font-mono text-caption text-paper-tertiary">Pakistan · Remote internationally</span>
         </div>
 
         {/* Step 3: headline, mask-revealed by line. */}
@@ -225,7 +225,7 @@ export function Hero() {
               />
               <div className="absolute inset-x-0 bottom-0 flex items-center gap-2 bg-ink/80 px-3 py-2 backdrop-blur-sm">
                 <span aria-hidden className="h-px w-4 bg-primary-on-ink" />
-                <p className="font-mono text-caption-sm text-paper-secondary">Python · Django · React</p>
+                <p className="font-mono text-caption-sm text-paper-secondary">Python · Django · PostgreSQL</p>
               </div>
             </div>
           </div>

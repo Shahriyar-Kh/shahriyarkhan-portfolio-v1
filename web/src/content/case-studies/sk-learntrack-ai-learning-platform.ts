@@ -2,7 +2,8 @@ import type { CaseStudy } from "@/content/case-studies/types";
 
 export const skLearntrack: CaseStudy = {
   slug: "sk-learntrack-ai-learning-platform",
-  summary: "A learning platform combining structured course progression with an OpenAI-powered study assistant.",
+  summary:
+    "A full-stack learning and course-management platform with structured progression, progress tracking, analytics, and Groq-powered study assistance.",
   sections: [
     {
       key: "architecture",
@@ -10,15 +11,27 @@ export const skLearntrack: CaseStudy = {
       claims: [
         {
           id: "stack",
-          statement: "Built with Django REST Framework and React, with course progression and student progress tracking as first-class features.",
+          statement:
+            "Built with Django REST Framework and React, backed by PostgreSQL with JWT authentication and pytest-backed backend testing.",
           status: "verified",
-          evidence: "Live API technologies field (Django, DRF, React, PostgreSQL, OpenAI).",
+          evidence:
+            "github.com/Shahriyar-Kh/SK_LearnTrack README and repository evidence reviewed 2026-09-21.",
         },
         {
-          id: "openai",
-          statement: "An OpenAI integration provides in-app study assistance.",
-          status: "inferred",
-          evidence: "OpenAI listed in the live API's technologies field; integration behavior not independently re-tested.",
+          id: "learning-structure",
+          statement:
+            "The product models learning as Course → Chapter → Topic and supports authoring, enrollment, progress, quizzes, notes, bookmarks, roadmaps, and analytics.",
+          status: "verified",
+          evidence:
+            "github.com/Shahriyar-Kh/SK_LearnTrack README and current project implementation evidence reviewed 2026-09-21.",
+        },
+        {
+          id: "groq-current",
+          statement:
+            "The current AI-assisted learning workflow uses Groq; OpenAI was used earlier in development and is historical rather than the current runtime provider.",
+          status: "verified",
+          evidence:
+            "Owner-approved canonical provider history and github.com/Shahriyar-Kh/SK_LearnTrack, 2026-09-21.",
         },
       ],
     },
@@ -28,7 +41,13 @@ export const skLearntrack: CaseStudy = {
       kind: "live",
       label: "sk-learntrack.vercel.app",
       href: "https://sk-learntrack.vercel.app",
-      verifiedOn: "2026-08-27",
+      verifiedOn: "2026-09-21",
+    },
+    {
+      kind: "repo",
+      label: "GitHub repository",
+      href: "https://github.com/Shahriyar-Kh/SK_LearnTrack",
+      verifiedOn: "2026-09-21",
     },
   ],
   withheld: [
@@ -36,25 +55,18 @@ export const skLearntrack: CaseStudy = {
       id: "sixty-percent-metric",
       statement: "AI assistance reduces time-to-answer by over 60% compared to traditional search.",
       status: "prohibited",
-      evidence:
-        "docs/rebuild/CONTENT_TRUTH_INVENTORY.md - the headline fabricated metric this whole content-truth discipline exists to exclude. No measurement data exists anywhere in the repository.",
+      evidence: "No measurement data supports this outcome claim.",
     },
     {
-      id: "ready-for-real-world-use",
-      statement: "Ready for real-world student use.",
+      id: "openai-current",
+      statement: "The current product is OpenAI-powered.",
       status: "prohibited",
-      evidence: "No user or adoption evidence exists.",
-    },
-    {
-      id: "role",
-      statement: "Solo-built, or built as part of a team.",
-      status: "pending",
-      evidence: "[owner to confirm] - OPEN_DECISIONS.md #12.",
+      evidence: "The active AI workflow moved to Groq; OpenAI is historical integration context only.",
     },
   ],
   limitations: [
-    "No performance or outcome metrics are published for this project, because none have been measured.",
-    "Source code for this project is not published publicly; the GitHub link on this project is a profile link, not a repository link.",
+    "No learning-speed, adoption, or outcome metric is published because none has been independently measured.",
+    "OpenAI may be referenced only as earlier integration history; current provider wording is Groq.",
   ],
-  lastReviewed: "2026-08-31",
+  lastReviewed: "2026-09-21",
 };

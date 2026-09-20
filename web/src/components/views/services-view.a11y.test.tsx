@@ -19,10 +19,10 @@ import type { Service } from "@/lib/api/types";
 
 const SERVICE: Service = {
   id: 1,
-  title: "Backend Development",
-  slug: "backend-development",
-  description: "Robust APIs, database architecture, and server-side logic using Django and FastAPI.",
-  deliverables: ["REST API", "Database modeling", "Authentication and permissions"],
+  title: "Custom Software Development",
+  slug: "custom-software-development",
+  description: "Custom software built around real business workflows, roles, integrations, and operational needs.",
+  deliverables: ["Requirements and workflow analysis", "Backend/API architecture", "Authentication and permissions"],
   featured: false,
   status: "published",
   published_at: "2026-01-01T00:00:00Z",

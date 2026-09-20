@@ -1,16 +1,13 @@
 /**
- * FINAL-DESIGN-01E-01: /skills' own page copy. Real skill/category
- * records always render live from the Skill API - nothing here
- * restates or overrides a name, category, or level. This file is page
- * framing and the "working range" synthesis only, and every working-
- * range item is traceable to real category coverage or a real project
- * technology field (see the doc comment on WORKING_RANGE below) - never
- * a years-of-experience, certification, or mastery claim.
+ * /skills page framing only. Real skill/category records render from the
+ * portfolio API. The synthesis below stays aligned with capabilities that
+ * are evidenced by current projects and professional work; it never invents
+ * years of experience, percentages, or certification-based mastery.
  */
 export const SKILLS_INTRO = {
   eyebrow: "Skills",
   title: "Technical capability",
-  lead: "Backend engineering in Python and Django, REST APIs, and full-stack applications with a database, a frontend, and a deployment target behind them.",
+  lead: "Backend-first software engineering across Python/Django APIs, PostgreSQL, background processing, testing, and React/Next.js product delivery.",
 } as const;
 
 export interface WorkingRangeItem {
@@ -18,44 +15,29 @@ export interface WorkingRangeItem {
   body: string;
 }
 
-/**
- * Each item is grounded in one of two real sources, never an
- * unsupported claim:
- * - a real skill the backend returns (e.g. the real, published
- *   "JWT / RBAC" and "REST APIs" Backend-category skill entries), or
- * - a real, published Project's own `technologies` field (JWT appears
- *   on 3 of 6 real projects' technology lists, corroborating the real
- *   "JWT / RBAC" skill entry, and the same fact is independently
- *   corroborated by the verified claim register - see
- *   content/case-studies/*.ts).
- * "Testing" is deliberately scoped to what Postman (a real, published
- * Tools-category skill) actually supports - request-level API testing
- * and verification - not a broader, unsupported testing claim (no
- * automated-test-suite tooling exists in the real skill data).
- */
 export const WORKING_RANGE: readonly WorkingRangeItem[] = [
   {
     title: "Backend & API engineering",
-    body: "Django, DRF, and FastAPI - designing the data model and the REST API surface a frontend actually consumes.",
+    body: "Python, Django, Django REST Framework, FastAPI, REST APIs, validation, and OpenAPI contracts for product-facing and operational workflows.",
   },
   {
-    title: "Authentication & permissions",
-    body: "JWT-based authentication and role-based access - a real, published skill entry, corroborated by the project technology record for three published projects.",
+    title: "Authentication & authorization",
+    body: "JWT-based authentication, RBAC, ownership checks, and role-aware permission boundaries designed as part of the application architecture.",
   },
   {
-    title: "Data & database design",
-    body: "PostgreSQL, MySQL, and Redis for structured and cached data, MongoDB where a document shape genuinely fits better.",
+    title: "Data & background systems",
+    body: "PostgreSQL for relational application data, with Redis and Celery for caching, queues, scheduled work, and background processing where the product needs them.",
   },
   {
-    title: "Frontend integration",
-    body: "React and JavaScript on top of HTML5/CSS3, styled with Tailwind CSS or Bootstrap, wired to whatever API the project needs - not a standalone frontend practice.",
+    title: "Full-stack product delivery",
+    body: "React, Next.js, TypeScript, and JavaScript interfaces connected to real APIs, authentication flows, dashboards, and server-managed product data.",
   },
   {
-    title: "API testing & verification",
-    body: "Postman for request-level testing and verification of the APIs being built.",
+    title: "Testing & delivery quality",
+    body: "pytest, API verification, frontend tests, CI/CD, migration checks, lint/type gates, and Docker-based delivery practices across the projects that support them.",
   },
   {
-    title: "Deployment",
-    body: "Docker, Cloudflare Workers, Vercel, and Render to get a system from a local build to a real, running URL.",
+    title: "Deployment & integrations",
+    body: "Cloud-hosted deployment workflows plus third-party and AI-provider integrations, used when they solve a concrete product requirement rather than as standalone buzzwords.",
   },
 ] as const;

@@ -1,15 +1,9 @@
 import type { CaseStudy } from "@/content/case-studies/types";
 
-/**
- * NOTE ON FILENAME: this file is keyed by the slug used inside it
- * (case-studies.test.ts enforces slug === filename-derived key via
- * index.ts, not the filename itself), matching the live API's actual
- * slug "yango-wing-fleet-digital-registration-fleet-management-platform".
- */
 export const yangoWingFleet: CaseStudy = {
   slug: "yango-wing-fleet-digital-registration-fleet-management-platform",
   summary:
-    "A registration and fleet-operations platform with a public onboarding flow and an authenticated admin dashboard.",
+    "A full-stack driver-registration and fleet-operations platform with public onboarding workflows, staff-protected APIs, administration, analytics, filtering, and exports.",
   sections: [
     {
       key: "architecture",
@@ -18,27 +12,40 @@ export const yangoWingFleet: CaseStudy = {
         {
           id: "stack",
           statement:
-            "Built with React and Django REST Framework, using PostgreSQL for storage and JWT for authentication.",
+            "Built with Django REST Framework and React/TypeScript, using PostgreSQL for persistence and JWT for authenticated staff workflows.",
           status: "verified",
-          evidence: "Live API technologies field (Django, DRF, PostgreSQL, React.js, JWT, Python, REST APIs).",
+          evidence:
+            "github.com/Shahriyar-Kh/yango-wing-fleet README and repository evidence reviewed 2026-09-21.",
         },
         {
-          id: "split",
-          statement: "The system separates a public registration flow from an authenticated admin area.",
+          id: "public-admin-split",
+          statement:
+            "The system separates public registration and inquiry flows from protected staff operations and dashboard APIs.",
           status: "verified",
-          evidence: "docs/rebuild/P01A4_CONTENT_AND_MEDIA_AUDIT.md - audited screenshots of both areas.",
+          evidence:
+            "github.com/Shahriyar-Kh/yango-wing-fleet README and API surface reviewed 2026-09-21.",
         },
       ],
     },
     {
       key: "features",
-      heading: "What it does",
+      heading: "Operational workflows",
       claims: [
         {
-          id: "modules",
-          statement: "The admin area includes registration, offers, and inquiry management as distinct modules.",
-          status: "inferred",
-          evidence: "docs/rebuild/CONTENT_TRUTH_INVENTORY.md - restated conservatively from prior project copy, not independently re-verified against the running app.",
+          id: "operations",
+          statement:
+            "Staff workflows include registration and inquiry management, offers/trip-bonus CRUD, search and filtering, status updates, password reset, email workflows, dashboard analytics, and CSV exports.",
+          status: "verified",
+          evidence:
+            "github.com/Shahriyar-Kh/yango-wing-fleet README and current implementation evidence reviewed 2026-09-21.",
+        },
+        {
+          id: "polling",
+          statement:
+            "Dashboard refresh uses interval-based polling for updated operational data rather than WebSocket push.",
+          status: "verified",
+          evidence:
+            "github.com/Shahriyar-Kh/yango-wing-fleet README explicitly documents polling-based dashboard refresh.",
         },
       ],
     },
@@ -48,56 +55,33 @@ export const yangoWingFleet: CaseStudy = {
       kind: "live",
       label: "yango-wing-fleet.vercel.app",
       href: "https://yango-wing-fleet.vercel.app",
-      verifiedOn: "2026-08-27",
+      verifiedOn: "2026-09-21",
     },
     {
-      kind: "screenshot",
-      label: "Public registration flow",
-      href: "",
-      verifiedOn: null,
-      capturedApprox: "April 2026",
+      kind: "repo",
+      label: "GitHub repository",
+      href: "https://github.com/Shahriyar-Kh/yango-wing-fleet",
+      verifiedOn: "2026-09-21",
     },
   ],
   withheld: [
     {
-      id: "problem-framing",
-      statement: "Fleet teams needed one system instead of scattered forms and manual spreadsheets.",
-      status: "pending",
-      evidence: "Asserts a client's prior state with no client statement on record (OPEN_DECISIONS.md #13).",
-    },
-    {
-      id: "role",
-      statement: "Solo-built, or built as part of a team.",
-      status: "pending",
-      evidence: "[owner to confirm] - OPEN_DECISIONS.md #12.",
-    },
-    {
-      id: "operational-counts",
-      statement: "Any registration or usage counts.",
+      id: "customer-data",
+      statement: "Operational registration/customer records or usage counts.",
       status: "prohibited",
-      evidence: "Third-party operational data; not this site's to publish.",
+      evidence: "Third-party operational data is not public portfolio content.",
     },
     {
-      id: "sensitive-screenshot",
-      statement: "The removed registration-management table screenshot.",
+      id: "real-time",
+      statement: "The dashboard uses real-time push/WebSockets.",
       status: "prohibited",
-      evidence: "docs/rebuild/P01A5H_PRIVACY_HOTFIX_REPORT.md - contained apparent real personal data; file deleted from the deployable tree.",
-    },
-    {
-      id: "brand-permission",
-      statement: "Publishing this project's third-party brand and UI in detail.",
-      status: "pending",
-      evidence: "OPEN_DECISIONS.md #11 - audit could not confirm the absence of a confidentiality obligation.",
+      evidence: "The implemented refresh mechanism is polling, not push infrastructure.",
     },
   ],
   limitations: [
-    "This page describes a system built for a third party. It does not publish operational data, customer records, or usage figures.",
-    "The GitHub link on this project is a profile link, not a link to this project's own repository.",
-    "The scope of my individual contribution on this project is not asserted here.",
+    "This client/business project does not publish customer records, operational counts, or sensitive admin screenshots.",
+    "Polling is described as polling; no WebSocket or real-time push claim is made.",
   ],
-  lastReviewed: "2026-08-31",
-  // Structures the same fact already stated in `limitations` below
-  // ("This page describes a system built for a third party.") - see
-  // CaseStudy.projectContext's doc comment in types.ts.
+  lastReviewed: "2026-09-21",
   projectContext: "client",
 };

@@ -28,9 +28,9 @@ const CORE_STACK_ORDER: ReadonlyArray<keyof typeof CoreStackIcon> = ["Python", "
  * Section G - a capability console built entirely from real skill
  * categories (FINAL-DESIGN-01A-R2 §9, refined in R4 §E). No orbit
  * diagram, no percentages, no invented years. Within each category,
- * skills are sorted by their real categorical level (Expert/Advanced
- * first) so the strongest, most-supported technologies read as primary -
- * a distinction drawn entirely from real data, never a fabricated label.
+ * skills are sorted by their stored categorical level so higher-supported
+ * entries read first. The public profile deliberately avoids arbitrary
+ * percentages or invented years-of-experience claims.
  *
  * R4 adds: a Core Stack row for the verified primary technologies (only
  * ones actually present in the fetched data - see CORE_STACK_ORDER);
@@ -121,8 +121,7 @@ export function SkillsCapability({ skills }: SkillsCapabilityProps) {
         </Link>
       </div>
       <p className="mt-4 max-w-xl text-body text-ink-secondary">
-        Grouped the way the backend actually curates it. Every level is categorical - Beginner, Intermediate,
-        Advanced, or Expert - never a self-rated percentage or an invented years-of-experience figure.
+        Grouped from the canonical backend record and connected to real project evidence. Levels stay categorical — never self-rated percentages or invented years-of-experience figures.
       </p>
 
       <div ref={rootRef} className="mt-10">

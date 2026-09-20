@@ -44,10 +44,10 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Shahriyar Khan — Software Engineer",
+    default: "Shahriyar Khan | Software Engineer & Django Backend",
     template: "%s — Shahriyar Khan",
   },
-  description: "Python and Django engineering for REST APIs, authenticated business platforms, and deployed web products.",
+  description: "Software Engineer specializing in Python/Django backend engineering, REST APIs, PostgreSQL, and backend-heavy full-stack product delivery.",
 };
 
 export const viewport: Viewport = {

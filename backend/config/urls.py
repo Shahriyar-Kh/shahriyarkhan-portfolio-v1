@@ -51,11 +51,13 @@ def sitemap_xml(_request):
         "/about",
         "/skills",
         "/services",
-        "/projects",
+        "/work",
+        "/experience",
         "/resume",
         "/contact",
+        "/privacy",
     ]
-    urls.extend(f"/projects/{project.slug}" for project in Project.objects.filter(status="published").only("slug"))
+    urls.extend(f"/work/{project.slug}" for project in Project.objects.filter(status="published").only("slug"))
     urls.extend(f"/services/{service.slug}" for service in Service.objects.filter(status="published").only("slug"))
     entries = [
         "<?xml version=\"1.0\" encoding=\"UTF-8\"?>",

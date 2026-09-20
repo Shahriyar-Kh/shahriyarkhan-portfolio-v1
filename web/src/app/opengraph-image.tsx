@@ -8,9 +8,9 @@ export default function Image() {
   return new ImageResponse(
     (
       <OgImageLayout
-        eyebrow="Islamabad, Pakistan"
+        eyebrow="Software Engineer · Backend Engineer"
         title="Shahriyar Khan"
-        subtitle="Python and Django engineering for REST APIs and deployed web products."
+        subtitle="Python/Django backend engineering · REST APIs · PostgreSQL · React/Next.js"
       />
     ),
     { ...size },

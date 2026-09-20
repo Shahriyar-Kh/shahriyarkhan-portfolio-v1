@@ -9,72 +9,78 @@ export interface RouteMetadataDefault {
 }
 
 /**
- * Every route in this object has a solid, hand-written default - PageSEO
- * is strictly an enhancement layer on top, never a requirement. Title
- * kept <=60 chars, description 120-160 chars (checked in
- * lib/metadata.test.ts) - a real, mechanical SEO gate.
+ * Canonical metadata defaults: concise, evidence-backed and recruiter-first.
+ * Titles stay <=60 chars and descriptions stay 120-160 chars (test-enforced).
  */
 export const ROUTE_METADATA_DEFAULTS: Record<string, RouteMetadataDefault> = {
   home: {
     pageKey: "home",
-    title: "Shahriyar Khan — Software Engineer",
+    title: "Shahriyar Khan | Software Engineer & Django Backend",
     description:
-      "Python and Django engineering for REST APIs, authenticated business platforms, and deployed web products. Based in Islamabad, Pakistan.",
-    keywords: "Shahriyar Khan software engineer, Shahriyar Khan Python developer, Shahriyar Khan Django developer",
+      "Software Engineer specializing in Python/Django backend engineering, REST APIs, PostgreSQL, and backend-heavy full-stack products with React/Next.js.",
+    keywords:
+      "Shahriyar Khan software engineer, backend engineer, Python developer, Django developer, Django REST Framework, REST API developer, PostgreSQL",
   },
   about: {
     pageKey: "about",
-    title: "About",
+    title: "About Shahriyar Khan | Python/Django Backend Engineer",
     description:
-      "Shahriyar Khan is a software engineer specializing in Python, Django, and full-stack application delivery, based in Islamabad, Pakistan.",
-    keywords: "Shahriyar Khan about, backend developer Islamabad, Python developer Pakistan",
+      "Software Engineer focused on Python/Django backend systems, API architecture, authentication, PostgreSQL, testing, and React/Next.js product delivery.",
+    keywords:
+      "Shahriyar Khan about, Python Django backend engineer, backend developer Pakistan, full-stack software engineer",
   },
   skills: {
     pageKey: "skills",
-    title: "Skills",
+    title: "Skills | Shahriyar Khan — Python & Backend Engineering",
     description:
-      "Technologies and skill categories across backend, frontend, database, tools, and deployment, with honest categorical proficiency levels.",
-    keywords: "Shahriyar Khan skills, Python developer skills, Django developer technologies",
+      "Evidence-backed skills across Python, Django/DRF, FastAPI, PostgreSQL, Redis/Celery, React/Next.js, testing, CI/CD, Docker, and API engineering.",
+    keywords:
+      "Python, Django, Django REST Framework, FastAPI, PostgreSQL, Redis, Celery, React, Next.js, Docker, CI/CD",
   },
   work: {
     pageKey: "work",
-    title: "Selected Work",
+    title: "Projects | Shahriyar Khan — Software Engineering Portfolio",
     description:
-      "A selection of REST API and full-stack systems built with Django REST Framework, React, and PostgreSQL, each with a verified live URL or repository.",
-    keywords: "Django developer portfolio, Python developer projects, Django REST API projects",
+      "Case studies across Django/DRF, FastAPI, PostgreSQL, Redis/Celery, React/Next.js, testing, CI/CD, operational workflows, and practical AI integrations.",
+    keywords:
+      "Django projects, backend engineering portfolio, REST API projects, Python software engineer projects, full-stack case studies",
   },
   experience: {
     pageKey: "experience",
-    title: "Experience",
+    title: "Experience | Shahriyar Khan — Software Engineer",
     description:
-      "The structured employment record behind the case studies on this site - roles, companies, dates, and the technologies used in each one.",
-    keywords: "Shahriyar Khan experience, Django developer experience, Python developer work history",
+      "Professional experience in backend and full-stack engineering across Python/Django APIs, authenticated products, client systems, and team delivery.",
+    keywords:
+      "Shahriyar Khan experience, software engineer experience, Python Django developer experience, backend engineer Pakistan",
   },
   resume: {
     pageKey: "resume",
-    title: "Résumé",
+    title: "Resume | Shahriyar Khan — Software Engineer",
     description:
-      "Shahriyar Khan resume - experience, education, and core technical skills, with downloadable PDF and DOCX résumés and no unverifiable claims.",
-    keywords: "Shahriyar Khan resume, Shahriyar Khan CV, Django developer resume",
+      "Software Engineer resume covering Python/Django backend engineering, REST APIs, PostgreSQL, React/Next.js, testing, CI/CD, and verified project experience.",
+    keywords:
+      "Shahriyar Khan resume, software engineer CV, Python developer resume, Django developer resume, backend engineer resume",
   },
   services: {
     pageKey: "services",
-    title: "Services",
+    title: "Services | Python/Django & Full-Stack Development",
     description:
-      "Backend engineering, REST API development, and full-stack web applications built with Django, DRF, React, and PostgreSQL.",
-    keywords: "Django developer for hire, hire Python backend developer, Django REST API development services",
+      "Backend-heavy web applications, REST APIs, SaaS/EdTech platforms, and custom business systems using Python/Django, PostgreSQL, and React/Next.js.",
+    keywords:
+      "custom software development, Django development, REST API development, SaaS development, web application development",
   },
   contact: {
     pageKey: "contact",
-    title: "Contact",
+    title: "Contact Shahriyar Khan | Software Engineer",
     description:
-      "Get in touch about a role, a freelance project, or backend and full-stack development work - a message goes directly to a single-person inbox.",
-    keywords: "contact Shahriyar Khan, hire Django developer",
+      "Open to international remote software engineering roles, Pakistan-based opportunities, contract engineering, and selected software product collaborations.",
+    keywords:
+      "contact Shahriyar Khan, remote software engineer, Django developer Pakistan, backend engineer contract",
   },
   privacy: {
     pageKey: "privacy",
-    title: "Privacy",
+    title: "Privacy | Shahriyar Khan Portfolio",
     description:
-      "What this website collects through its contact and project forms, where it goes, and this site's approach to tracking, spam prevention, and data retention.",
+      "How this portfolio handles contact and project-request data, spam prevention, analytics boundaries, data retention, and privacy across public-facing workflows.",
   },
 };

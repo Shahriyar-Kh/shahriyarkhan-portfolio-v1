@@ -269,7 +269,6 @@ export interface ResumeVersion {
   target_role: string;
   custom_summary: string;
   is_default: boolean;
-  ats_tags: string;
   /** LIVE-sourced (the current M2M selections), kept only for
    * response-shape compatibility. Can legitimately drift from what was
    * actually approved/published/exported - never render a published

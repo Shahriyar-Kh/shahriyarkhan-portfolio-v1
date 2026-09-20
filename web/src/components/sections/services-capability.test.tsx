@@ -23,13 +23,12 @@ import { SERVICES_MEDIA } from "@/content/services-media";
 import type { Service } from "@/lib/api/types";
 
 const REAL_SLUGS = [
-  "website-development",
-  "restaurant-website",
-  "ecommerce-website",
-  "saas-project",
-  "portfolio-website",
-  "backend-development",
-  "custom-web-application",
+  "custom-software-development",
+  "web-development",
+  "application-development",
+  "saas-development",
+  "database-development",
+  "cloud-application-development",
 ];
 
 const WEB_ROOT = join(__dirname, "../../..");
@@ -73,7 +72,7 @@ describe("SERVICES_MEDIA data integrity", () => {
   // layer, never services-media.ts - this regression guard confirms the
   // R6 real-image mapping is exactly what it was, not silently narrowed
   // or expanded.
-  it("keeps the R6 mapping at exactly the seven real service slugs, no more and no fewer", () => {
+  it("keeps the R6 mapping at exactly the six canonical service slugs, no more and no fewer", () => {
     expect(Object.keys(SERVICES_MEDIA).sort()).toEqual([...REAL_SLUGS].sort());
   });
 
@@ -94,15 +93,12 @@ describe("SERVICES_MEDIA data integrity", () => {
   it("distinguishes owned project/portfolio evidence from illustrative stock photography", () => {
     const kinds = new Set(Object.values(SERVICES_MEDIA).map((e) => e.image.kind));
     expect(kinds).toEqual(new Set(["owned", "illustrative"]));
-    // The three real-project/portfolio slugs must be "owned"; the three
-    // stock-photo slugs must be "illustrative" - not guessed either way.
-    expect(SERVICES_MEDIA["website-development"]!.image.kind).toBe("owned");
-    expect(SERVICES_MEDIA["saas-project"]!.image.kind).toBe("owned");
-    expect(SERVICES_MEDIA["custom-web-application"]!.image.kind).toBe("owned");
-    expect(SERVICES_MEDIA["portfolio-website"]!.image.kind).toBe("owned");
-    expect(SERVICES_MEDIA["restaurant-website"]!.image.kind).toBe("illustrative");
-    expect(SERVICES_MEDIA["ecommerce-website"]!.image.kind).toBe("illustrative");
-    expect(SERVICES_MEDIA["backend-development"]!.image.kind).toBe("illustrative");
+    expect(SERVICES_MEDIA["custom-software-development"]!.image.kind).toBe("owned");
+    expect(SERVICES_MEDIA["web-development"]!.image.kind).toBe("owned");
+    expect(SERVICES_MEDIA["application-development"]!.image.kind).toBe("owned");
+    expect(SERVICES_MEDIA["saas-development"]!.image.kind).toBe("owned");
+    expect(SERVICES_MEDIA["database-development"]!.image.kind).toBe("illustrative");
+    expect(SERVICES_MEDIA["cloud-application-development"]!.image.kind).toBe("owned");
   });
 
   it("gives every image a real, non-empty alt description", () => {
@@ -181,11 +177,11 @@ describe("ServicesCapability", () => {
   });
 
   it("keeps the featured service's request/detail links pointed at the correct contact intent and route", () => {
-    render(<ServicesCapability services={[makeService({ id: 1, slug: "website-development", title: "Website Development" })]} />);
+    render(<ServicesCapability services={[makeService({ id: 1, slug: "custom-software-development", title: "Custom Software Development" })]} />);
     const request = screen.getByRole("link", { name: "Request this service" });
     expect(request).toHaveAttribute("href", "/contact?intent=freelance_project");
     expect(request).toHaveAttribute("data-analytics-event", "project_cta_click");
-    expect(screen.getByRole("link", { name: "Website Development" })).toHaveAttribute("href", "/services/website-development");
+    expect(screen.getByRole("link", { name: "Custom Software Development" })).toHaveAttribute("href", "/services/custom-software-development");
   });
 
   it("keeps every supporting service's Details and Request links pointed correctly", () => {

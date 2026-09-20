@@ -22,7 +22,7 @@ export interface ServicesCapabilityProps {
  * future service count never leaves a ragged half-filled row. The same
  * index parity also decides each card's media placement (see
  * SupportingService) - narrow cards stack media-over-text, wide cards
- * sit media-beside-text, so the six supporting cards read as two
+ * sit media-beside-text, so the supporting cards read as two
  * alternating compositions, never seven identical templates. */
 const SUPPORTING_SPAN = ["lg:col-span-1", "lg:col-span-2"] as const;
 
@@ -72,7 +72,7 @@ export function ServicesCapability({ services }: ServicesCapabilityProps) {
         Capability built for how clients actually decide
       </h2>
       <p className="mt-4 max-w-xl text-body text-paper-tertiary">
-        Seven real service categories, each scoped to what it actually takes to begin - not a generic package list.
+        Six focused software-development services, each scoped around real engineering needs rather than generic packages.
       </p>
 
       <div className="mt-10">
@@ -82,7 +82,7 @@ export function ServicesCapability({ services }: ServicesCapabilityProps) {
           <EmptyState tone="paper" title="No published services yet." />
         ) : (
           (() => {
-            const [feature, ...rest] = services.slice(0, 7);
+            const [feature, ...rest] = services.slice(0, 6);
             return (
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
                 {feature && (

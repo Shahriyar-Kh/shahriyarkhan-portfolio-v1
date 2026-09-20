@@ -1,95 +1,62 @@
 /**
- * /about's narrative copy. Employment and education specifics (dates,
- * titles, institution) are NOT duplicated here - they render from the
- * live Experience/Education API as a preview (with a link through to the
- * full record on /experience), so this file can never drift out of sync
- * with the database. This file is philosophy, specialization, and
- * approach only. No unverifiable superlative, no invented metric - see
- * docs/rebuild/CONTENT_TRUTH_INVENTORY.md.
+ * /about narrative. Employment and education records render from the API;
+ * this file holds durable professional positioning, engineering approach,
+ * and capability framing only.
  */
 
 export const ABOUT_INTRO = {
   eyebrow: "About",
-  title: "How I approach building software",
-  lead: "I build backend systems and full-stack applications with Python and Django, most often paired with a React frontend and a PostgreSQL database.",
+  title: "Backend engineering with full-product context",
+  lead: "I’m a Software Engineer specializing in Python/Django backend engineering and backend-heavy full-stack product development.",
 } as const;
 
-/**
- * Fallback only - the live page prefers SiteSetting.hero_subtitle (the
- * same verified, database-backed sentence used elsewhere on the site) so
- * this specialization statement can never drift from what the backend
- * actually says. This constant exists purely so the page still renders a
- * real sentence, not a blank, if that fetch fails.
- */
 export const ABOUT_SPECIALIZATION_FALLBACK =
-  "Software Engineering graduate specializing in backend development with Python, Django, and FastAPI, and full-stack web applications with Django REST Framework and React.js.";
+  "Software Engineer focused on Python, Django, Django REST Framework, FastAPI, PostgreSQL, Redis/Celery, and complete React/Next.js product delivery.";
 
-/**
- * FINAL-DESIGN-01B-01-R2: split into four short, scan-friendly blocks
- * (each a plain sentence-boundary split of the original two paragraphs -
- * no wording changed, no fact added) instead of two dense paragraphs, so
- * the career story reads as distinct beats rather than one wall of text.
- */
 export const ABOUT_CAREER_STORY: readonly string[] = [
-  "My background is in Python and Django: designing the data model, wiring authentication and authorization, and building the REST API a frontend actually consumes.",
-  "Most of the projects on this site follow that same shape - a Django REST Framework backend paired with a React frontend.",
-  "I finished a BS in Software Engineering at Abasyn University and have worked across backend-focused roles and internships since, moving between greenfield builds and existing codebases.",
-  "The structured record of exactly where and when is on the Experience page below, sourced from the same data as the résumé so it can't drift out of sync.",
+  "My strongest area is backend engineering: data modeling, API architecture, authentication and authorization, JWT/RBAC, validation, background processing, caching, testing, and clear service boundaries.",
+  "I build REST APIs, authenticated business platforms, SaaS and EdTech systems, internal tools, and AI-integrated web applications — then connect them to React or Next.js when the product needs full-stack delivery.",
+  "Recent contract work through TriCore Digital Tech includes a private NCLEX learning platform spanning requirements, Django/DRF architecture, Next.js workflows, analytics, subscriptions, testing, security hardening, and deployment preparation.",
+  "Across projects, I focus on how a system behaves beyond the happy path: permission boundaries, failure cases, maintainable business logic, database evolution, testability, security, and API contracts that remain understandable as the product changes.",
+  "I’m open to international remote software-engineering opportunities, Pakistan-based remote roles, onsite/hybrid roles in Islamabad, Rawalpindi, and Lahore, contract engineering, and selected freelance product work.",
 ];
 
 export const ABOUT_PRINCIPLES: ReadonlyArray<{ title: string; body: string }> = [
   {
-    title: "The data model comes first",
-    body: "Before any endpoint or UI, I work out what entities the system needs to represent and how they relate. Most later problems trace back to this step being rushed.",
+    title: "Model the domain before the endpoint",
+    body: "Data relationships, ownership, and access boundaries shape the API. Getting those right early keeps later business logic easier to reason about.",
   },
   {
-    title: "Authentication and authorization are not an afterthought",
-    body: "Who can do what is decided as part of the architecture, not bolted on once the feature list is done.",
+    title: "Authorization is architecture",
+    body: "Authentication answers who the user is; authorization decides what they may do. I design those rules as part of the system, not as a final patch.",
   },
   {
-    title: "A system should be explainable",
-    body: "I can walk through why a system is built the way it is - which is also why every project on this site links to something real: a live URL, a repository, or an audited screenshot.",
+    title: "Make engineering claims traceable",
+    body: "Projects on this site link to live products, public repositories, or sanitized evidence. I avoid inventing scale, performance, or outcome claims.",
   },
 ];
 
-export const ABOUT_PREVIEW_CTA = { label: "See the work these principles produced", href: "/work" } as const;
+export const ABOUT_PREVIEW_CTA = { label: "See the engineering work", href: "/work" } as const;
+export const ABOUT_RECORD_PREVIEW_CTA = { label: "View experience and education", href: "/experience" } as const;
+export const ABOUT_STRENGTHS_CTA = { label: "Explore the skills evidence", href: "/skills" } as const;
 
-export const ABOUT_RECORD_PREVIEW_CTA = { label: "View the full experience and education record", href: "/experience" } as const;
+export const ABOUT_LANGUAGES: readonly string[] = [
+  "Pashto (Native)",
+  "Urdu (Native)",
+  "English (Professional)",
+];
 
-export const ABOUT_STRENGTHS_CTA = { label: "See the full skills breakdown", href: "/skills" } as const;
-
-/** Self-declared, low-risk personal fact - not a performance or client
- * claim, so it doesn't fall under the same verification bar as project
- * metrics or certifications. Carried forward from the legacy site. */
-export const ABOUT_LANGUAGES: readonly string[] = ["Pashto (Native)", "Urdu (Native)", "English (Professional)"];
-
-/**
- * FINAL-DESIGN-01B-01: the premium /about page's editorial hero meta row
- * - the exact same two verified facts the homepage hero and HERO_COPY
- * already use (content/home.ts), never a second, drifting copy of an
- * availability or location claim.
- */
 export const ABOUT_HERO_META = {
-  location: "Islamabad, Pakistan",
-  availability: "Available for new work",
+  location: "Pakistan",
+  availability: "Open to roles & selected projects",
 } as const;
 
 export const ABOUT_HERO_EYEBROW = "About";
 
-/**
- * The architecture section's framing - describes the shape most of the
- * real projects on this site actually take (see ABOUT_CAREER_STORY[0]
- * and content/home.ts's HERO_COPY.lead for the same "Django REST
- * Framework backend paired with a React frontend" fact stated
- * elsewhere), illustrated with the real skill-category names the
- * backend itself curates (see components/icons/tech-icons.tsx's
- * CategoryIcon) - never an invented tech stack or a claim about any one
- * specific project's actual architecture.
- */
 export const ABOUT_ARCHITECTURE_COPY = {
   eyebrow: "Architecture",
-  title: "The shape most of these systems take",
-  lead: "Not every project looks identical, but most share the same underlying layers - each one backed by a real, published skill category, not a diagram drawn for its own sake.",
+  title: "The layers I work across",
+  lead: "Backend engineering is the center of gravity, with frontend, data, background processing, and deployment treated as connected parts of the same product.",
 } as const;
 
 export interface AboutArchitectureLayer {
@@ -98,75 +65,49 @@ export interface AboutArchitectureLayer {
   body: string;
 }
 
-/**
- * Framed as capability, never as a completed-project claim - matches
- * content/services-media.ts's own "frontend-only presentation copy over
- * real API data" rule. `category` must match a real SkillCategory name
- * exactly (see lib/skills.ts's groupSkillsByCategory) so the component
- * can pair each layer with its own real, live skill list rather than a
- * static, potentially-drifting tech list.
- */
 export const ABOUT_ARCHITECTURE_LAYERS: readonly AboutArchitectureLayer[] = [
   {
     category: "Frontend",
-    title: "Interface",
-    body: "React and JavaScript, wired to whatever API the project actually needs - not a template dropped on top afterward.",
+    title: "Product interface",
+    body: "React and Next.js interfaces connected to real APIs, authentication, product workflows, and server-managed data.",
   },
   {
     category: "Backend",
-    title: "API and data model",
-    body: "Django, DRF, and FastAPI. The data model comes first, and authentication/authorization is decided as part of that same design - never bolted on once the feature list is done.",
+    title: "API and application rules",
+    body: "Python, Django/DRF, and FastAPI for versioned APIs, validation, permissions, domain rules, integrations, and operational tooling.",
   },
   {
     category: "Database",
-    title: "Source of truth",
-    body: "PostgreSQL as the primary store, MongoDB where a document shape genuinely fits better.",
+    title: "Data and background systems",
+    body: "PostgreSQL as the primary relational store, with Redis/Celery for caching, queues, scheduled work, and background processing where needed.",
   },
   {
     category: "Deployment",
-    title: "Running system",
-    body: "Docker, Git, and Postman to build and verify it; Cloudflare Workers and Vercel to actually ship it - a live URL, not a local demo.",
+    title: "Delivery and quality",
+    body: "Docker, CI/CD, testing, OpenAPI contracts, migrations, and cloud deployment workflows that keep application behavior reviewable.",
   },
-] as const;
+];
 
-/**
- * "Core strengths" cards - one per real, published skill category
- * (matched by exact name against the live API in lib/skills.ts's
- * groupSkillsByCategory, the same way ABOUT_ARCHITECTURE_LAYERS is). A
- * category the backend doesn't currently publish simply never renders a
- * card - never a guessed or invented one.
- */
 export const ABOUT_STRENGTHS_COPY = {
   eyebrow: "Coverage",
-  title: "Core strengths",
-  lead: "Grouped the same way the backend curates them - see the full breakdown, with every categorical level, on the Skills page.",
+  title: "Core engineering strengths",
+  lead: "The strongest skills are tied to real project evidence rather than presented as arbitrary percentages.",
 } as const;
 
 export const ABOUT_STRENGTHS_CAPTIONS: Readonly<Record<string, string>> = {
-  Backend: "Django, DRF, and FastAPI - REST APIs, authentication, and the data model underneath them.",
-  Database: "PostgreSQL as the primary store, MongoDB where a document shape fits better.",
-  Frontend: "React and JavaScript, wired to whatever API the project needs.",
-  Tools: "Git, Docker, and Postman - the everyday toolkit for building and verifying an API.",
-  Deployment: "Cloudflare Workers and Vercel for shipping a working system, not just a local demo.",
+  Backend: "Python, Django/DRF, FastAPI, REST APIs, authentication, permissions, and application architecture.",
+  Database: "PostgreSQL, Redis, MongoDB, relational modeling, caching, and data-backed operational workflows.",
+  Frontend: "React, Next.js, TypeScript, and interfaces connected to real backend services.",
+  Tools: "Git/GitHub, Docker, Postman, pytest, OpenAPI, and the everyday tooling used to verify delivery.",
+  Deployment: "CI/CD and cloud deployment workflows across the environments used by the projects on this site.",
 } as const;
 
-/**
- * The alternating timeline section's framing - the record itself is the
- * real, live Experience API data (never duplicated here); this is only
- * the section's own heading copy.
- */
 export const ABOUT_TIMELINE_COPY = {
   eyebrow: "Career",
   title: "Where this experience comes from",
-  lead: "Every role below is the same structured record the résumé and the Experience page draw from - moving between greenfield builds and existing codebases.",
+  lead: "Employment and internship records below come from the same structured source used by the résumé and Experience page.",
 } as const;
 
-/**
- * FINAL-DESIGN-01B-01-R2: Education no longer gets its own oversized,
- * mostly-empty standalone section (a single real record left a lot of
- * dead space) - `eyebrow` now labels the milestone chip folded into
- * AboutNarrative instead.
- */
 export const ABOUT_EDUCATION_COPY = {
   eyebrow: "Education",
 } as const;

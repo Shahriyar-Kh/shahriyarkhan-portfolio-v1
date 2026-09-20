@@ -53,14 +53,14 @@ describe("Hero", () => {
     render(<Hero />);
     expect(screen.getByRole("heading", { level: 1, name: "Shahriyar Khan" })).toBeInTheDocument();
     expect(screen.getByAltText("Portrait of Shahriyar Khan")).toBeInTheDocument();
-    expect(screen.getByText("Available for new work")).toBeInTheDocument();
+    expect(screen.getByText("Open to new roles & selected projects")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /view résumé/i })).toBeInTheDocument();
   });
 
   it("keeps both the recruiter and client CTA reachable with the correct analytics contract", () => {
     render(<Hero />);
-    const seeWork = screen.getByRole("link", { name: "See the work" });
-    const startProject = screen.getByRole("link", { name: "Start a project" });
+    const seeWork = screen.getByRole("link", { name: "View engineering work" });
+    const startProject = screen.getByRole("link", { name: "Discuss a project" });
     expect(seeWork).toHaveAttribute("data-analytics-event", "recruiter_cta_click");
     expect(startProject).toHaveAttribute("data-analytics-event", "project_cta_click");
   });
@@ -76,9 +76,9 @@ describe("Hero", () => {
     // The sweep span splits the paragraph into two text nodes, so this
     // matches on the <p>'s combined textContent rather than a single
     // node's own text (RTL's default getByText only matches one node).
-    const lead = screen.getByText("Python and Django").closest("p");
+    const lead = screen.getByText("Python/Django").closest("p");
     expect(lead?.textContent).toBe(
-      "Python and Django engineering for REST APIs, authenticated business platforms, and deployed web products.",
+      "Python/Django backend engineering for REST APIs, authenticated products, and backend-heavy full-stack systems.",
     );
   });
 
