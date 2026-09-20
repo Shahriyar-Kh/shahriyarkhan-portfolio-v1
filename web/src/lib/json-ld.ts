@@ -19,6 +19,24 @@ export function personSchema() {
     url: SITE_URL,
     jobTitle: "Software Engineer",
     sameAs: [SOCIAL_LINKS.github, SOCIAL_LINKS.linkedin],
+    knowsAbout: [
+      "Python",
+      "Django",
+      "Django REST Framework",
+      "FastAPI",
+      "REST APIs",
+      "PostgreSQL",
+      "Redis",
+      "Celery",
+      "React",
+      "Next.js",
+      "TypeScript",
+      "Docker",
+      "CI/CD",
+      "OpenAPI",
+      "Software Architecture",
+      "AI Integration",
+    ],
   };
 }
 
@@ -96,9 +114,9 @@ export function breadcrumbSchema(items: ReadonlyArray<{ name: string; pathname: 
 }
 
 /**
- * Returns null for a service without a SERVICE_FRAMING entry (owner
- * judgment call #6 - only 4 of 7 services have a defensible evidence
- * trail today). Never emits `offers` - no real pricing exists.
+ * Returns null when a service has no evidence-backed framing. Canonical
+ * services are framed in content/services.ts. Never emits `offers` -
+ * no public fixed pricing is asserted.
  */
 export function serviceSchema(service: Service, framing: ServiceFraming | undefined) {
   if (!framing) return null;
