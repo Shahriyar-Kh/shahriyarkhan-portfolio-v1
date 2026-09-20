@@ -78,8 +78,8 @@ class SitemapXmlTests(TestCase):
 
         response = self.client.get("/sitemap.xml")
         body = response.content.decode()
-        self.assertIn("/projects/published-project", body)
-        self.assertNotIn(f"/projects/{hidden.slug}", body)
+        self.assertIn("/work/published-project", body)
+        self.assertNotIn(f"/work/{hidden.slug}", body)
         self.assertNotIn("/services/draft-service", body)
 
 
@@ -234,6 +234,13 @@ class RailwayDeploymentConfigTests(unittest.TestCase):
 
     def test_post_migration_verification_exists(self):
         self.assertIn("manage.py migrate --check", self.build_script_text)
+
+    def test_canonical_profile_sync_runs_after_migrations_and_before_static_collection(self):
+        migrate_check_pos = self.build_script_text.index("manage.py migrate --check")
+        sync_pos = self.build_script_text.index("manage.py sync_canonical_profile_2026")
+        collectstatic_pos = self.build_script_text.index("manage.py collectstatic")
+        self.assertLess(migrate_check_pos, sync_pos)
+        self.assertLess(sync_pos, collectstatic_pos)
 
     def test_insightboard_seed_absent_from_automatic_build(self):
         # Comments are allowed to *mention* the command (explaining why it
