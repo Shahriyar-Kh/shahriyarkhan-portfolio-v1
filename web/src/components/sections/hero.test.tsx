@@ -76,9 +76,7 @@ describe("Hero", () => {
     // The sweep span splits the paragraph into two text nodes, so this
     // matches on the <p>'s combined textContent rather than a single
     // node's own text (RTL's default getByText only matches one node).
-    const lead = screen.getByText(
-      "Python/Django backend engineering for REST APIs, authenticated products, and backend-heavy full-stack systems.",
-    ).closest("p");
+    const lead = screen.getByText("Python/Django").closest("p");
     expect(lead?.textContent).toBe(
       "Python/Django backend engineering for REST APIs, authenticated products, and backend-heavy full-stack systems.",
     );
