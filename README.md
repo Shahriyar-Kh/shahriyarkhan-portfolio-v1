@@ -1,26 +1,20 @@
 <p align="center">
   <img src="portfolio.png"
-       alt="Project GitHub Cover"
+       alt="Shahriyar Khan full-stack software engineering portfolio"
        width="100%" />
 </p>
+
 <div align="center">
 
+# Shahriyar Khan — Full-Stack Software Engineering Portfolio
 
-  
-### Personal Brand, Project Showcase, AI Portfolio Assistant & Resume Operations System
+### Professional presence · engineering case studies · client discovery · grounded AI assistant · CV management
 
 **Next.js 16 · React 19 · Django REST Framework · PostgreSQL · Cloudflare Workers · Railway**
 
-A production portfolio platform built as a real full-stack system rather than a static personal website. It combines public portfolio content, project case studies, services, SEO, an evidence-grounded visitor assistant, structured project-discovery intake, and a private résumé/CV management workflow.
-
-<p>
-  <img alt="Next.js" src="https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white">
-  <img alt="React" src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=111111">
-  <img alt="Django" src="https://img.shields.io/badge/Django-5-092E20?logo=django&logoColor=white">
-  <img alt="DRF" src="https://img.shields.io/badge/Django%20REST%20Framework-API-A30000">
-  <img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-Neon-4169E1?logo=postgresql&logoColor=white">
-  <img alt="Cloudflare" src="https://img.shields.io/badge/Cloudflare-Workers-F38020?logo=cloudflare&logoColor=white">
-</p>
+[Live Portfolio](https://shahriyarkhan.com/) ·
+[GitHub](https://github.com/Shahriyar-Kh) ·
+[LinkedIn](https://www.linkedin.com/in/shahriyar-kh/)
 
 </div>
 
@@ -28,77 +22,145 @@ A production portfolio platform built as a real full-stack system rather than a 
 
 ## Overview
 
-This repository contains the production release of **shahriyarkhan.com**.
+This repository contains the application behind **shahriyarkhan.com**.
 
-The project began as a portfolio, but evolved into a broader software-engineering platform with four connected concerns:
+It is a full-stack professional platform rather than a static portfolio. Public
+content is organized around a recruiter-first software-engineering identity:
 
-1. **Public professional presence** — projects, services, skills, experience and case-study content.
-2. **Client acquisition workflows** — contact handling and structured project discovery.
-3. **AI-assisted portfolio navigation** — a grounded assistant that answers only from verified public portfolio evidence.
-4. **Private résumé operations** — versioned CV creation, ATS-readiness checks, job-match assessments and controlled PDF/DOCX exports.
+**Software Engineer · Backend Engineer · Python & Django Developer · Backend-heavy Full-Stack Product Engineering**
 
-The result is a portfolio system that demonstrates both public product engineering and internal operational tooling.
+The platform combines:
+
+1. **Professional profile and evidence** — projects, skills, experience, education, services and case studies.
+2. **Client discovery** — contact and structured project-requirement workflows.
+3. **Grounded portfolio assistant** — answers from published portfolio evidence rather than unrestricted model knowledge.
+4. **Private CV management** — controlled résumé/CV versioning and PDF/DOCX document export.
+5. **SEO and content operations** — dynamic metadata, JSON-LD, sitemap/robots, publication controls and administration.
 
 ---
 
-## System Architecture
+## Architecture
 
 ~~~mermaid
 flowchart LR
-    V[Portfolio Visitor] --> WEB[Next.js 16 / React 19]
+    V[Visitor] --> WEB[Next.js 16 / React 19]
     WEB -->|REST| API[Django / DRF]
 
     API --> PORT[Portfolio Content]
     API --> SEO[SEO Configuration]
     API --> INQ[Contact & Project Discovery]
-    API --> ASSIST[Grounded Portfolio Assistant]
-    API --> RESUME[Resume / CV Builder]
+    API --> ASSIST[Grounded Assistant]
+    API --> CV[Private CV Management]
     API --> ANALYTICS[Portfolio Analytics]
 
     PORT --> DB[(PostgreSQL)]
     SEO --> DB
     INQ --> DB
     ASSIST --> DB
-    RESUME --> DB
+    CV --> DB
     ANALYTICS --> DB
 
-    ASSIST --> GEMINI[Optional Gemini Provider]
-    RESUME --> PDF[PDF Export]
-    RESUME --> DOCX[DOCX Export]
+    ASSIST --> AI[Optional AI Provider]
+    CV --> PDF[PDF Export]
+    CV --> DOCX[DOCX Export]
 
     WEB --> CF[Cloudflare Workers]
     API --> RW[Railway]
 ~~~
 
+The public presentation layer is backed by structured Django data so identity,
+experience, projects, services and skills can stay aligned across the site.
+
 ---
 
-## Public Portfolio Experience
+## Public Engineering Positioning
 
-The frontend uses:
+The portfolio centers on evidence-backed work with:
 
-- **Next.js 16**
-- **React 19**
+- **Python**
+- **Django**
+- **Django REST Framework**
+- **FastAPI**
+- **REST APIs**
+- **PostgreSQL**
+- **Redis / Celery**
+- **JWT / RBAC**
+- **React / Next.js**
 - **TypeScript**
-- **Tailwind CSS 4**
-- **GSAP + ScrollTrigger**
-- reduced-motion-safe interactions
-- server-driven portfolio content
-- structured metadata and JSON-LD
-- responsive project/service/detail views
-- real image provenance controls
-- sitemap / robots integration
+- **Docker**
+- **pytest / automated testing**
+- **CI/CD**
+- **OpenAPI**
+- **AI integrations where they support a real product workflow**
 
-Public project, service, skill and experience data is served through the Django API rather than being duplicated across frontend files.
+No arbitrary proficiency percentages or fabricated scale metrics are required
+to make those skills visible: the site connects capability to actual project
+evidence.
 
-That keeps the website presentation layer aligned with one canonical content source.
+---
+
+## Canonical Project Portfolio
+
+Current public project records are synchronized around verified repositories,
+live products, or sanitized public case studies.
+
+### Nurses Beyond Borders — NCLEX Learning & Exam Preparation Platform
+Private client project delivered through TriCore Digital Tech. Public evidence
+is intentionally limited to a sanitized engineering case study covering
+Django/DRF, Next.js, PostgreSQL, Redis/Celery, assessment workflows,
+entitlements, analytics, testing, CI and deployment preparation.
+
+[Public engineering case study](https://github.com/Shahriyar-Kh/Shahriyar-Kh/blob/main/case-studies/nbb-lms.md)
+
+### Yango Wing Fleet
+Driver registration and fleet-operations platform with public onboarding,
+staff-protected APIs, administration, analytics, filtering and CSV exports.
+
+[Repository](https://github.com/Shahriyar-Kh/yango-wing-fleet) ·
+[Live](https://yango-wing-fleet.vercel.app/)
+
+### NoteAssist AI
+AI-assisted learning and productivity platform with structured notes,
+background processing, quotas, exports, Google integrations and administration.
+
+[Repository](https://github.com/Shahriyar-Kh/noteassist_ai) ·
+[Live](https://noteassistai.vercel.app/)
+
+### FeelWise
+Multi-service emotion-analysis platform using a Node.js/Express gateway and
+specialized FastAPI services for text, facial-expression, speech and journal
+workflows.
+
+[Repository](https://github.com/Shahriyar-Kh/feelwise-emotion-detection) ·
+[Live](https://feelwise-emotion-detection.feelwise.workers.dev/)
+
+### SK LearnTrack
+Learning/course-management platform with structured course progression,
+student progress, quizzes, notes, roadmaps, analytics and current Groq-assisted
+learning workflows.
+
+[Repository](https://github.com/Shahriyar-Kh/SK_LearnTrack) ·
+[Live](https://sk-learntrack.vercel.app/)
+
+### TechBuilt Open School — current platform
+A next-generation multilingual education-platform foundation in Phase 1 active
+development. The public repository is an engineering showcase; the current
+canonical source remains private during active product development.
+
+[Public engineering showcase](https://github.com/Shahriyar-Kh/TechBuilt_OS)
+
+### TechBuilt Open School — legacy/FYP LMS
+The first-generation academic LMS remains separate from the current
+organizational rebuild.
+
+[Legacy/FYP repository](https://github.com/Shahriyar-Kh/TBOS)
 
 ---
 
 ## Grounded Portfolio Assistant
 
-The repository includes a visitor-facing assistant designed around a strong evidence boundary.
-
-### How it works
+The visitor-facing assistant is designed around a strict public-evidence
+boundary.
 
 ~~~text
 Published portfolio data
@@ -107,14 +169,14 @@ Evidence bundle
         ↓
 Intent + relevance selection
         ↓
-Optional Gemini provider
+Optional AI provider
         ↓
-Strict structured-response validation
+Structured-response validation
         ↓
-Visitor answer with verified sources
+Visitor answer grounded in public sources
 ~~~
 
-The assistant can answer questions about:
+Public assistant context can include:
 
 - projects
 - skills
@@ -123,32 +185,15 @@ The assistant can answer questions about:
 - education
 - public professional profile
 
-### Important grounding properties
-
-The assistant does **not** treat the language model as the source of truth.
-
-It only receives published portfolio evidence and validates model output before anything reaches a visitor.
-
-Security/grounding protections include:
-
-- source IDs must exist in the supplied evidence set
-- recommended project/service slugs must be real and published
-- intents are allow-listed
-- response length is bounded
-- external URLs are rejected
-- invalid model output falls back to a deterministic provider
-- private inquiry/resume/account data is structurally excluded from assistant context
-- visitor conversation transcripts are not persisted
-
-This gives the project evidence of practical AI integration without turning the portfolio into an unrestricted chatbot.
+It excludes private inquiry data, account data, unpublished client material and
+private CV-management records.
 
 ---
 
 ## Client Project Discovery
 
-The portfolio includes a guided project-discovery workflow for prospective clients.
-
-Rather than collecting only a free-text contact message, the system can capture structured requirements such as:
+Prospective clients can submit structured project context instead of only a
+free-text message. The workflow can capture:
 
 - organization
 - project type
@@ -159,115 +204,96 @@ Rather than collecting only a free-text contact message, the system can capture 
 - technical constraints
 - additional notes
 
-The discovery flow reuses the established inquiry pipeline and stores a deterministic summary of visitor-approved data.
-
-AI-generated draft suggestions can assist the visitor, but the persisted business record remains based on the visitor's structured input rather than autonomous model output.
+The persisted business record remains based on visitor-approved structured
+input.
 
 ---
 
-## Resume / CV Management System
+## Private CV Management
 
-The private administration side includes a dedicated résumé-management domain.
+The administration side contains a dedicated CV-management domain with
+versioned source facts and controlled document generation.
 
-This is substantially more than uploading a PDF.
+Publicly relevant capabilities include:
 
-### Capabilities
-
-- canonical resume source facts
-- versioned resume snapshots
-- master and tailored résumé variants
-- lifecycle states
-- controlled approval before export
-- ATS readiness assessment
-- job-description matching
-- job application records
+- canonical CV source facts
+- versioned CV records
+- approved document lifecycle
 - PDF export
 - DOCX export
-- export integrity validation
-- artifact hashes
-- duplicate-safe/idempotent generation
+- export validation
+- document integrity checks
 
-### ATS assessment model
-
-The system stores assessment evidence against:
-
-- resume version
-- ruleset version
-- resume content hash
-- source-data hash
-- job-description hash where applicable
-
-This prevents an old ATS score from being silently treated as current after the underlying résumé changes.
-
-### Controlled exports
-
-PDF and DOCX generation is restricted to approved resume versions and authorized administration users.
-
-Generated artifacts are validated and hashed before being stored as canonical exports.
+Internal assessment or job-matching implementation details are intentionally
+not presented as public product features.
 
 ---
 
 ## Administration & Content Operations
 
-The Django backend provides administration for portfolio and operational content, including areas such as:
+The Django administration layer manages the data behind the portfolio,
+including:
 
 - projects
 - skills
 - services
 - experience
+- education
 - site configuration
 - SEO data
 - analytics
 - inquiries / project requests
-- résumé versions and assessments
+- CV versions and document exports
 
-The admin side acts as a content and operations system, not just Django's default model browser.
+This makes the portfolio a maintained content/operations system instead of a
+collection of hardcoded landing-page strings.
 
 ---
 
 ## SEO Engineering
 
-SEO is treated as application functionality rather than a final meta-tag pass.
+SEO is implemented as application functionality.
 
 The codebase includes:
 
-- dynamic metadata
-- canonical handling
+- route-specific metadata
+- canonical URLs
+- OpenGraph metadata
+- structured JSON-LD
 - sitemap generation
 - robots configuration
-- JSON-LD
-- project/service route metadata
-- SEO configuration APIs
-- content-integrity tests
+- project/service metadata
 - publication-state controls
+- meaningful image alt text
+- content-integrity tests
 
-The frontend also contains regression guards to prevent fabricated project media/content from entering the release.
+The SEO strategy prioritizes consistent identity and technically useful content
+over keyword stuffing or thin location pages.
 
 ---
 
-## Content Integrity & Provenance
+## Privacy & Content Integrity
 
-A major design goal is to keep the portfolio truthful.
+Public content deliberately avoids:
 
-The repository contains explicit safeguards against:
-
-- fabricated metrics
-- fabricated testimonials
-- fake project screenshots
-- unresolved draft projects leaking publicly
+- fabricated user, revenue, traffic or performance metrics
+- fake testimonials or ratings
 - unsupported certifications
-- stale/legacy frontend content
-- hardcoded duplicate portfolio records
+- client-private source code
+- credentials or environment values
+- learner/customer data
+- private infrastructure details
+- unpublished client requirements
+- internal CV-management data that is not part of the public product
 
-The included **PROVENANCE.md** documents how this clean release was produced and which legacy/development artifacts were intentionally excluded.
+The Nurses Beyond Borders project uses a sanitized public case study rather
+than exposing the private client repository.
 
 ---
 
 ## Testing & CI
 
-Both backend and frontend are covered by automated checks.
-
-### Backend CI
+### Backend
 
 ~~~text
 Django system check
@@ -275,7 +301,7 @@ Django system check
 → complete Django test suite
 ~~~
 
-### Frontend CI
+### Frontend
 
 ~~~text
 npm ci
@@ -286,30 +312,12 @@ npm ci
 → dependency audit
 ~~~
 
-The frontend test surface includes:
+The frontend test surface includes accessibility, routes/views, assistant UI,
+project discovery, metadata/JSON-LD, sitemap, motion/reduced-motion,
+content-integrity and privacy-oriented regression guards.
 
-- accessibility-oriented tests
-- route/view tests
-- assistant UI tests
-- project-discovery tests
-- metadata and JSON-LD tests
-- sitemap tests
-- motion/reduced-motion behavior
-- content-truth guards
-- project-media provenance guards
-- privacy-consistency guards
-
-The backend contains dedicated suites for:
-
-- assistant grounding
-- provider/schema validation
-- project discovery
-- inquiries
-- resume builder
-- ATS assessments
-- export lifecycle
-- public snapshot parity
-- SEO/site configuration
+The backend includes tests around public APIs, assistant grounding, inquiries,
+CV/document workflows, SEO/site configuration and deployment safety.
 
 ---
 
@@ -321,15 +329,13 @@ The backend contains dedicated suites for:
 | Frontend hosting | Cloudflare Workers |
 | Backend | Django / Django REST Framework |
 | Backend hosting | Railway |
-| Database | Neon PostgreSQL |
+| Database | PostgreSQL |
 | Styling | Tailwind CSS 4 |
 | Motion | GSAP / ScrollTrigger |
-| AI provider | Gemini, optional with deterministic fallback |
+| AI | Evidence-grounded optional provider integration |
 | Documents | ReportLab / python-docx / pypdf |
 
-Live site:
-
-**https://shahriyarkhan.com/**
+Live site: **https://shahriyarkhan.com/**
 
 ---
 
@@ -340,15 +346,9 @@ shahriyarkhan-portfolio-v1/
 ├── web/
 │   ├── src/app/
 │   ├── src/components/
-│   │   ├── assistant/
-│   │   ├── contact/
-│   │   ├── seo/
-│   │   ├── views/
-│   │   └── work/
+│   ├── src/content/
 │   ├── src/lib/
-│   ├── src/test-guards/
-│   └── scripts/
-│
+│   └── src/test-guards/
 ├── backend/
 │   ├── apps/
 │   │   ├── portfolio/
@@ -358,9 +358,8 @@ shahriyarkhan-portfolio-v1/
 │   │   ├── seo/
 │   │   ├── analytics_app/
 │   │   └── site_config/
-│   ├── templates/admin/
+│   ├── scripts/
 │   └── requirements/
-│
 ├── docs/rebuild/
 ├── PROVENANCE.md
 └── .github/workflows/ci.yml
@@ -392,52 +391,35 @@ python manage.py runserver
 
 ---
 
-## Engineering Evidence for Reviewers
+## Engineering Review Entry Points
 
-Useful entry points:
-
-- \`backend/apps/assistant/\` — grounded visitor assistant
-- \`docs/rebuild/PORTFOLIO_ASSISTANTS_01_ARCHITECTURE.md\` — assistant architecture
-- \`docs/rebuild/PORTFOLIO_ASSISTANTS_01_SECURITY_AND_GROUNDING.md\` — AI safety boundary
-- \`backend/apps/inquiries/\` — contact/project-discovery pipeline
-- \`backend/apps/resume_builder/\` — résumé operations domain
-- \`backend/apps/resume_builder/services/ats/\` — ATS rules and assessment
-- \`backend/apps/resume_builder/services/exports/\` — PDF/DOCX generation
-- \`backend/apps/seo/\` — SEO data/configuration
-- \`web/src/components/assistant/\` — assistant and discovery UI
-- \`web/src/components/seo/json-ld.tsx\` — structured data
-- \`web/src/test-guards/\` — content/release integrity tests
-- \`.github/workflows/ci.yml\` — release quality gate
-
----
-
-## Project Status
-
-This repository represents the current production portfolio release and its associated operational systems.
-
-The project is intentionally presented as:
-
-**Portfolio + client acquisition + grounded AI assistant + résumé operations**
-
-rather than as a static frontend showcase.
+- `backend/apps/portfolio/` — canonical portfolio records
+- `backend/apps/assistant/` — grounded public assistant
+- `backend/apps/inquiries/` — contact/project-discovery workflows
+- `backend/apps/resume_builder/` — private CV-management domain
+- `backend/apps/seo/` — SEO data/configuration
+- `web/src/content/case-studies/` — evidence-backed case-study registers
+- `web/src/lib/json-ld.ts` — structured data
+- `web/src/test-guards/` — content/release-integrity checks
+- `.github/workflows/ci.yml` — repository quality gate
 
 ---
 
 ## Author
 
 **Shahriyar Khan**  
-Software Engineer · Full-Stack Python Developer
+Software Engineer · Backend Engineer · Python & Django Developer
 
-**Core focus:** Python · Django · Django REST Framework · FastAPI · React / Next.js · PostgreSQL · AI Integration
+**Core focus:** Python · Django · Django REST Framework · FastAPI · PostgreSQL · Redis/Celery · React/Next.js · REST APIs
 
 - GitHub: [@Shahriyar-Kh](https://github.com/Shahriyar-Kh)
-- Portfolio: [shahriyarkhan.com](https://shahriyarkhan.com)
+- Portfolio: [shahriyarkhan.com](https://shahriyarkhan.com/)
 - LinkedIn: [Shahriyar Khan](https://www.linkedin.com/in/shahriyar-kh/)
 
 ---
 
 <div align="center">
 
-**Personal brand · full-stack engineering · grounded AI · client discovery · ATS résumé operations**
+**Backend engineering · full-stack product delivery · evidence-backed portfolio content**
 
 </div>
