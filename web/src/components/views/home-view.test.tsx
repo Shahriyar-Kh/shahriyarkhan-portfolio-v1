@@ -47,10 +47,10 @@ const PROJECT: Project = {
 
 const SERVICE: Service = {
   id: 1,
-  title: "Backend Development",
-  slug: "backend-development",
-  description: "APIs that hold up under real use.",
-  deliverables: ["A documented REST API", "Authentication and authorization"],
+  title: "Custom Software Development",
+  slug: "custom-software-development",
+  description: "Custom software built around real business workflows.",
+  deliverables: ["Backend/API architecture", "Authentication and permissions"],
   featured: true,
   status: "published",
   published_at: "2026-01-01T00:00:00Z",
@@ -69,7 +69,7 @@ const SKILL: Skill = {
   id: 1,
   name: "Django REST Framework",
   description: "",
-  level: 4,
+  level: 3,
   icon_or_badge: "",
   category: { id: 1, name: "Backend", slug: "backend", display_order: 0, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
   published: true,
@@ -105,18 +105,18 @@ describe("HomeView", () => {
   it("keeps both the recruiter and the client conversion path present", () => {
     render(<HomeView projects={[PROJECT]} experiences={[]} education={[]} services={[]} skills={[]} />);
 
-    expect(screen.getByRole("link", { name: "See the work" })).toHaveAttribute("data-analytics-event", "recruiter_cta_click");
-    expect(screen.getByRole("link", { name: "Start a project" })).toHaveAttribute("data-analytics-event", "project_cta_click");
+    expect(screen.getByRole("link", { name: "View engineering work" })).toHaveAttribute("data-analytics-event", "recruiter_cta_click");
+    expect(screen.getByRole("link", { name: "Discuss a project" })).toHaveAttribute("data-analytics-event", "project_cta_click");
     // The dual-conversion fork (§J) restates both paths explicitly.
-    expect(screen.getByText("Hiring for a role")).toBeInTheDocument();
-    expect(screen.getByText("Starting a project")).toBeInTheDocument();
+    expect(screen.getByText("Hiring for a software engineering role")).toBeInTheDocument();
+    expect(screen.getByText("Building a software product")).toBeInTheDocument();
   });
 
   it("renders real, live services - never invented pricing or timelines", () => {
     render(<HomeView projects={[PROJECT]} experiences={[]} education={[]} services={[SERVICE]} skills={[]} />);
 
-    expect(screen.getByRole("link", { name: "Backend Development" })).toBeInTheDocument();
-    expect(screen.getByText(/APIs that hold up under real use\./)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Custom Software Development" })).toBeInTheDocument();
+    expect(screen.getByText(/Custom software built around real business workflows\./)).toBeInTheDocument();
     expect(screen.queryByText(/\$|per hour|per month|guarantee/i)).not.toBeInTheDocument();
   });
 
@@ -129,7 +129,7 @@ describe("HomeView", () => {
     // breakdown - same "appears in more than one section" shape as
     // "Yango Wing Fleet" elsewhere in this file.
     expect(screen.getAllByText("Django REST Framework").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Expert").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Advanced").length).toBeGreaterThan(0);
     expect(screen.queryByText(/%/)).not.toBeInTheDocument();
   });
 
@@ -162,9 +162,9 @@ describe("HomeView", () => {
       expect(screen.getByRole("heading", { name: "Selected work" })).toBeInTheDocument();
       expect(screen.getByRole("heading", { name: "Technical capability" })).toBeInTheDocument();
       expect(screen.getAllByText("Yango Wing Fleet").length).toBeGreaterThan(0);
-      expect(screen.getByRole("link", { name: "Backend Development" })).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "Custom Software Development" })).toBeInTheDocument();
       expect(screen.getAllByText("Django REST Framework").length).toBeGreaterThan(0);
-      expect(screen.getByText("Hiring for a role")).toBeInTheDocument();
+      expect(screen.getByText("Hiring for a software engineering role")).toBeInTheDocument();
     } finally {
       window.matchMedia = originalMatchMedia;
     }
