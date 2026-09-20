@@ -69,13 +69,12 @@ function makeProject(overrides: Partial<Project>): Project {
 }
 
 const REAL_SLUGS = [
-  "website-development",
-  "restaurant-website",
-  "ecommerce-website",
-  "saas-project",
-  "portfolio-website",
-  "backend-development",
-  "custom-web-application",
+  "custom-software-development",
+  "web-development",
+  "application-development",
+  "saas-development",
+  "database-development",
+  "cloud-application-development",
 ];
 
 const REAL_SERVICES = REAL_SLUGS.map((slug, i) =>
@@ -108,7 +107,7 @@ describe("ServicesView", () => {
   });
 
   describe("real API content", () => {
-    it("renders exactly one h1 and every one of the seven real services", () => {
+    it("renders exactly one h1 and every canonical service", () => {
       const { container } = render(<ServicesView services={REAL_SERVICES} projects={[YANGO, SK_LEARNTRACK]} />);
 
       expect(container.querySelectorAll("h1")).toHaveLength(1);
@@ -120,7 +119,7 @@ describe("ServicesView", () => {
 
     it("shows the real service count, never a hardcoded or stale number", () => {
       render(<ServicesView services={REAL_SERVICES} projects={[]} />);
-      expect(screen.getByText("7 services")).toBeInTheDocument();
+      expect(screen.getByText("6 services")).toBeInTheDocument();
     });
 
     it("shows real deliverables from the API, never invented ones", () => {
@@ -131,21 +130,16 @@ describe("ServicesView", () => {
 
     it("shows the real bestFor/audience framing only for services that have it, never a fabricated one for the rest", () => {
       render(<ServicesView services={REAL_SERVICES} projects={[]} />);
-      // backend-development has both SERVICES_MEDIA.bestFor and SERVICE_FRAMING.audience
-      expect(screen.getByText(/Best for teams that need an API or backend/)).toBeInTheDocument();
-      expect(screen.getByText(/Helps: Teams that need an API or backend/)).toBeInTheDocument();
-      // restaurant-website has SERVICES_MEDIA.bestFor but no SERVICE_FRAMING entry
-      expect(screen.getByText(/Best for restaurants and caf/)).toBeInTheDocument();
-      expect(screen.queryByText(/Helps: Restaurants/)).not.toBeInTheDocument();
+      expect(screen.getByText(/Businesses that need software shaped around their real workflow/)).toBeInTheDocument();
+      expect(screen.getByText(/Helps: Businesses and product teams/)).toBeInTheDocument();
     });
 
     it("links related work only for services with a real, vetted relatedProjectSlugs entry", () => {
       render(<ServicesView services={REAL_SERVICES} projects={[YANGO, SK_LEARNTRACK]} />);
-      // backend-development maps to both Yango and SK-LearnTrack
+      // Canonical custom-software/web services map to verified Yango work.
       const relatedLinks = screen.getAllByRole("link", { name: "Yango Wing Fleet" });
       expect(relatedLinks.length).toBeGreaterThan(0);
       expect(relatedLinks.some((l) => l.getAttribute("href") === "/work/yango-wing-fleet-digital-registration-fleet-management-platform")).toBe(true);
-      // restaurant-website has no framing entry at all - no related-work claim
       expect(screen.getAllByText(/Related work:/).length).toBeGreaterThan(0);
     });
 
