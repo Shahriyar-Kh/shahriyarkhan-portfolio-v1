@@ -97,7 +97,6 @@ class PublicResumeVersionSerializer(serializers.ModelSerializer):
             "target_role",
             "custom_summary",
             "is_default",
-            "ats_tags",
             "projects",
             "experiences",
             "skills",
