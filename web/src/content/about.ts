@@ -18,6 +18,7 @@ export const ABOUT_CAREER_STORY: readonly string[] = [
   "I build REST APIs, authenticated business platforms, SaaS and EdTech systems, internal tools, and AI-integrated web applications — then connect them to React or Next.js when the product needs full-stack delivery.",
   "Recent contract work through TriCore Digital Tech includes a private NCLEX learning platform spanning requirements, Django/DRF architecture, Next.js workflows, analytics, subscriptions, testing, security hardening, and deployment preparation.",
   "Across projects, I focus on how a system behaves beyond the happy path: permission boundaries, failure cases, maintainable business logic, database evolution, testability, security, and API contracts that remain understandable as the product changes.",
+  "I’m open to international remote software-engineering opportunities, Pakistan-based remote roles, onsite/hybrid roles in Islamabad, Rawalpindi, and Lahore, contract engineering, and selected freelance product work.",
 ];
 
 export const ABOUT_PRINCIPLES: ReadonlyArray<{ title: string; body: string }> = [
