@@ -693,39 +693,43 @@ def sync_canonical_profile(*, tricore_start_date: date | None = None) -> dict[st
     ])
     counts["experiences"] += 1
 
-    tricore = Experience.objects.filter(
-        company_name="TriCore Digital Tech",
-        role_title="Software Engineer (Contract)",
-    ).first()
+    tricore = (
+        Experience.objects.filter(company_name="TriCore Digital Tech")
+        .order_by("-start_date")
+        .first()
+    )
 
     if tricore_start_date is None and tricore is not None:
         tricore_start_date = tricore.start_date
 
     if tricore_start_date is not None:
-        tricore, _ = Experience.objects.update_or_create(
-            company_name="TriCore Digital Tech",
-            role_title="Software Engineer (Contract)",
-            defaults={
-                "start_date": tricore_start_date,
-                "end_date": None,
-                "current_role": True,
-                "location": "Remote",
-                "description": (
-                    "Contract-based software engineering focused on backend-heavy and full-stack product delivery "
-                    "with Python/Django, APIs, PostgreSQL, and modern frontend integration."
-                ),
-                "achievements": [
-                    "Develop Python/Django backend services, REST APIs, authenticated workflows, and product features",
-                    "Work across data models, validation, authentication, permissions, testing, and deployment preparation",
-                    "Engineer the private Nurses Beyond Borders NCLEX/LMS platform through requirements, implementation, and hardening",
-                ],
-                "status": PublishableModel.Status.PUBLISHED,
-                "display_order": 1,
-                "seo_title": "Software Engineer (Contract) at TriCore Digital Tech",
-                "seo_description": "Contract software engineering focused on Python/Django backend and full-stack product delivery.",
-                "seo_keywords": "Software Engineer, Python, Django, Django REST Framework, PostgreSQL, REST APIs, Next.js",
-            },
+        if tricore is None:
+            tricore = Experience(company_name="TriCore Digital Tech")
+
+        tricore.role_title = "Software Engineer (Contract)"
+        tricore.start_date = tricore_start_date
+        tricore.end_date = None
+        tricore.current_role = True
+        tricore.location = "Remote"
+        tricore.description = (
+            "Contract-based software engineering focused on backend-heavy and full-stack product delivery "
+            "with Python/Django, APIs, PostgreSQL, and modern frontend integration."
         )
+        tricore.achievements = [
+            "Develop Python/Django backend services, REST APIs, authenticated workflows, and product features",
+            "Work across data models, validation, authentication, permissions, testing, and deployment preparation",
+            "Engineer the private Nurses Beyond Borders NCLEX/LMS platform through requirements, implementation, and hardening",
+        ]
+        tricore.status = PublishableModel.Status.PUBLISHED
+        tricore.display_order = 1
+        tricore.seo_title = "Software Engineer (Contract) at TriCore Digital Tech"
+        tricore.seo_description = (
+            "Contract software engineering focused on Python/Django backend and full-stack product delivery."
+        )
+        tricore.seo_keywords = (
+            "Software Engineer, Python, Django, Django REST Framework, PostgreSQL, REST APIs, Next.js"
+        )
+        tricore.save()
         tricore.technologies.set([
             _technology("Python"),
             _technology("Django"),
@@ -736,8 +740,12 @@ def sync_canonical_profile(*, tricore_start_date: date | None = None) -> dict[st
         ])
         counts["experiences"] += 1
 
-    # No past role should remain incorrectly marked current.
-    Experience.objects.exclude(company_name="TriCore Digital Tech").update(current_role=False)
+    # No role outside the canonical current TriCore engagement may remain
+    # incorrectly marked current.
+    if tricore is not None and tricore_start_date is not None:
+        Experience.objects.exclude(pk=tricore.pk).update(current_role=False)
+    else:
+        Experience.objects.update(current_role=False)
 
     # ------------------------------------------------------------------
     # Default résumé source facts. ATS internals remain private.
