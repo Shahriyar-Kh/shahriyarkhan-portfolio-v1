@@ -34,11 +34,9 @@ export function truncate(text: string, maxLength: number): string {
 }
 
 /**
- * Every project except Yango Wing Fleet links to the same generic GitHub
- * profile URL, not its own repository (a documented, real limitation -
- * see docs/rebuild/CONTENT_TRUTH_INVENTORY.md). This turns that into an
- * honest, visible design feature (a "GitHub profile" vs. "Source code"
- * label + verified-Node distinction) instead of papering over it.
+ * Distinguish a project-specific repository or public engineering case
+ * study from the generic GitHub profile URL. Canonical project records
+ * now use their real public repository/proof URLs where available.
  */
 export function isDistinctRepoUrl(githubUrl: string): boolean {
   if (!githubUrl) return false;
