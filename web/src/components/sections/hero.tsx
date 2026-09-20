@@ -158,9 +158,9 @@ export function Hero() {
           </svg>
           <span className="inline-flex items-center gap-2 font-mono text-caption text-paper-secondary">
             <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-primary-on-ink" />
-            Available for new work
+            Open to new roles & selected projects
           </span>
-          <span className="font-mono text-caption text-paper-tertiary">Islamabad, Pakistan</span>
+          <span className="font-mono text-caption text-paper-tertiary">Pakistan · Remote internationally</span>
         </div>
 
         {/* Step 3: headline, mask-revealed by line. */}
@@ -225,7 +225,7 @@ export function Hero() {
               />
               <div className="absolute inset-x-0 bottom-0 flex items-center gap-2 bg-ink/80 px-3 py-2 backdrop-blur-sm">
                 <span aria-hidden className="h-px w-4 bg-primary-on-ink" />
-                <p className="font-mono text-caption-sm text-paper-secondary">Python · Django · React</p>
+                <p className="font-mono text-caption-sm text-paper-secondary">Python · Django · PostgreSQL</p>
               </div>
             </div>
           </div>
