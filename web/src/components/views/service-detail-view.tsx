@@ -18,7 +18,7 @@ export interface ServiceDetailViewProps {
    * judgment call #6) - the reduced template renders automatically. */
   framing: ServiceFraming | undefined;
   /** Absent only if SERVICES_MEDIA is ever missing an entry (it covers
-   * all 7 real slugs today) - the honest "media coming soon" fallback
+   * the canonical service catalog) - the honest "media coming soon" fallback
    * renders instead, matching sections/service-catalogue-row.tsx. */
   media: ServiceMediaEntry | undefined;
   engagementSteps: readonly string[];
@@ -38,7 +38,7 @@ export interface ServiceDetailViewProps {
  * work. Every framing-gated block (audience, problem, needed-to-begin,
  * related-work claim) preserves the exact same "reduced template"
  * precedent the pre-redesign page already established: a service
- * without a SERVICE_FRAMING entry (3 of 7 today) simply omits that
+ * without a SERVICE_FRAMING entry (only when evidence-backed framing is available) simply omits that
  * block, never a fabricated placeholder in its place.
  */
 export function ServiceDetailView({ service, framing, media, engagementSteps, relatedProjects, allServices }: ServiceDetailViewProps) {
