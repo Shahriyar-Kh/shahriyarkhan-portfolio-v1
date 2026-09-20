@@ -50,7 +50,6 @@ function resumeOk(overrides: Partial<ResumeVersion> = {}): ApiResult<ResumeVersi
       target_role: "",
       custom_summary: "Legacy live summary - must never be used when document is present.",
       is_default: true,
-      ats_tags: "",
       projects: [],
       experiences: [],
       skills: [],
