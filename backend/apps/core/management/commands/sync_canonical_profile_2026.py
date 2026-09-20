@@ -322,7 +322,7 @@ def sync_canonical_profile(*, tricore_start_date: date | None = None) -> dict[st
             "live_url": "https://shahriyarkhan.com/",
             "github_url": "https://github.com/Shahriyar-Kh/shahriyarkhan-portfolio-v1",
             "featured": True,
-            "display_order": 4,
+            "display_order": 5,
         },
         {
             "slug": "feelwise-emotion-detection-system",
@@ -338,7 +338,7 @@ def sync_canonical_profile(*, tricore_start_date: date | None = None) -> dict[st
             "live_url": "https://feelwise-emotion-detection.feelwise.workers.dev/",
             "github_url": "https://github.com/Shahriyar-Kh/feelwise-emotion-detection",
             "featured": True,
-            "display_order": 5,
+            "display_order": 4,
         },
         {
             "slug": "sk-learntrack-ai-learning-platform",
