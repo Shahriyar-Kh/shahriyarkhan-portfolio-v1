@@ -21,6 +21,10 @@ CANONICAL_LINKEDIN = "https://www.linkedin.com/in/shahriyar-kh/"
 CANONICAL_GITHUB = "https://github.com/Shahriyar-Kh"
 CANONICAL_PORTFOLIO = "https://shahriyarkhan.com/"
 CANONICAL_EMAIL = "shahriyarkhanpk1@gmail.com"
+# LinkedIn/public employment history records month granularity. The model
+# stores a DateField, so July 2026 is normalized internally to 2026-07-01;
+# public UI renders it as "Jul 2026", not as a claimed exact joining day.
+CANONICAL_TRICORE_START_DATE = date(2026, 7, 1)
 
 
 def _technology(name: str) -> Technology:
@@ -724,54 +728,48 @@ def sync_canonical_profile(*, tricore_start_date: date | None = None) -> dict[st
         .order_by("-start_date")
         .first()
     )
+    effective_tricore_start_date = tricore_start_date or CANONICAL_TRICORE_START_DATE
 
-    if tricore_start_date is None and tricore is not None:
-        tricore_start_date = tricore.start_date
+    if tricore is None:
+        tricore = Experience(company_name="TriCore Digital Tech")
 
-    if tricore_start_date is not None:
-        if tricore is None:
-            tricore = Experience(company_name="TriCore Digital Tech")
-
-        tricore.role_title = "Software Engineer (Contract)"
-        tricore.start_date = tricore_start_date
-        tricore.end_date = None
-        tricore.current_role = True
-        tricore.location = "Remote"
-        tricore.description = (
-            "Contract-based software engineering focused on backend-heavy and full-stack product delivery "
-            "with Python/Django, APIs, PostgreSQL, and modern frontend integration."
-        )
-        tricore.achievements = [
-            "Develop Python/Django backend services, REST APIs, authenticated workflows, and product features",
-            "Work across data models, validation, authentication, permissions, testing, and deployment preparation",
-            "Engineer the private Nurses Beyond Borders NCLEX/LMS platform through requirements, implementation, and hardening",
-        ]
-        tricore.status = PublishableModel.Status.PUBLISHED
-        tricore.display_order = 1
-        tricore.seo_title = "Software Engineer (Contract) at TriCore Digital Tech"
-        tricore.seo_description = (
-            "Contract software engineering focused on Python/Django backend and full-stack product delivery."
-        )
-        tricore.seo_keywords = (
-            "Software Engineer, Python, Django, Django REST Framework, PostgreSQL, REST APIs, Next.js"
-        )
-        tricore.save()
-        tricore.technologies.set([
-            _technology("Python"),
-            _technology("Django"),
-            _technology("Django REST Framework"),
-            _technology("PostgreSQL"),
-            _technology("REST APIs"),
-            _technology("Next.js"),
-        ])
-        counts["experiences"] += 1
+    tricore.role_title = "Software Engineer (Contract)"
+    tricore.start_date = effective_tricore_start_date
+    tricore.end_date = None
+    tricore.current_role = True
+    tricore.location = "Remote"
+    tricore.description = (
+        "Contract-based software engineering focused on backend-heavy and full-stack product delivery "
+        "with Python/Django, APIs, PostgreSQL, and modern frontend integration."
+    )
+    tricore.achievements = [
+        "Develop Python/Django backend services, REST APIs, authenticated workflows, and product features",
+        "Work across data models, validation, authentication, permissions, testing, and deployment preparation",
+        "Engineer the private Nurses Beyond Borders NCLEX/LMS platform through requirements, implementation, and hardening",
+    ]
+    tricore.status = PublishableModel.Status.PUBLISHED
+    tricore.display_order = 1
+    tricore.seo_title = "Software Engineer (Contract) at TriCore Digital Tech"
+    tricore.seo_description = (
+        "Contract software engineering focused on Python/Django backend and full-stack product delivery."
+    )
+    tricore.seo_keywords = (
+        "Software Engineer, Python, Django, Django REST Framework, PostgreSQL, REST APIs, Next.js"
+    )
+    tricore.save()
+    tricore.technologies.set([
+        _technology("Python"),
+        _technology("Django"),
+        _technology("Django REST Framework"),
+        _technology("PostgreSQL"),
+        _technology("REST APIs"),
+        _technology("Next.js"),
+    ])
+    counts["experiences"] += 1
 
     # No role outside the canonical current TriCore engagement may remain
     # incorrectly marked current.
-    if tricore is not None and tricore_start_date is not None:
-        Experience.objects.exclude(pk=tricore.pk).update(current_role=False)
-    else:
-        Experience.objects.update(current_role=False)
+    Experience.objects.exclude(pk=tricore.pk).update(current_role=False)
 
     # ------------------------------------------------------------------
     # Published resume snapshots are governed/immutable.
@@ -790,30 +788,20 @@ def sync_canonical_profile(*, tricore_start_date: date | None = None) -> dict[st
 
 
 class Command(BaseCommand):
-    help = "Synchronize canonical 2026 public portfolio content without inventing unresolved dates."
+    help = "Synchronize the canonical 2026 public portfolio profile and evidence-backed content."
 
     def add_arguments(self, parser):
         parser.add_argument(
             "--tricore-start-date",
             dest="tricore_start_date",
             default=None,
-            help="Verified TriCore start date in YYYY-MM-DD format. If omitted, an existing TriCore row is preserved.",
+            help="Optional TriCore start-date override in YYYY-MM-DD format. Default canonical month is July 2026.",
         )
 
     def handle(self, *args, **options):
         start_raw = options.get("tricore_start_date") or os.getenv("TRICORE_START_DATE")
         start_date = _parse_iso_date(start_raw, "TriCore start date")
         counts = sync_canonical_profile(tricore_start_date=start_date)
-
-        if start_date is None and not Experience.objects.filter(
-            company_name="TriCore Digital Tech",
-        ).exists():
-            self.stdout.write(
-                self.style.WARNING(
-                    "TriCore Digital Tech was not created because its exact public start date is still unverified. "
-                    "Run again with --tricore-start-date YYYY-MM-DD after confirming LinkedIn."
-                )
-            )
 
         self.stdout.write(
             self.style.SUCCESS(
