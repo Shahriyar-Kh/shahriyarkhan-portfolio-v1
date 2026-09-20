@@ -203,7 +203,7 @@ describe("AboutView", () => {
 
     it("falls back to the honest default specialization line when SiteSettings is unavailable", () => {
       render(<AboutView {...FULL_PROPS} specialization={null} />);
-      expect(screen.getByText(/Software Engineering graduate specializing in backend development/)).toBeInTheDocument();
+      expect(screen.getByText(/Software Engineer focused on Python/)).toBeInTheDocument();
     });
 
     it("shows an honest unavailable message per section when its own dataset failed, without hiding the rest of the page", () => {
@@ -263,20 +263,20 @@ describe("AboutView", () => {
       expect(screen.getByRole("heading", { name: "The career story" })).toBeInTheDocument();
       expect(screen.getByRole("heading", { name: "Where this experience comes from" })).toBeInTheDocument();
       expect(screen.getByRole("heading", { name: "How I think about a new problem" })).toBeInTheDocument();
-      expect(screen.getByRole("heading", { name: "Core strengths" })).toBeInTheDocument();
-      expect(screen.getByRole("heading", { name: "The shape most of these systems take" })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Core engineering strengths" })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "The layers I work across" })).toBeInTheDocument();
     });
   });
 
   describe("recruiter and client pathways", () => {
     it("keeps both conversion paths present and correctly linked", () => {
       render(<AboutView {...FULL_PROPS} />);
-      expect(screen.getByText("Hiring for a role")).toBeInTheDocument();
+      expect(screen.getByText("Hiring for a software engineering role")).toBeInTheDocument();
       const resumeLinks = screen.getAllByRole("link", { name: /résumé/i });
       expect(resumeLinks.some((l) => l.getAttribute("href") === "/resume")).toBe(true);
 
-      expect(screen.getByText("Starting a project")).toBeInTheDocument();
-      expect(screen.getByRole("link", { name: "Get in touch" })).toBeInTheDocument();
+      expect(screen.getByText("Building a software product")).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "Start a conversation" })).toBeInTheDocument();
     });
 
     it("gives the hero its own direct recruiter/client-adjacent entry points", () => {
@@ -302,9 +302,9 @@ describe("AboutView", () => {
       // before RTL's render() returns, but nothing below depends on that:
       // every one of these strings is plain, unconditional JSX.
       const heroRoot = screen.getByRole("heading", { level: 1 }).closest(".bg-paper-raised") as HTMLElement;
-      expect(within(heroRoot).getByText("Available for new work")).toBeInTheDocument();
-      expect(within(heroRoot).getByText("Islamabad, Pakistan")).toBeInTheDocument();
-      expect(within(heroRoot).getByRole("heading", { level: 1 })).toHaveTextContent("How I approach building software");
+      expect(within(heroRoot).getByText("Open to roles & selected projects")).toBeInTheDocument();
+      expect(within(heroRoot).getByText("Pakistan")).toBeInTheDocument();
+      expect(within(heroRoot).getByRole("heading", { level: 1 })).toHaveTextContent("Backend engineering with full-product context");
       expect(within(heroRoot).getByText(FULL_PROPS.specialization)).toBeInTheDocument();
       expect(within(heroRoot).getByRole("link", { name: "View résumé" })).toBeInTheDocument();
       expect(within(heroRoot).getByRole("link", { name: "See the work" })).toBeInTheDocument();
@@ -334,12 +334,12 @@ describe("AboutView", () => {
         expect(screen.getByAltText("Portrait of Shahriyar Khan")).toBeInTheDocument();
         expect(screen.getAllByText("Software Developer").length).toBeGreaterThan(0);
         expect(screen.getByText("BS Software Engineering")).toBeInTheDocument();
-        expect(screen.getByText("The data model comes first")).toBeInTheDocument();
+        expect(screen.getByText("Model the domain before the endpoint")).toBeInTheDocument();
         // "Interface" legitimately renders twice - the architecture
         // section's mobile and desktop layouts are parallel DOM trees
         // (one hidden via CSS at each breakpoint, both present in jsdom).
         expect(screen.getAllByText("Interface").length).toBeGreaterThan(0);
-        expect(screen.getByText("Hiring for a role")).toBeInTheDocument();
+        expect(screen.getByText("Hiring for a software engineering role")).toBeInTheDocument();
       } finally {
         restore();
       }
