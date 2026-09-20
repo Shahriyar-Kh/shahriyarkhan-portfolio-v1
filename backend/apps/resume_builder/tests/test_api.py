@@ -176,7 +176,7 @@ class ResumeDownloadTrackTests(APITestCase):
             self.assertEqual(
                 fields,
                 {
-                    "id", "title", "slug", "target_role", "custom_summary", "is_default", "ats_tags",
+                    "id", "title", "slug", "target_role", "custom_summary", "is_default",
                     "projects", "experiences", "skills", "education", "certifications", "downloads", "document",
                 },
             )
@@ -188,6 +188,7 @@ class ResumeDownloadTrackTests(APITestCase):
             self.assertNotIn("approved_by", fields)
             self.assertNotIn("published_by", fields)
             self.assertNotIn("resume_type", fields)
+            self.assertNotIn("ats_tags", fields)
 
 
     class ResumeMigrationRoundTripTests(TransactionTestCase):
