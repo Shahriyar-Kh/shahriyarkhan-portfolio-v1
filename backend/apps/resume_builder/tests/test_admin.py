@@ -58,7 +58,7 @@ class ResumeAdminWorkflowTests(TestCase):
         self.assertEqual(response.status_code, 302)
         version = ResumeVersion.objects.get()
         self.assertEqual(version.status, "draft")
-        self.assertEqual(version.title, "Software Engineer | Python & Django Full-Stack Developer")
+        self.assertEqual(version.title, "Software Engineer | Backend Engineer | Python & Django Developer")
         self.assertEqual(version.target_organization, "")
         self.assertEqual(list(version.include_experiences.values_list("pk", flat=True)), [experience.pk])
 
