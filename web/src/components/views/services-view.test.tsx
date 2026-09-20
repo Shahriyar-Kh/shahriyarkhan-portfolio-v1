@@ -173,7 +173,7 @@ describe("ServicesView", () => {
     it("exposes both the hiring and project CTAs via the shared DualCta section", () => {
       render(<ServicesView services={REAL_SERVICES} projects={[]} />);
       expect(screen.getByRole("link", { name: /view résumé/i })).toBeInTheDocument();
-      expect(screen.getByRole("link", { name: /get in touch/i })).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: /start a conversation/i })).toBeInTheDocument();
     });
   });
 
