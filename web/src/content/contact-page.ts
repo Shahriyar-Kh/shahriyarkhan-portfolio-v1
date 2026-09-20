@@ -10,7 +10,7 @@
 export const CONTACT_HERO = {
   eyebrow: "Contact",
   title: "Get in touch",
-  lead: "For a role, a new project, or backend/API and full-stack development work - send the details below and it goes straight to a single-person inbox for review.",
+  lead: "For international remote roles, Pakistan-based opportunities, contract work, or backend/API and full-stack product development — send the context below for direct review.",
 } as const;
 
 export interface WhatHappensNextStep {
