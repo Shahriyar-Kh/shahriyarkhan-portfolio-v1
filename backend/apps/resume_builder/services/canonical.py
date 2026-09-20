@@ -10,7 +10,7 @@ from apps.site_config.models import SiteSetting
 from .exceptions import SnapshotSourceUnavailable, SnapshotValidationError
 
 SCHEMA_VERSION = 1
-MASTER_POSITIONING = "Software Engineer | Python & Django Full-Stack Developer"
+MASTER_POSITIONING = "Software Engineer | Backend Engineer | Python & Django Developer"
 
 
 def _primitive(value):
@@ -52,7 +52,7 @@ def _ordered(queryset, *fields):
 def collect_source_facts(version):
     site = SiteSetting.objects.order_by("pk").first()
     profile = []
-    profile.append(claim("resume_builder.positioning", 0, "professional_title", "Software Engineer | Python & Django Full-Stack Developer"))
+    profile.append(claim("resume_builder.positioning", 0, "professional_title", MASTER_POSITIONING))
     if site:
         for field in ("owner_name", "public_email", "public_phone", "public_location", "social_links"):
             value = getattr(site, field)
