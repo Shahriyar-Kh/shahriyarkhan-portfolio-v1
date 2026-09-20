@@ -82,7 +82,7 @@ describe("ExperienceView", () => {
     it("renders every real experience record with a single h1 and the real record count", () => {
       const { container } = render(<ExperienceView experiences={[CURRENT_ROLE, PAST_ROLE]} education={[]} />);
       expect(container.querySelectorAll("h1")).toHaveLength(1);
-      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("The structured record");
+      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Engineering work, grounded in evidence");
       expect(screen.getByText("2 published roles")).toBeInTheDocument();
       // Each real role legitimately appears twice - once in the full
       // register, once in the compact Career path progression view.
@@ -143,7 +143,7 @@ describe("ExperienceView", () => {
     it("renders the Professional scope synthesis only when real experience data exists", () => {
       render(<ExperienceView experiences={[CURRENT_ROLE]} education={[]} />);
       expect(screen.getByText("Professional scope")).toBeInTheDocument();
-      expect(screen.getByText("Backend & API development")).toBeInTheDocument();
+      expect(screen.getByText("Backend & API engineering")).toBeInTheDocument();
     });
 
     it("never renders Professional scope or Career path for an empty experience list", () => {
@@ -192,7 +192,7 @@ describe("ExperienceView", () => {
     it("exposes both the hiring and project CTAs via the shared DualCta section", () => {
       render(<ExperienceView experiences={[CURRENT_ROLE]} education={[]} />);
       expect(screen.getByRole("link", { name: /view résumé/i })).toBeInTheDocument();
-      expect(screen.getByRole("link", { name: /get in touch/i })).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: /start a conversation/i })).toBeInTheDocument();
     });
   });
 
