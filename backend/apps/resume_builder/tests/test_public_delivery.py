@@ -58,7 +58,7 @@ class PublicResumeDeliveryTestCase(APITestCase):
         facts = {"schema_version": 1, "sections": sections, "provenance": {"claim_count": len(content_items), "source": "synthetic_test_fixture", "selected_records": []}}
         content = {"positioning": "Python & Django Software Engineer", "items": content_items}
         return ResumeVersion.objects.create(
-            title="Software Engineer | Python & Django Full-Stack Developer",
+            title="Software Engineer | Backend Engineer | Python & Django Developer",
             slug=slug,
             resume_type=resume_type,
             status=status,
