@@ -53,7 +53,6 @@ class Command(BaseCommand):
 
         if start_date is None and not Experience.objects.filter(
             company_name="TriCore Digital Tech",
-            role_title="Software Engineer (Contract)",
         ).exists():
             self.stdout.write(
                 self.style.WARNING(
