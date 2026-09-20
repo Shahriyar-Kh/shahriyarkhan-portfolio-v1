@@ -155,7 +155,7 @@ describe("AboutView - GSAP unavailable", () => {
     expect(screen.getByText("BS Software Engineering")).toBeInTheDocument();
     expect(screen.getByText("Model the domain before the endpoint")).toBeInTheDocument();
     expect(screen.getByText("Core engineering strengths")).toBeInTheDocument();
-    expect(screen.getAllByText("Interface").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Product interface").length).toBeGreaterThan(0);
     expect(screen.getByText("Hiring for a software engineering role")).toBeInTheDocument();
   });
 });
