@@ -54,6 +54,8 @@ describe("canonical public profile", () => {
 
   it("keeps SK LearnTrack's current provider wording on Groq, with OpenAI only historical/withheld", () => {
     const study = CASE_STUDIES["sk-learntrack-ai-learning-platform"];
+    expect(study).toBeDefined();
+    if (!study) throw new Error("SK LearnTrack case study is missing");
     expect(study.summary).toMatch(/groq/i);
     expect(study.summary).not.toMatch(/openai/i);
     const renderable = study.sections
