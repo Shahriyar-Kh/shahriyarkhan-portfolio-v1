@@ -58,7 +58,9 @@ class ATSScoringTests(TestCase):
         self.assertEqual(first, second)
         self.assertLessEqual(first["score"], 59)
         self.assertIn("no_experience", first["critical_blockers"])
-        self.assertEqual(first["score"], 33)
+        # Canonical positioning now explicitly includes "Backend Engineer",
+        # so the sparse fixture earns one additional truthful keyword point.
+        self.assertEqual(first["score"], 34)
 
     def test_readiness_assessment_is_immutable_and_current(self):
         assessment = run_readiness_assessment(version=self.version)
