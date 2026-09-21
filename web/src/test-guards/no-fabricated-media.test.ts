@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
+import { PROJECT_SCREENSHOTS } from "@/components/work/project-screenshots";
 
 const SRC_ROOT = join(__dirname, "..");
 const WEB_ROOT = join(__dirname, "../..");
@@ -38,7 +39,7 @@ describe("no-fabricated-media guard", () => {
     }
   });
 
-  it("public/images/projects/ contains only the reviewed, documented captures - never an unreviewed or stray file", () => {
+  it("public/images/projects/ contains only registered, reviewed visual assets", () => {
     const projectsDir = join(WEB_ROOT, "public", "images", "projects");
     let entries: string[];
     try {
@@ -47,6 +48,10 @@ describe("no-fabricated-media guard", () => {
       entries = [];
     }
     const imageFiles = entries.filter((e) => /\.(png|jpe?g|webp|avif)$/i.test(e));
+    const registeredFiles = Object.values(PROJECT_SCREENSHOTS)
+      .map((screenshot) => screenshot.path.split("/").pop() ?? "")
+      .sort();
+    expect(imageFiles.sort()).toEqual(registeredFiles);
     for (const fragment of FORBIDDEN_FILENAME_FRAGMENTS) {
       const offenders = imageFiles.filter((f) => f.toLowerCase().includes(fragment.toLowerCase()));
       expect(offenders).toEqual([]);

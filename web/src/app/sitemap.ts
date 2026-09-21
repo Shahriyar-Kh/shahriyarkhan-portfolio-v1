@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { SITE_URL } from "@/content/site";
+import { canonicalUrl, SITE_URL } from "@/content/site";
 import { getProjects, getServices } from "@/lib/api";
 
 const STATIC_ROUTES = ["/", "/about", "/skills", "/work", "/experience", "/resume", "/services", "/contact", "/privacy"];
@@ -13,7 +13,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [projects, services] = await Promise.all([getProjects(), getServices()]);
 
   const entries: MetadataRoute.Sitemap = STATIC_ROUTES.map((pathname) => ({
-    url: `${SITE_URL}${pathname === "/" ? "" : pathname}` || SITE_URL,
+    url: canonicalUrl(pathname),
     changeFrequency: "monthly",
   }));
 

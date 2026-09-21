@@ -17,4 +17,10 @@ describe("sitemap", () => {
       expect(urls.some((url) => url.endsWith(path))).toBe(true);
     }
   });
+
+  it("uses the same trailing-slash canonical for the root as page metadata", async () => {
+    const entries = await sitemap();
+
+    expect(entries[0]?.url).toBe("https://shahriyarkhan.com/");
+  });
 });
