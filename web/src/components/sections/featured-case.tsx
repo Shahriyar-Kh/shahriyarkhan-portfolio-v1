@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { useRef } from "react";
 import { Reveal } from "@/components/layout/reveal";
-import { ImageReveal } from "@/components/motif/image-reveal";
 import { SectionIndex } from "@/components/motif/section-index";
 import { ArchitectureDiagram } from "@/components/work/architecture-diagram";
 import { ClaimBadge } from "@/components/work/claim-badge";
-import { ProjectMedia } from "@/components/work/project-media";
+import { ProjectFrame } from "@/components/work/project-frame";
+import { PROJECT_SCREENSHOTS } from "@/components/work/project-screenshots";
 import { Button } from "@/components/ui/button";
 import { getCaseStudy, publishableClaims } from "@/content/case-studies";
 import { selectFeaturedCase } from "@/lib/home-selection";
@@ -48,7 +48,7 @@ export function FeaturedCase({ projects }: FeaturedCaseProps) {
   const project = projects && projects.length > 0 ? selectFeaturedCase(projects) : null;
   const caseStudy = project ? getCaseStudy(project.slug) : null;
   const claims = caseStudy?.sections.flatMap((section) => publishableClaims(section)).slice(0, 4) ?? [];
-  const hasMedia = Boolean(project?.featured_image || project?.preview_image);
+  const hasMedia = Boolean(project && (PROJECT_SCREENSHOTS[project.slug] || project.featured_image || project.preview_image));
 
   useScrollReveal(rootRef, (api) => {
     if (!api.isMobile && mediaRef.current) {
@@ -89,10 +89,8 @@ export function FeaturedCase({ projects }: FeaturedCaseProps) {
           </Reveal>
 
           {hasMedia && (
-            <div ref={mediaRef}>
-              <ImageReveal className="aspect-video w-full rounded-sm bg-ink-raised">
-                <ProjectMedia project={project} variant="hero" sizes="(min-width: 1024px) 50vw, 100vw" />
-              </ImageReveal>
+            <div ref={mediaRef} className="aspect-video overflow-hidden rounded-sm bg-ink-raised">
+              <ProjectFrame project={project} className="h-full w-full" sizes="(min-width: 1024px) 50vw, 100vw" />
             </div>
           )}
         </div>

@@ -15,15 +15,16 @@ export interface ProjectGalleryProps {
 
 /**
  * FINAL-DESIGN-01C-02: a real-image viewer for the case-study page.
- * Today every project has at most one real visual asset (a registered
- * tall screenshot, a live API image, or neither) - see
+ * Today every project has at most one visual asset (a registered
+ * evidence image, an explicitly labelled concept illustration, a live
+ * API image, or neither) - see
  * project-screenshots.ts and types.ts's doc comment forbidding a
  * fabricated multi-image gallery (two prior attempts to add one were
  * reverted after production incidents). This is genuinely a single-item
  * viewer today, not a carousel dressed up to look like one.
  *
- * The inline frame reuses ProjectFrame as-is (its real-screenshot /
- * real-API-image / honest-SkMark-tile 3-tier fallback is already
+ * The inline frame reuses ProjectFrame as-is (its evidence image /
+ * labelled illustration / API-image / honest-SkMark fallback is already
  * privacy-reviewed and approved elsewhere on the site). Clicking a REAL
  * image (never the SkMark placeholder - there is nothing to zoom into)
  * opens a focus-trapped, Escape-dismissible lightbox for a larger view,
@@ -40,7 +41,7 @@ export function ProjectGallery({ project, liveUrl }: ProjectGalleryProps) {
   const hasApiMedia = Boolean(project.featured_image || project.preview_image);
   const hasRealImage = Boolean(screenshot) || hasApiMedia;
   const apiImageSrc = project.featured_image ?? project.preview_image ?? null;
-  const imageAlt = project.image_alt_text || project.alt_text || `Screenshot of ${project.title}`;
+  const imageAlt = screenshot?.alt || project.image_alt_text || project.alt_text || `Screenshot of ${project.title}`;
 
   useEffect(() => {
     if (!open) return;
@@ -96,7 +97,7 @@ export function ProjectGallery({ project, liveUrl }: ProjectGalleryProps) {
             ref={dialogRef}
             role="dialog"
             aria-modal="true"
-            aria-label={`${project.title} screenshot, full size`}
+            aria-label={`${project.title} visual, full size`}
             className="fixed inset-0 z-(--z-mobile-nav) flex items-center justify-center bg-ink/95 p-6"
           >
             <button
@@ -109,14 +110,21 @@ export function ProjectGallery({ project, liveUrl }: ProjectGalleryProps) {
             </button>
 
             {screenshot ? (
-              <Image
-                src={screenshot.path}
-                alt={imageAlt}
-                width={screenshot.width}
-                height={screenshot.height}
-                unoptimized
-                className="h-auto max-h-[85vh] w-auto max-w-[90vw]"
-              />
+              <>
+                <Image
+                  src={screenshot.path}
+                  alt={imageAlt}
+                  width={screenshot.width}
+                  height={screenshot.height}
+                  unoptimized
+                  className="h-auto max-h-[85vh] w-auto max-w-[90vw]"
+                />
+                {screenshot.sourceKind === "illustrative" && (
+                  <p className="absolute bottom-4 left-1/2 -translate-x-1/2 border border-border-on-ink bg-ink/90 px-3 py-1.5 font-mono text-caption-sm text-paper-primary">
+                    Concept illustration
+                  </p>
+                )}
+              </>
             ) : apiImageSrc ? (
               <div className="relative aspect-video max-h-[85vh] w-[90vw] max-w-5xl">
                 <Image src={apiImageSrc} alt={imageAlt} fill unoptimized className="object-contain" />

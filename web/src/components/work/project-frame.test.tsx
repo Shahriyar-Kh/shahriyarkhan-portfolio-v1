@@ -8,7 +8,33 @@ vi.mock("next/image", () => ({
 }));
 vi.mock("@/components/work/project-screenshots", () => ({
   PROJECT_SCREENSHOTS: {
-    "tall-project": { path: "/images/projects/tall-project.webp", sourceUrl: "https://tall-project.example.com", width: 1280, height: 3200 },
+    "tall-project": {
+      path: "/images/projects/tall-project.webp",
+      sourceUrl: "https://tall-project.example.com",
+      sourceKind: "public_capture",
+      display: "pan",
+      alt: "Full-page screenshot of Tall Project",
+      width: 1280,
+      height: 3200,
+    },
+    "cover-project": {
+      path: "/images/projects/cover-project.webp",
+      sourceUrl: "https://cover-project.example.com",
+      sourceKind: "owner_provided",
+      display: "cover",
+      alt: "Dashboard screenshot for Cover Project",
+      width: 1600,
+      height: 1000,
+    },
+    "concept-project": {
+      path: "/images/projects/concept-project.webp",
+      sourceUrl: null,
+      sourceKind: "illustrative",
+      display: "cover",
+      alt: "Concept illustration for Concept Project",
+      width: 1600,
+      height: 1000,
+    },
   },
 }));
 
@@ -67,8 +93,22 @@ describe("ProjectFrame - fallback selection", () => {
 
   it("renders the browser-chrome frame with a real screenshot when the slug has one", () => {
     render(<ProjectFrame project={makeProject({ slug: "tall-project", title: "Tall Project" })} liveUrl="https://tall-project.example.com" />);
-    expect(screen.getByAltText("Screenshot of Tall Project")).toBeInTheDocument();
+    expect(screen.getByAltText("Full-page screenshot of Tall Project")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /open live project/i })).toHaveAttribute("href", "https://tall-project.example.com");
+  });
+
+  it("renders an owner-provided landscape image statically instead of enabling the pan frame", () => {
+    const { container } = render(<ProjectFrame project={makeProject({ slug: "cover-project", title: "Cover Project" })} />);
+    expect(screen.getByAltText("Dashboard screenshot for Cover Project")).toBeInTheDocument();
+    expect(container.querySelector("[data-pan-frame]")).not.toBeInTheDocument();
+    expect(screen.queryByText("Open live project")).not.toBeInTheDocument();
+  });
+
+  it("visibly labels illustrative media and never enables the screenshot pan frame", () => {
+    const { container } = render(<ProjectFrame project={makeProject({ slug: "concept-project" })} />);
+    expect(screen.getByAltText("Concept illustration for Concept Project")).toBeInTheDocument();
+    expect(screen.getByText("Concept illustration")).toBeInTheDocument();
+    expect(container.querySelector("[data-pan-frame]")).not.toBeInTheDocument();
   });
 });
 

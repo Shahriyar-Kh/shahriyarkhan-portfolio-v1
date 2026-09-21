@@ -26,20 +26,21 @@ export interface ProjectFrameProps {
 const MIN_PAN_OVERFLOW_PX = 32;
 
 /**
- * Project media for the homepage (FINAL-DESIGN-01A-R3 §C): a real,
- * safety-reviewed tall screenshot inside an original browser-chrome
- * frame with hover/focus top-to-bottom pan when one exists for the
- * project's slug (see project-screenshots.ts); the existing verified API
- * image, statically, when one exists but isn't a captured tall
- * screenshot; or the honest SkMark typographic tile when neither exists
- * - never a fabricated screenshot, never stock imagery.
+ * Project media shared by the homepage and /work surfaces: a reviewed
+ * tall capture with reduced-motion-safe pan, a reviewed landscape cover,
+ * the API's verified image, or the honest SkMark tile. The registry owns
+ * the display mode so a landscape dashboard is never misrepresented as a
+ * full-page capture and no stock/fabricated screenshot is introduced.
  */
 export function ProjectFrame({ project, liveUrl, sizes, className }: ProjectFrameProps) {
   const screenshot = PROJECT_SCREENSHOTS[project.slug];
   const hasApiMedia = Boolean(project.featured_image || project.preview_image);
 
   if (screenshot) {
-    return <TallScreenshotFrame project={project} screenshot={screenshot} liveUrl={liveUrl || project.live_url} className={className} />;
+    if (screenshot.display === "cover") {
+      return <LocalCoverVisual screenshot={screenshot} sizes={sizes} className={className} />;
+    }
+    return <TallScreenshotFrame screenshot={screenshot} liveUrl={liveUrl || project.live_url} className={className} />;
   }
 
   if (hasApiMedia) {
@@ -58,8 +59,33 @@ export function ProjectFrame({ project, liveUrl, sizes, className }: ProjectFram
   );
 }
 
+interface LocalCoverVisualProps {
+  screenshot: ProjectScreenshot;
+  sizes?: string;
+  className?: string;
+}
+
+function LocalCoverVisual({ screenshot, sizes, className }: LocalCoverVisualProps) {
+  return (
+    <ImageReveal className={cn("relative", className)}>
+      <Image
+        src={screenshot.path}
+        alt={screenshot.alt}
+        fill
+        sizes={sizes ?? "(min-width: 768px) 50vw, 100vw"}
+        loading="lazy"
+        className="object-cover object-top"
+      />
+      {screenshot.sourceKind === "illustrative" && (
+        <span className="absolute right-3 bottom-3 border border-border-on-ink bg-ink/85 px-2.5 py-1 font-mono text-caption-sm text-paper-primary backdrop-blur-sm">
+          Concept illustration
+        </span>
+      )}
+    </ImageReveal>
+  );
+}
+
 interface TallScreenshotFrameProps {
-  project: Project;
   screenshot: ProjectScreenshot;
   liveUrl: string;
   className?: string;
@@ -75,7 +101,7 @@ interface TallScreenshotFrameProps {
  * inner `[data-pan-image]` still reads it via normal inheritance even
  * though it's set higher up the tree.
  */
-function TallScreenshotFrame({ project, screenshot, liveUrl, className }: TallScreenshotFrameProps) {
+function TallScreenshotFrame({ screenshot, liveUrl, className }: TallScreenshotFrameProps) {
   const frameRef = useRef<HTMLDivElement>(null);
   const windowRef = useRef<HTMLDivElement>(null);
   const domain = liveUrl ? hostnameOf(liveUrl) : "";
@@ -116,7 +142,7 @@ function TallScreenshotFrame({ project, screenshot, liveUrl, className }: TallSc
         <Image
           data-pan-image
           src={screenshot.path}
-          alt={`Screenshot of ${project.title}`}
+          alt={screenshot.alt}
           width={screenshot.width}
           height={screenshot.height}
           onLoad={handleLoad}

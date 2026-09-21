@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ROUTE_METADATA_DEFAULTS } from "@/content/metadata";
-import { absoluteUrl, buildMetadata, mergePageSeo } from "@/lib/metadata";
+import { absoluteUrl, brandedPageTitle, buildMetadata, mergePageSeo } from "@/lib/metadata";
 import { SITE_URL } from "@/content/site";
 import type { PageSeo } from "@/lib/api/types";
 
@@ -20,6 +20,24 @@ describe("buildMetadata", () => {
   it("omits OG/Twitter images when none is given", () => {
     const metadata = buildMetadata({ pathname: "/about", title: "About", description: "d" });
     expect(metadata.twitter).toMatchObject({ card: "summary" });
+  });
+
+  it("uses one absolute branded title so the root template cannot duplicate the name", () => {
+    const metadata = buildMetadata({ pathname: "/about", title: "About Shahriyar Khan", description: "d" });
+    expect(metadata.title).toEqual({ absolute: "About Shahriyar Khan" });
+    expect(metadata.openGraph).toMatchObject({ title: "About Shahriyar Khan" });
+  });
+});
+
+describe("brandedPageTitle", () => {
+  it("adds the brand once when a dynamic project or service title omits it", () => {
+    expect(brandedPageTitle("Custom Software Development")).toBe("Custom Software Development — Shahriyar Khan");
+  });
+
+  it("does not duplicate an existing brand mention", () => {
+    expect(brandedPageTitle("Projects | Shahriyar Khan — Software Engineering Portfolio")).toBe(
+      "Projects | Shahriyar Khan — Software Engineering Portfolio",
+    );
   });
 });
 

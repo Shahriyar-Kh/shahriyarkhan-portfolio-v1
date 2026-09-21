@@ -14,6 +14,11 @@ export interface MetadataInput {
   ogImage?: string | null;
 }
 
+export function brandedPageTitle(title: string): string {
+  const trimmed = title.trim();
+  return /\bShahriyar Khan\b/i.test(trimmed) ? trimmed : `${trimmed} — Shahriyar Khan`;
+}
+
 /**
  * The single place Metadata objects are built, so every route gets
  * identical title-template behavior, canonical/OG/Twitter wiring, and
@@ -22,13 +27,18 @@ export interface MetadataInput {
  */
 export function buildMetadata({ pathname, title, description, keywords, ogImage }: MetadataInput): Metadata {
   const url = absoluteUrl(pathname);
+  const resolvedTitle = brandedPageTitle(title);
   return {
-    title,
+    // Every route in this project uses buildMetadata. Supplying an
+    // absolute title deliberately bypasses RootLayout's template so a
+    // PageSEO value that already contains the brand can never become
+    // "... — Shahriyar Khan — Shahriyar Khan" in production.
+    title: { absolute: resolvedTitle },
     description,
     keywords,
     alternates: { canonical: url },
     openGraph: {
-      title,
+      title: resolvedTitle,
       description,
       url,
       siteName: SITE_NAME,
@@ -37,7 +47,7 @@ export function buildMetadata({ pathname, title, description, keywords, ogImage 
     },
     twitter: {
       card: ogImage ? "summary_large_image" : "summary",
-      title,
+      title: resolvedTitle,
       description,
       ...(ogImage ? { images: [ogImage] } : {}),
     },
