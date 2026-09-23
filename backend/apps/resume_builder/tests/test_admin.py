@@ -88,7 +88,7 @@ class ResumeAdminWorkflowTests(TestCase):
         skill = Skill.objects.create(
             name="Django",
             category=category,
-            level="advanced",
+            level=Skill.Level.ADVANCED,
             published=True,
             display_order=1,
         )
