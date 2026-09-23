@@ -120,6 +120,7 @@ class ResumeAdminWorkflowTests(TestCase):
         self.assertIn(skill.pk, form.initial["skills"])
         self.assertEqual(form.initial["projects"], [project.pk for project in projects[:3]])
         self.assertEqual(len(form.initial["certifications"]), 1)
+        self.assertIn("Python/Django backend engineering", form.initial["custom_summary"])
 
     def test_invalid_generated_exports_do_not_enable_publish_or_download_controls(self):
         version = approve_version(version=create_master_draft(), actor=self.owner)
