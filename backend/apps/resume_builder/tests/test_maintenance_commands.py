@@ -4,7 +4,8 @@ from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.test import TestCase
 
-from apps.resume_builder.models import JobApplicationRecord, ResumeVersion
+from apps.portfolio.models import Education, Experience, Project, Skill, SkillCategory
+from apps.resume_builder.models import JobApplicationRecord, ResumeExport, ResumeVersion
 from apps.resume_builder.services import (
     approve_version,
     create_master_draft,
@@ -39,6 +40,67 @@ class ResumeMaintenanceCommandTests(TestCase):
             actor=self.owner,
         )
         return publish_version(version=version, actor=self.owner)
+
+    def test_rebuild_master_is_dry_run_by_default(self):
+        output = StringIO()
+
+        call_command("rebuild_master_resume", stdout=output)
+
+        self.assertEqual(ResumeVersion.objects.count(), 0)
+        self.assertIn("DRY RUN", output.getvalue())
+
+    def test_rebuild_master_publishes_current_verified_sources_and_valid_downloads(self):
+        Experience.objects.create(
+            company_name="Current Employer",
+            role_title="Software Engineer",
+            start_date="2026-01-01",
+            current_role=True,
+            status="published",
+        )
+        Education.objects.create(
+            institution="University",
+            degree="BS Software Engineering",
+            start_date="2021-01-01",
+            end_date="2025-01-01",
+            status="published",
+        )
+        category = SkillCategory.objects.create(name="Backend", slug="backend", display_order=1)
+        Skill.objects.create(
+            name="Python",
+            category=category,
+            level=Skill.Level.ADVANCED,
+            published=True,
+            display_order=1,
+        )
+        for index in range(1, 5):
+            Project.objects.create(
+                title=f"Verified Project {index}",
+                slug=f"verified-project-{index}",
+                description="Published evidence.",
+                status="published",
+                display_order=index,
+            )
+        output = StringIO()
+
+        call_command("rebuild_master_resume", "--execute", stdout=output)
+
+        version = ResumeVersion.objects.get(
+            resume_type=ResumeVersion.ResumeType.MASTER,
+            status=ResumeVersion.Status.PUBLISHED,
+            is_default=True,
+        )
+        self.assertEqual(version.include_projects.count(), 3)
+        self.assertEqual(version.include_experiences.count(), 1)
+        self.assertEqual(version.include_education.count(), 1)
+        self.assertEqual(version.include_skills.count(), 1)
+        self.assertEqual(
+            ResumeExport.objects.filter(
+                resume_version=version,
+                status=ResumeExport.Status.GENERATED,
+            ).count(),
+            2,
+        )
+        self.assertIn("Published healthy canonical Master résumé", output.getvalue())
 
     def test_audit_command_reports_healthy_current_master(self):
         current = self._healthy_public_master()
