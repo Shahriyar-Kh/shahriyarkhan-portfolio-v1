@@ -108,6 +108,14 @@ class ResumeVersionAdmin(ResumeVersionWorkflowMixin, admin.ModelAdmin):
         )
         return super().change_view(request, object_id, form_url, context)
 
+    def has_add_permission(self, request):
+        # ResumeVersion rows must always be created through the governed
+        # Create Résumé Draft workflow, which snapshots verified source
+        # records and computes integrity hashes. Django's generic model-add
+        # form can create a structurally incomplete row that can never be
+        # safely approved/exported/published, so it is intentionally disabled.
+        return False
+
     def has_delete_permission(self, request, obj=None):
         return obj is None or (obj.status == ResumeVersion.Status.DRAFT and not obj.applications.exists())
 
