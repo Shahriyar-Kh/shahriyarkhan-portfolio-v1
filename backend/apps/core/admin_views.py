@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from django.contrib.admin.views.decorators import staff_member_required
+from django.core.exceptions import PermissionDenied
 from django.db.models import Count
 from django.shortcuts import render
 
+from apps.accounts.permissions import is_portfolio_admin_user
 from apps.analytics_app.models import AnalyticsEvent
 from apps.inquiries.models import ContactMessage, ServiceRequest
 from apps.portfolio.models import Experience, Project, Service, Skill
@@ -49,6 +51,8 @@ def _resume_health():
 
 @staff_member_required
 def admin_dashboard_view(request):
+    if not is_portfolio_admin_user(request.user, require_owner_role=True):
+        raise PermissionDenied
     top_projects = (
         AnalyticsEvent.objects.exclude(project__isnull=True)
         .values("project__title")
