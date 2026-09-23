@@ -145,6 +145,16 @@ class ResumeAdminWorkflowTests(TestCase):
         self.assertNotContains(response, ">Download PDF<", html=False)
         self.assertNotContains(response, ">Download DOCX<", html=False)
 
+    def test_generic_resume_version_add_is_disabled_but_governed_draft_route_remains_available(self):
+        self.assertEqual(
+            self.client.get(reverse("admin:resume_builder_resumeversion_add")).status_code,
+            403,
+        )
+        self.assertEqual(
+            self.client.get(self.url("resume_builder_create_draft")).status_code,
+            200,
+        )
+
     def test_tampered_ineligible_selection_is_rejected_without_placeholder(self):
         hidden = Experience.objects.create(company_name="Hidden", role_title="Role", start_date="2024-01-01", description="Hidden", status="draft")
         response = self.client.post(self.url("resume_builder_create_draft"), {"resume_type": "master", "title": "x", "experiences": [hidden.pk]})
