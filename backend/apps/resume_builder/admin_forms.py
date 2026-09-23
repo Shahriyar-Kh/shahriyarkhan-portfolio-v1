@@ -2,6 +2,7 @@ from django import forms
 
 from apps.portfolio.models import Certification, Education, Experience, Project, Skill
 from apps.resume_builder.models import JobApplicationRecord, ResumeVersion
+from apps.resume_builder.services.canonical import MASTER_SUMMARY
 
 
 class ResumeDraftForm(forms.Form):
@@ -11,11 +12,7 @@ class ResumeDraftForm(forms.Form):
     target_organization = forms.CharField(max_length=255, required=False)
     custom_summary = forms.CharField(
         required=False,
-        initial=(
-            "Software Engineer specializing in Python/Django backend engineering, "
-            "REST APIs, PostgreSQL, and backend-heavy full-stack product delivery "
-            "with React/Next.js."
-        ),
+        initial=MASTER_SUMMARY,
         widget=forms.Textarea,
     )
     experiences = forms.ModelMultipleChoiceField(queryset=Experience.objects.none(), required=False)
