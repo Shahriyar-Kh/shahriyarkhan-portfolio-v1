@@ -9,7 +9,15 @@ class ResumeDraftForm(forms.Form):
     title = forms.CharField(max_length=200, initial="Software Engineer | Backend Engineer | Python & Django Developer")
     target_role = forms.CharField(max_length=150, required=False)
     target_organization = forms.CharField(max_length=255, required=False)
-    custom_summary = forms.CharField(required=False, widget=forms.Textarea)
+    custom_summary = forms.CharField(
+        required=False,
+        initial=(
+            "Software Engineer specializing in Python/Django backend engineering, "
+            "REST APIs, PostgreSQL, and backend-heavy full-stack product delivery "
+            "with React/Next.js."
+        ),
+        widget=forms.Textarea,
+    )
     experiences = forms.ModelMultipleChoiceField(queryset=Experience.objects.none(), required=False)
     education = forms.ModelMultipleChoiceField(queryset=Education.objects.none(), required=False)
     skills = forms.ModelMultipleChoiceField(queryset=Skill.objects.none(), required=False)
