@@ -3,7 +3,7 @@ from datetime import date
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 
-from apps.portfolio.models import Certification, Experience, Project, Technology
+from apps.portfolio.models import Certification, Experience, Project, Skill, SkillCategory, Technology
 from apps.resume_builder.models import ResumeVersion
 from apps.resume_builder.services import (
     SnapshotSourceUnavailable,
@@ -59,6 +59,63 @@ class SnapshotServiceTests(TestCase):
         version = create_master_draft(custom_summary="Owner-authored summary")
         claims = version.source_facts["sections"]["custom_summary"]
         self.assertEqual(claims[0]["value"], "Owner-authored summary")
+        self.assertTrue(all(item["source_claim_ids"] for item in version.resume_content["items"]))
+
+    def test_new_draft_content_is_compact_and_recruiter_readable(self):
+        category = SkillCategory.objects.create(name="Backend", slug="backend-compact")
+        python = Skill.objects.create(
+            name="Python",
+            category=category,
+            level=Skill.Level.ADVANCED,
+            published=True,
+            display_order=1,
+        )
+        django = Skill.objects.create(
+            name="Django",
+            category=category,
+            level=Skill.Level.ADVANCED,
+            published=True,
+            display_order=2,
+        )
+        experience = Experience.objects.create(
+            company_name="Example Company",
+            role_title="Software Engineer",
+            start_date=date(2026, 1, 1),
+            current_role=True,
+            achievements=["Built REST APIs", "Implemented authentication"],
+            status="published",
+        )
+        technology = Technology.objects.create(name="Django REST Framework", slug="drf-compact")
+        project = Project.objects.create(
+            title="Verified Platform",
+            slug="verified-platform-compact",
+            description="A verified web platform.",
+            status="published",
+        )
+        project.technologies.set([technology])
+
+        version = create_master_draft(
+            custom_summary="Verified professional summary.",
+            selections={
+                "include_skills": [python, django],
+                "include_experiences": [experience],
+                "include_projects": [project],
+            },
+        )
+
+        visible = [
+            (item["section"], item["text"])
+            for item in version.resume_content["items"]
+        ]
+        self.assertIn(("skills", "Backend: Python, Django"), visible)
+        self.assertIn(
+            ("experience", "Software Engineer — Example Company | Jan 2026 – Present"),
+            visible,
+        )
+        self.assertIn(("experience", "Built REST APIs"), visible)
+        self.assertIn(("projects", "Verified Platform"), visible)
+        self.assertIn(("projects", "Tech: Django REST Framework"), visible)
+        self.assertNotIn(("skills", "Advanced"), visible)
         self.assertTrue(all(item["source_claim_ids"] for item in version.resume_content["items"]))
 
     def test_freshness_detects_current_changed_and_unavailable(self):

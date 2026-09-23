@@ -4,13 +4,16 @@ import json
 
 from .admin_workflow import JobApplicationWorkflowMixin, OwnerAdminMixin, ResumeVersionWorkflowMixin
 from .models import JobApplicationRecord, ResumeAssessment, ResumeExport, ResumeVersion
+from .services import validate_version_snapshot
+from .services.exceptions import SnapshotError
+from .services.exports import resolve_downloadable_export
 
 
 @admin.register(ResumeVersion)
 class ResumeVersionAdmin(ResumeVersionWorkflowMixin, admin.ModelAdmin):
     change_list_template = "admin/resume_builder/resumeversion/change_list.html"
     change_form_template = "admin/resume_builder/resumeversion/change_form.html"
-    list_display = ("title", "resume_type", "status", "is_default", "target_role", "target_organization", "created_at", "approved_at", "published_at")
+    list_display = ("title", "resume_type", "status", "is_default", "public_delivery_health", "target_role", "target_organization", "created_at", "approved_at", "published_at")
     list_filter = ("resume_type", "status", "is_default", "created_at", "published_at")
     search_fields = ("title", "slug", "target_role", "target_organization")
     filter_horizontal = ("include_projects", "include_experiences", "include_skills", "include_education", "include_certifications")
@@ -27,13 +30,14 @@ class ResumeVersionAdmin(ResumeVersionWorkflowMixin, admin.ModelAdmin):
         "created_at",
         "updated_at",
         "resume_content_hash",
+        "public_delivery_health",
     )
     fieldsets = (
         ("Identity", {"fields": ("title", "slug", "resume_type", "version_uuid")}),
         ("Target", {"fields": ("target_role", "target_organization", "custom_summary")}),
         ("Portfolio selections", {"fields": ("include_projects", "include_experiences", "include_skills", "include_education", "include_certifications")}),
         ("Snapshot integrity", {"fields": ("snapshot_schema_version", "source_hash", "resume_content_hash", "source_facts_preview", "resume_content_preview"), "classes": ("collapse",)}),
-        ("Governance", {"fields": ("status", "is_default", "created_by", "approved_by", "published_by", "approved_at", "published_at", "archived_at")}),
+        ("Governance", {"fields": ("status", "is_default", "public_delivery_health", "created_by", "approved_by", "published_by", "approved_at", "published_at", "archived_at")}),
         ("History", {"fields": ("created_at", "updated_at")}),
     )
 
@@ -68,17 +72,49 @@ class ResumeVersionAdmin(ResumeVersionWorkflowMixin, admin.ModelAdmin):
     def resume_content_preview(self, obj):
         return json.dumps(obj.resume_content or {}, ensure_ascii=False, sort_keys=True, indent=2)
 
+    @admin.display(description="Public delivery")
+    def public_delivery_health(self, obj):
+        if not obj:
+            return "Not available"
+        if not (
+            obj.resume_type == ResumeVersion.ResumeType.MASTER
+            and obj.status == ResumeVersion.Status.PUBLISHED
+            and obj.is_default
+        ):
+            return "Not public"
+        try:
+            validate_version_snapshot(obj)
+        except SnapshotError:
+            return "BROKEN — snapshot invalid"
+        pdf_ok = resolve_downloadable_export(obj, ResumeExport.Format.PDF) is not None
+        docx_ok = resolve_downloadable_export(obj, ResumeExport.Format.DOCX) is not None
+        if pdf_ok and docx_ok:
+            return "Healthy — page + PDF + DOCX"
+        missing = []
+        if not pdf_ok:
+            missing.append("PDF")
+        if not docx_ok:
+            missing.append("DOCX")
+        return f"BROKEN — missing/invalid {' + '.join(missing)}"
+
     def change_view(self, request, object_id, form_url="", extra_context=None):
         context = dict(extra_context or {})
-        formats = set(
-            ResumeExport.objects.filter(
-                resume_version_id=object_id,
-                status=ResumeExport.Status.GENERATED,
-            ).values_list("format", flat=True)
+        version = self.get_object(request, object_id)
+        context["has_pdf_export"] = bool(
+            version and resolve_downloadable_export(version, ResumeExport.Format.PDF)
         )
-        context["has_pdf_export"] = ResumeExport.Format.PDF in formats
-        context["has_docx_export"] = ResumeExport.Format.DOCX in formats
+        context["has_docx_export"] = bool(
+            version and resolve_downloadable_export(version, ResumeExport.Format.DOCX)
+        )
         return super().change_view(request, object_id, form_url, context)
+
+    def has_add_permission(self, request):
+        # ResumeVersion rows must always be created through the governed
+        # Create Résumé Draft workflow, which snapshots verified source
+        # records and computes integrity hashes. Django's generic model-add
+        # form can create a structurally incomplete row that can never be
+        # safely approved/exported/published, so it is intentionally disabled.
+        return False
 
     def has_delete_permission(self, request, obj=None):
         return obj is None or (obj.status == ResumeVersion.Status.DRAFT and not obj.applications.exists())

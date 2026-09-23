@@ -15,6 +15,19 @@
     <li>Analytics Events: {{ summary.analytics_events }}</li>
   </ul>
 
+  <h2>Public Résumé Health</h2>
+  <p><strong>{{ resume_health.label }}</strong></p>
+  {% if resume_health.version %}
+    <ul>
+      <li>Version: <a href="{% url 'admin:resume_builder_resumeversion_change' resume_health.version.pk %}">{{ resume_health.version.title }}</a></li>
+      <li>Snapshot: {% if resume_health.snapshot %}Valid{% else %}Invalid{% endif %}</li>
+      <li>PDF: {% if resume_health.pdf %}Downloadable{% else %}Missing or invalid{% endif %}</li>
+      <li>DOCX: {% if resume_health.docx %}Downloadable{% else %}Missing or invalid{% endif %}</li>
+    </ul>
+  {% else %}
+    <p>Create a governed Master résumé draft, approve it, generate both exports, and publish it.</p>
+  {% endif %}
+
   <h2>Top Viewed Projects</h2>
   <ul>
     {% for item in top_projects %}

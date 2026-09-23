@@ -11,6 +11,11 @@ from .exceptions import SnapshotSourceUnavailable, SnapshotValidationError
 
 SCHEMA_VERSION = 1
 MASTER_POSITIONING = "Software Engineer | Backend Engineer | Python & Django Developer"
+MASTER_SUMMARY = (
+    "Software Engineer specializing in Python/Django backend engineering, "
+    "REST APIs, PostgreSQL, and backend-heavy full-stack product delivery "
+    "with React/Next.js."
+)
 
 
 def _primitive(value):

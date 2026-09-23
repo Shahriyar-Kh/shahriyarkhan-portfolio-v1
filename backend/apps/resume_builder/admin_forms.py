@@ -2,6 +2,7 @@ from django import forms
 
 from apps.portfolio.models import Certification, Education, Experience, Project, Skill
 from apps.resume_builder.models import JobApplicationRecord, ResumeVersion
+from apps.resume_builder.services.canonical import MASTER_SUMMARY
 
 
 class ResumeDraftForm(forms.Form):
@@ -9,7 +10,11 @@ class ResumeDraftForm(forms.Form):
     title = forms.CharField(max_length=200, initial="Software Engineer | Backend Engineer | Python & Django Developer")
     target_role = forms.CharField(max_length=150, required=False)
     target_organization = forms.CharField(max_length=255, required=False)
-    custom_summary = forms.CharField(required=False, widget=forms.Textarea)
+    custom_summary = forms.CharField(
+        required=False,
+        initial=MASTER_SUMMARY,
+        widget=forms.Textarea,
+    )
     experiences = forms.ModelMultipleChoiceField(queryset=Experience.objects.none(), required=False)
     education = forms.ModelMultipleChoiceField(queryset=Education.objects.none(), required=False)
     skills = forms.ModelMultipleChoiceField(queryset=Skill.objects.none(), required=False)
@@ -23,6 +28,35 @@ class ResumeDraftForm(forms.Form):
         self.fields["skills"].queryset = Skill.objects.filter(published=True).select_related("category").order_by("category__display_order", "display_order", "pk")
         self.fields["projects"].queryset = Project.objects.filter(status="published").order_by("display_order", "pk")
         self.fields["certifications"].queryset = Certification.objects.filter(status="published", is_verified=True).order_by("-issue_date", "pk")
+
+        # A new Master résumé should start from the current verified public
+        # portfolio instead of an empty selection screen. The owner can still
+        # remove anything before creating the draft. Keep projects bounded to
+        # the three highest-priority published records so the default remains
+        # a concise recruiter CV rather than silently expanding to every case
+        # study as the portfolio grows.
+        if not self.is_bound:
+            self.initial.setdefault("resume_type", ResumeVersion.ResumeType.MASTER)
+            self.initial.setdefault(
+                "experiences",
+                list(self.fields["experiences"].queryset.values_list("pk", flat=True)),
+            )
+            self.initial.setdefault(
+                "education",
+                list(self.fields["education"].queryset.values_list("pk", flat=True)),
+            )
+            self.initial.setdefault(
+                "skills",
+                list(self.fields["skills"].queryset.values_list("pk", flat=True)),
+            )
+            self.initial.setdefault(
+                "projects",
+                list(self.fields["projects"].queryset.values_list("pk", flat=True)[:3]),
+            )
+            self.initial.setdefault(
+                "certifications",
+                list(self.fields["certifications"].queryset.values_list("pk", flat=True)),
+            )
 
     def clean(self):
         cleaned = super().clean()

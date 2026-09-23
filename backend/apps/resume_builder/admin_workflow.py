@@ -208,13 +208,28 @@ def readiness_assessment_view(request, object_id):
 
 
 def job_match_assessment_view(request, object_id):
-    if request.method != "POST" or not is_portfolio_admin_user(request.user, require_owner_role=True):
-        if request.method != "POST":
-            return render(request, "admin/resume_builder/confirm.html", {"version": _version(request, object_id), "action": "run ATS job match"})
+    if not is_portfolio_admin_user(request.user, require_owner_role=True):
         raise PermissionDenied
-    application = get_object_or_404(JobApplicationRecord, pk=object_id)
+    application = get_object_or_404(
+        JobApplicationRecord.objects.select_related("resume_version"),
+        pk=object_id,
+    )
+    if request.method != "POST":
+        return render(
+            request,
+            "admin/resume_builder/confirm.html",
+            {
+                "version": application.resume_version,
+                "application": application,
+                "action": "run ATS job match",
+            },
+        )
     try:
-        run_job_match_assessment(version=application.resume_version, application=application, actor=request.user)
+        run_job_match_assessment(
+            version=application.resume_version,
+            application=application,
+            actor=request.user,
+        )
         messages.success(request, "ATS job-match assessment created.")
     except ATSAssessmentError as error:
         _safe_error(request, error)

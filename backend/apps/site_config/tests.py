@@ -1,6 +1,9 @@
+from django.contrib.admin.sites import AdminSite
+from django.test import RequestFactory
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from apps.site_config.admin import SiteSettingAdmin
 from apps.site_config.models import SiteSetting
 
 
@@ -33,3 +36,23 @@ class PublicSiteSettingsTests(APITestCase):
         self.assertEqual(first.pk, 1)
         self.assertEqual(first.pk, second.pk)
         self.assertEqual(SiteSetting.objects.count(), 1)
+
+
+class SiteSettingAdminTests(APITestCase):
+    def test_singleton_admin_hides_add_after_row_exists_and_never_allows_delete(self):
+        model_admin = SiteSettingAdmin(SiteSetting, AdminSite())
+        request = RequestFactory().get("/admin/site-config/")
+        request.user = type(
+            "AdminUser",
+            (),
+            {
+                "has_perm": lambda *_args, **_kwargs: True,
+                "is_active": True,
+                "is_staff": True,
+            },
+        )()
+
+        self.assertTrue(model_admin.has_add_permission(request))
+        settings = SiteSetting.get_solo()
+        self.assertFalse(model_admin.has_add_permission(request))
+        self.assertFalse(model_admin.has_delete_permission(request, settings))
