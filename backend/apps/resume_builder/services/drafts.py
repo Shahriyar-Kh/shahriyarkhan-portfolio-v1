@@ -1,3 +1,6 @@
+from collections import OrderedDict
+from datetime import date
+
 from django.db import transaction
 from django.utils.text import slugify
 
@@ -18,39 +21,286 @@ def _unique_slug(title):
     return slug
 
 
-def _content(facts, title):
+def _month_year(value):
+    if not value:
+        return ""
+    try:
+        parsed = date.fromisoformat(str(value))
+    except (TypeError, ValueError):
+        return str(value)
+    months = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+    return f"{months[parsed.month - 1]} {parsed.year}"
+
+
+def _group_by_record(entries, *, model):
+    groups = OrderedDict()
+    for item in entries:
+        if item.get("source", {}).get("model") != model:
+            continue
+        record_id = str(item["source"]["record_id"])
+        groups.setdefault(record_id, []).append(item)
+    return groups
+
+
+def _by_field(entries):
+    result = {}
+    for item in entries:
+        result.setdefault(item.get("source", {}).get("field"), []).append(item)
+    return result
+
+
+def _first(fields, name):
+    items = fields.get(name) or []
+    return items[0] if items else None
+
+
+def _ids(*claims):
+    return [claim["claim_id"] for claim in claims if claim]
+
+
+def _structured_content(facts, summary):
+    """Build a compact, recruiter-readable draft from verified source claims.
+
+    The old implementation emitted every database fact as a separate visible
+    line (for example skill name, category and level as three independent
+    lines). That made a newly generated Master résumé technically valid but
+    visually noisy and forced the owner to manually rebuild the wording before
+    every release. This formatter combines related claims into conventional CV
+    lines while retaining exact claim provenance for every visible item.
+    """
     items = []
-    if title:
-        claim_id = next(item["claim_id"] for item in facts["sections"]["custom_summary"] if item["value"] == title) if facts["sections"]["custom_summary"] else None
-        if claim_id:
-            items.append({"section": "summary", "text": title, "source_claim_ids": [claim_id]})
+
+    if summary and facts["sections"]["custom_summary"]:
+        claim = facts["sections"]["custom_summary"][0]
+        items.append(
+            {
+                "section": "summary",
+                "text": summary,
+                "source_claim_ids": [claim["claim_id"]],
+            }
+        )
+
     for profile_claim in facts["sections"]["profile"]:
         field = profile_claim["source"].get("field")
         value = profile_claim["value"]
-        if isinstance(value, dict):
-            text = " | ".join(str(value[key]) for key in sorted(value) if value[key])
-        elif isinstance(value, list):
-            text = " | ".join(str(item) for item in value if item)
-        else:
-            text = str(value)
-        if not text:
+        if not value:
             continue
         if field == "professional_title":
             section = "positioning"
+            text = str(value)
         elif field == "owner_name":
             section = "profile"
-        else:
+            text = str(value)
+        elif field == "social_links" and isinstance(value, dict):
+            labels = {
+                "github": "GitHub",
+                "linkedin": "LinkedIn",
+                "whatsapp": "WhatsApp",
+            }
+            text = " | ".join(
+                f"{labels.get(key, key.replace('_', ' ').title())}: {value[key]}"
+                for key in sorted(value)
+                if value[key]
+            )
             section = "contact"
-        items.append({"section": section, "text": text, "source_claim_ids": [profile_claim["claim_id"]]})
-    for section in ("experience", "education", "skills", "projects", "certifications"):
-        for item in facts["sections"][section]:
-            items.append({"section": section, "text": str(item["value"]), "source_claim_ids": [item["claim_id"]]})
-    return {"positioning": MASTER_POSITIONING, "items": items}
+        elif isinstance(value, (list, tuple)):
+            text = " | ".join(str(part) for part in value if part)
+            section = "contact"
+        else:
+            text = str(value)
+            section = "contact"
+        if text:
+            items.append(
+                {
+                    "section": section,
+                    "text": text,
+                    "source_claim_ids": [profile_claim["claim_id"]],
+                }
+            )
+
+    # Skills: one concise line per category, names only. Levels remain in the
+    # governed source snapshot but are intentionally not repeated in the CV.
+    skill_groups = _group_by_record(
+        facts["sections"]["skills"],
+        model="portfolio.skill",
+    )
+    categories = OrderedDict()
+    for group in skill_groups.values():
+        fields = _by_field(group)
+        name = _first(fields, "name")
+        category = _first(fields, "category")
+        if not name or not category:
+            continue
+        category_name = str(category["value"])
+        bucket = categories.setdefault(
+            category_name,
+            {"names": [], "claims": []},
+        )
+        bucket["names"].append(str(name["value"]))
+        bucket["claims"].extend(_ids(name, category))
+    for category_name, bucket in categories.items():
+        items.append(
+            {
+                "section": "skills",
+                "text": f"{category_name}: {', '.join(bucket['names'])}",
+                "source_claim_ids": list(dict.fromkeys(bucket["claims"])),
+            }
+        )
+
+    # Experience: conventional heading + achievement bullets.
+    experience_groups = _group_by_record(
+        facts["sections"]["experience"],
+        model="portfolio.experience",
+    )
+    for group in experience_groups.values():
+        fields = _by_field(group)
+        role = _first(fields, "role_title")
+        company = _first(fields, "company_name")
+        start_claim = _first(fields, "start_date")
+        end_claim = _first(fields, "end_date")
+        heading_parts = []
+        if role and company:
+            heading_parts.append(f"{role['value']} — {company['value']}")
+        elif role:
+            heading_parts.append(str(role["value"]))
+        elif company:
+            heading_parts.append(str(company["value"]))
+        if start_claim:
+            dates = _month_year(start_claim["value"])
+            dates += f" – {_month_year(end_claim['value']) if end_claim else 'Present'}"
+            heading_parts.append(dates)
+        if heading_parts:
+            items.append(
+                {
+                    "section": "experience",
+                    "text": " | ".join(heading_parts),
+                    "source_claim_ids": _ids(role, company, start_claim, end_claim),
+                }
+            )
+        achievements = fields.get("achievement") or fields.get("description") or []
+        for claim in achievements:
+            items.append(
+                {
+                    "section": "experience",
+                    "text": str(claim["value"]),
+                    "source_claim_ids": [claim["claim_id"]],
+                }
+            )
+
+    # Projects: title, concise description and a single technology line.
+    project_entries = facts["sections"]["projects"]
+    project_groups = _group_by_record(project_entries, model="portfolio.project")
+    technology_by_project = OrderedDict()
+    for claim in project_entries:
+        if claim.get("source", {}).get("model") != "portfolio.project.technology":
+            continue
+        owning_project = str(claim["source"]["record_id"]).split(":", 1)[0]
+        technology_by_project.setdefault(owning_project, []).append(claim)
+
+    for record_id, group in project_groups.items():
+        fields = _by_field(group)
+        title = _first(fields, "title")
+        description = _first(fields, "description")
+        if title:
+            items.append(
+                {
+                    "section": "projects",
+                    "text": str(title["value"]),
+                    "source_claim_ids": [title["claim_id"]],
+                }
+            )
+        if description:
+            items.append(
+                {
+                    "section": "projects",
+                    "text": str(description["value"]),
+                    "source_claim_ids": [description["claim_id"]],
+                }
+            )
+        technologies = technology_by_project.get(record_id, [])
+        if technologies:
+            items.append(
+                {
+                    "section": "projects",
+                    "text": "Tech: " + ", ".join(str(item["value"]) for item in technologies),
+                    "source_claim_ids": [item["claim_id"] for item in technologies],
+                }
+            )
+
+    education_groups = _group_by_record(
+        facts["sections"]["education"],
+        model="portfolio.education",
+    )
+    for group in education_groups.values():
+        fields = _by_field(group)
+        degree = _first(fields, "degree")
+        institution = _first(fields, "institution")
+        start_claim = _first(fields, "start_date")
+        end_claim = _first(fields, "end_date")
+        heading_parts = []
+        if degree and institution:
+            heading_parts.append(f"{degree['value']} — {institution['value']}")
+        elif degree:
+            heading_parts.append(str(degree["value"]))
+        elif institution:
+            heading_parts.append(str(institution["value"]))
+        if start_claim:
+            date_text = _month_year(start_claim["value"])
+            if end_claim:
+                date_text += f" – {_month_year(end_claim['value'])}"
+            heading_parts.append(date_text)
+        if heading_parts:
+            items.append(
+                {
+                    "section": "education",
+                    "text": " | ".join(heading_parts),
+                    "source_claim_ids": _ids(degree, institution, start_claim, end_claim),
+                }
+            )
+        for description in fields.get("description", []):
+            items.append(
+                {
+                    "section": "education",
+                    "text": str(description["value"]),
+                    "source_claim_ids": [description["claim_id"]],
+                }
+            )
+
+    certification_groups = _group_by_record(
+        facts["sections"]["certifications"],
+        model="portfolio.certification",
+    )
+    for group in certification_groups.values():
+        fields = _by_field(group)
+        name = _first(fields, "name")
+        issuer = _first(fields, "issuer")
+        issue = _first(fields, "issue_date")
+        expiry = _first(fields, "expiry_date")
+        parts = []
+        if name and issuer:
+            parts.append(f"{name['value']} — {issuer['value']}")
+        elif name:
+            parts.append(str(name["value"]))
+        if issue:
+            date_text = _month_year(issue["value"])
+            if expiry:
+                date_text += f" – {_month_year(expiry['value'])}"
+            parts.append(date_text)
+        if parts:
+            items.append(
+                {
+                    "section": "certifications",
+                    "text": " | ".join(parts),
+                    "source_claim_ids": _ids(name, issuer, issue, expiry),
+                }
+            )
+
+    return {"positioning": facts["sections"]["profile"][0]["value"] if facts["sections"]["profile"] else "", "items": items}
 
 
 def _store_snapshot(version):
     facts = collect_source_facts(version)
-    content = _content(facts, version.custom_summary)
+    content = _structured_content(facts, version.custom_summary)
     digest = source_hash(facts)
     validate_snapshot(facts, content, digest, version.resume_type)
     version.source_facts = facts
