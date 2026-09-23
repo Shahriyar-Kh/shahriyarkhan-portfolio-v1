@@ -13,7 +13,7 @@ from apps.portfolio.models import Certification, Education, Experience, Project,
 from apps.resume_builder.admin import ResumeExportAdmin, ResumeVersionAdmin
 from apps.resume_builder.models import JobApplicationRecord, ResumeExport, ResumeVersion
 from apps.resume_builder.models import ResumeAssessment
-from apps.resume_builder.services import create_master_draft, create_tailored_draft
+from apps.resume_builder.services import approve_version, create_master_draft, create_tailored_draft
 from apps.resume_builder.services.exceptions import SnapshotSourceUnavailable
 
 
@@ -61,6 +61,89 @@ class ResumeAdminWorkflowTests(TestCase):
         self.assertEqual(version.title, "Software Engineer | Backend Engineer | Python & Django Developer")
         self.assertEqual(version.target_organization, "")
         self.assertEqual(list(version.include_experiences.values_list("pk", flat=True)), [experience.pk])
+
+
+    def test_new_master_form_preselects_verified_public_sources(self):
+        experience = Experience.objects.create(
+            company_name="Published Employer",
+            role_title="Engineer",
+            start_date="2024-01-01",
+            description="Verified",
+            status="published",
+        )
+        hidden_experience = Experience.objects.create(
+            company_name="Draft Employer",
+            role_title="Engineer",
+            start_date="2023-01-01",
+            description="Draft",
+            status="draft",
+        )
+        education = Education.objects.create(
+            institution="Published University",
+            degree="BS Software Engineering",
+            start_date="2020-01-01",
+            status="published",
+        )
+        category = SkillCategory.objects.create(name="Backend", slug="backend", display_order=1)
+        skill = Skill.objects.create(
+            name="Django",
+            category=category,
+            level="advanced",
+            published=True,
+            display_order=1,
+        )
+        projects = [
+            Project.objects.create(
+                title=f"Project {index}",
+                slug=f"project-{index}",
+                description="Verified project",
+                status="published",
+                display_order=index,
+            )
+            for index in range(1, 5)
+        ]
+        Certification.objects.create(
+            name="Verified Certificate",
+            issuer="Issuer",
+            issue_date="2026-01-01",
+            is_verified=True,
+            status="published",
+        )
+
+        response = self.client.get(self.url("resume_builder_create_draft"))
+
+        self.assertEqual(response.status_code, 200)
+        form = response.context["form"]
+        self.assertIn(experience.pk, form.initial["experiences"])
+        self.assertNotIn(hidden_experience.pk, form.initial["experiences"])
+        self.assertIn(education.pk, form.initial["education"])
+        self.assertIn(skill.pk, form.initial["skills"])
+        self.assertEqual(form.initial["projects"], [project.pk for project in projects[:3]])
+        self.assertEqual(len(form.initial["certifications"]), 1)
+
+    def test_invalid_generated_exports_do_not_enable_publish_or_download_controls(self):
+        version = approve_version(version=create_master_draft(), actor=self.owner)
+        for format_name in (ResumeExport.Format.PDF, ResumeExport.Format.DOCX):
+            bad = b"not-a-valid-artifact"
+            ResumeExport.objects.create(
+                resume_version=version,
+                format=format_name,
+                status=ResumeExport.Status.GENERATED,
+                content_hash=version.resume_content_hash,
+                sha256=hashlib.sha256(bad).hexdigest(),
+                binary_content=bad,
+                byte_size=len(bad),
+                generated_at=timezone.now(),
+            )
+
+        response = self.client.get(
+            reverse("admin:resume_builder_resumeversion_change", args=(version.pk,))
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, ">Publish<", html=False)
+        self.assertNotContains(response, ">Download PDF<", html=False)
+        self.assertNotContains(response, ">Download DOCX<", html=False)
 
     def test_tampered_ineligible_selection_is_rejected_without_placeholder(self):
         hidden = Experience.objects.create(company_name="Hidden", role_title="Role", start_date="2024-01-01", description="Hidden", status="draft")
@@ -229,6 +312,26 @@ class ResumeAdminWorkflowTests(TestCase):
         self.assertEqual(application.status, "draft")
         response = self.client.post(self.url("resume_builder_advance_status", application.pk), {"status": "interviewing"})
         self.assertIn(response.status_code, (302, 403))
+
+    def test_job_match_confirmation_resolves_application_resume_not_same_numeric_resume_pk(self):
+        create_master_draft()
+        target = create_tailored_draft(
+            title="Application Target Resume",
+            target_role="Backend Engineer",
+            target_organization="Example Org",
+        )
+        application = JobApplicationRecord.objects.create(
+            organization="Example Org",
+            job_title="Backend Engineer",
+            resume_version=target,
+        )
+
+        response = self.client.get(
+            self.url("resume_builder_ats_job_match", application.pk)
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Application Target Resume")
 
     def test_application_fields_after_applied_are_read_only_and_routes_are_private(self):
         version = create_master_draft()
