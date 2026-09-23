@@ -24,6 +24,35 @@ class ResumeDraftForm(forms.Form):
         self.fields["projects"].queryset = Project.objects.filter(status="published").order_by("display_order", "pk")
         self.fields["certifications"].queryset = Certification.objects.filter(status="published", is_verified=True).order_by("-issue_date", "pk")
 
+        # A new Master résumé should start from the current verified public
+        # portfolio instead of an empty selection screen. The owner can still
+        # remove anything before creating the draft. Keep projects bounded to
+        # the three highest-priority published records so the default remains
+        # a concise recruiter CV rather than silently expanding to every case
+        # study as the portfolio grows.
+        if not self.is_bound:
+            self.initial.setdefault("resume_type", ResumeVersion.ResumeType.MASTER)
+            self.initial.setdefault(
+                "experiences",
+                list(self.fields["experiences"].queryset.values_list("pk", flat=True)),
+            )
+            self.initial.setdefault(
+                "education",
+                list(self.fields["education"].queryset.values_list("pk", flat=True)),
+            )
+            self.initial.setdefault(
+                "skills",
+                list(self.fields["skills"].queryset.values_list("pk", flat=True)),
+            )
+            self.initial.setdefault(
+                "projects",
+                list(self.fields["projects"].queryset.values_list("pk", flat=True)[:3]),
+            )
+            self.initial.setdefault(
+                "certifications",
+                list(self.fields["certifications"].queryset.values_list("pk", flat=True)),
+            )
+
     def clean(self):
         cleaned = super().clean()
         if cleaned.get("resume_type") == ResumeVersion.ResumeType.MASTER:
