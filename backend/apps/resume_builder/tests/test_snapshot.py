@@ -38,7 +38,7 @@ class SnapshotServiceTests(TestCase):
     def test_master_and_tailored_drafts_are_new_private_non_default_snapshots(self):
         master = create_master_draft()
         tailored = create_tailored_draft(target_role="Engineer", target_organization="Org")
-        self.assertEqual(master.title, "Software Engineer | Backend Engineer | Python & Django Developer")
+        self.assertEqual(master.title, "Software Engineer | Backend Engineer | Python/Django Full-Stack Developer")
         self.assertEqual(master.status, ResumeVersion.Status.DRAFT)
         self.assertFalse(master.is_default)
         self.assertEqual(tailored.resume_type, ResumeVersion.ResumeType.TAILORED)
