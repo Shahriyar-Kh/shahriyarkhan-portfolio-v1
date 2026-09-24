@@ -310,19 +310,22 @@ class ResumeExportServiceTests(TestCase):
         self.assertEqual(repeated.pk, valid.pk)
         self.assertEqual(bytes(repeated.binary_content), original)
 
-    def test_corrupt_existing_export_fails_without_replacement(self):
+    def test_corrupt_existing_export_is_replaced_from_same_approved_snapshot(self):
         version = self._approved_version()
         export = self._generate(version, "pdf")
+        original_pk = export.pk
         corrupt = b"not-a-pdf"
         ResumeExport.objects.filter(pk=export.pk).update(
             binary_content=corrupt,
             byte_size=len(corrupt),
             sha256=hashlib.sha256(corrupt).hexdigest(),
         )
-        with self.assertRaises(ExportIntegrityError):
-            self._generate(version, "pdf")
-        stored = ResumeExport.objects.get(pk=export.pk)
-        self.assertEqual(bytes(stored.binary_content), corrupt)
+
+        regenerated = self._generate(version, "pdf")
+
+        self.assertNotEqual(regenerated.pk, original_pk)
+        self.assertTrue(bytes(regenerated.binary_content).startswith(b"%PDF-"))
+        self.assertEqual(regenerated.content_hash, version.resume_content_hash)
         self.assertEqual(ResumeExport.objects.count(), 1)
 
     def test_artifact_size_cap_is_enforced_before_persistence(self):
