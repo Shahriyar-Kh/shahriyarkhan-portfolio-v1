@@ -21,6 +21,13 @@ MASTER_SUMMARY = (
     "and cloud deployment experience."
 )
 
+MASTER_EXPERIENCE_KEYS = (
+    ("TriCore Digital Tech", "Software Engineer (Contract)"),
+    ("HA Technologies (Pvt) Ltd", "Software Developer"),
+    ("CodeAlpha", "Python Developer Intern"),
+    ("Abasyn University Incubation Center", "Web Developer Intern (Team Lead)"),
+)
+
 MASTER_PROJECT_SLUGS = (
     "nurses-beyond-borders-nclex-learning-exam-preparation-platform",
     "yango-wing-fleet-digital-registration-fleet-management-platform",
@@ -80,9 +87,16 @@ def master_selections():
         MASTER_SKILL_NAMES,
         "name",
     )
-    experiences = list(
-        Experience.objects.filter(status="published").order_by("-current_role", "-start_date", "pk")
-    )
+    experience_candidates = Experience.objects.filter(status="published")
+    by_experience = {
+        (item.company_name, item.role_title): item
+        for item in experience_candidates
+    }
+    experiences = [
+        by_experience[key]
+        for key in MASTER_EXPERIENCE_KEYS
+        if key in by_experience
+    ]
     education = list(Education.objects.filter(status="published").order_by("-start_date", "pk"))
     certifications = list(
         Certification.objects.filter(status="published", is_verified=True).order_by("-issue_date", "pk")
