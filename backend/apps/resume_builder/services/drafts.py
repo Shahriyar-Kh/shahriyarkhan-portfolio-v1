@@ -18,12 +18,55 @@ def _unique_slug(title):
     return slug
 
 
+def _record_groups(claims):
+    groups = {}
+    for item in claims:
+        record_id = str(item["source"]["record_id"])
+        groups.setdefault(record_id, []).append(item)
+    return groups
+
+
+def _field_map(claims):
+    return {item["source"]["field"]: item for item in claims}
+
+
+def _display_date(value):
+    if not value:
+        return ""
+    raw = str(value)
+    try:
+        year, month, _day = raw.split("-", 2)
+        names = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+        return f"{names[int(month) - 1]} {year}"
+    except (ValueError, IndexError):
+        return raw
+
+
 def _content(facts, title):
+    """Build a compact recruiter-facing document from governed claims.
+
+    Earlier drafts emitted one visible line for every source claim. That
+    made skills, dates and project technologies explode into dozens of
+    disconnected lines even though the underlying evidence was correct.
+    The snapshot remains unchanged; this presentation layer now groups
+    related claims into conventional résumé entries while retaining every
+    source_claim_id used by the visible text.
+    """
     items = []
+
     if title:
-        claim_id = next(item["claim_id"] for item in facts["sections"]["custom_summary"] if item["value"] == title) if facts["sections"]["custom_summary"] else None
-        if claim_id:
-            items.append({"section": "summary", "text": title, "source_claim_ids": [claim_id]})
+        summary_claims = [
+            item for item in facts["sections"]["custom_summary"]
+            if item["value"] == title
+        ]
+        if summary_claims:
+            items.append({
+                "section": "summary",
+                "text": title,
+                "source_claim_ids": [summary_claims[0]["claim_id"]],
+            })
+
+    # Identity/contact facts stay individually traceable.
     for profile_claim in facts["sections"]["profile"]:
         field = profile_claim["source"].get("field")
         value = profile_claim["value"]
@@ -41,11 +84,143 @@ def _content(facts, title):
             section = "profile"
         else:
             section = "contact"
-        items.append({"section": section, "text": text, "source_claim_ids": [profile_claim["claim_id"]]})
-    for section in ("experience", "education", "skills", "projects", "certifications"):
-        for item in facts["sections"][section]:
-            items.append({"section": section, "text": str(item["value"]), "source_claim_ids": [item["claim_id"]]})
-    return {"positioning": MASTER_POSITIONING, "items": items}
+        items.append({
+            "section": section,
+            "text": text,
+            "source_claim_ids": [profile_claim["claim_id"]],
+        })
+
+    # Skills are most useful to recruiters as one ATS-readable line. The
+    # visible list uses only the skill-name claims; category/level remain
+    # preserved in source_facts for provenance but are not presentation
+    # content.
+    skill_name_claims = [
+        item for item in facts["sections"]["skills"]
+        if item["source"].get("field") == "name"
+    ]
+    if skill_name_claims:
+        items.append({
+            "section": "skills",
+            "text": ", ".join(str(item["value"]) for item in skill_name_claims),
+            "source_claim_ids": [item["claim_id"] for item in skill_name_claims],
+        })
+
+    # Experience: one role/company/date heading plus concise achievement
+    # bullets. Missing end date is rendered as Present.
+    for claims in _record_groups(facts["sections"]["experience"]).values():
+        fields = _field_map(claims)
+        role = fields.get("role_title")
+        company = fields.get("company_name")
+        start_claim = fields.get("start_date")
+        end_claim = fields.get("end_date")
+        heading_claims = [item for item in (role, company, start_claim, end_claim) if item]
+        if role or company:
+            identity = " — ".join(
+                str(item["value"]) for item in (role, company) if item and item["value"]
+            )
+            dates = ""
+            if start_claim:
+                dates = _display_date(start_claim["value"])
+                dates += f" – {_display_date(end_claim['value']) if end_claim else 'Present'}"
+            items.append({
+                "section": "experience",
+                "text": f"{identity} | {dates}" if dates else identity,
+                "source_claim_ids": [item["claim_id"] for item in heading_claims],
+            })
+        for item in claims:
+            if item["source"].get("field") in {"achievement", "description"} and item["value"]:
+                items.append({
+                    "section": "experience",
+                    "text": str(item["value"]),
+                    "source_claim_ids": [item["claim_id"]],
+                })
+
+    # Projects: title, one description bullet and one compact technology
+    # line. Technology claim IDs embed "<project_pk>:<technology_pk>".
+    project_claims = facts["sections"]["projects"]
+    project_groups = {}
+    technology_groups = {}
+    for item in project_claims:
+        model = item["source"].get("model")
+        record_id = str(item["source"].get("record_id"))
+        if model == "portfolio.project.technology":
+            project_id = record_id.split(":", 1)[0]
+            technology_groups.setdefault(project_id, []).append(item)
+        else:
+            project_groups.setdefault(record_id, []).append(item)
+
+    for project_id, claims in project_groups.items():
+        fields = _field_map(claims)
+        title_claim = fields.get("title")
+        description_claim = fields.get("description")
+        if title_claim:
+            items.append({
+                "section": "projects",
+                "text": str(title_claim["value"]),
+                "source_claim_ids": [title_claim["claim_id"]],
+            })
+        if description_claim and description_claim["value"]:
+            items.append({
+                "section": "projects",
+                "text": str(description_claim["value"]),
+                "source_claim_ids": [description_claim["claim_id"]],
+            })
+        tech_claims = technology_groups.get(project_id, [])
+        if tech_claims:
+            items.append({
+                "section": "projects",
+                "text": "Tech: " + ", ".join(str(item["value"]) for item in tech_claims),
+                "source_claim_ids": [item["claim_id"] for item in tech_claims],
+            })
+
+    # Education is a single conventional entry per record.
+    for claims in _record_groups(facts["sections"]["education"]).values():
+        fields = _field_map(claims)
+        degree = fields.get("degree")
+        institution = fields.get("institution")
+        start_claim = fields.get("start_date")
+        end_claim = fields.get("end_date")
+        used = [item for item in (degree, institution, start_claim, end_claim) if item]
+        identity = " — ".join(
+            str(item["value"]) for item in (degree, institution) if item and item["value"]
+        )
+        dates = ""
+        if start_claim:
+            dates = _display_date(start_claim["value"])
+            if end_claim:
+                dates += f" – {_display_date(end_claim['value'])}"
+        text = f"{identity} | {dates}" if dates else identity
+        if text:
+            items.append({
+                "section": "education",
+                "text": text,
+                "source_claim_ids": [item["claim_id"] for item in used],
+            })
+
+    # Certifications remain compact and are present only when the source
+    # was both published and verified.
+    for claims in _record_groups(facts["sections"]["certifications"]).values():
+        fields = _field_map(claims)
+        name = fields.get("name")
+        issuer = fields.get("issuer")
+        issue = fields.get("issue_date")
+        expiry = fields.get("expiry_date")
+        used = [item for item in (name, issuer, issue, expiry) if item]
+        identity = " — ".join(
+            str(item["value"]) for item in (name, issuer) if item and item["value"]
+        )
+        dates = _display_date(issue["value"]) if issue else ""
+        if expiry:
+            dates += f" – {_display_date(expiry['value'])}"
+        text = f"{identity} | {dates}" if dates else identity
+        if text:
+            items.append({
+                "section": "certifications",
+                "text": text,
+                "source_claim_ids": [item["claim_id"] for item in used],
+            })
+
+    return {"positioning": facts["sections"]["profile"][0]["value"] if facts["sections"]["profile"] else "", "items": items}
 
 
 def _store_snapshot(version):
