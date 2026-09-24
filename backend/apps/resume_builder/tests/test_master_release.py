@@ -44,8 +44,8 @@ class MasterResumeReleaseTests(TestCase):
             )
 
         Experience.objects.create(
-            company_name="Current Engineering Org",
-            role_title="Software Engineer",
+            company_name="TriCore Digital Tech",
+            role_title="Software Engineer (Contract)",
             start_date="2026-07-01",
             current_role=True,
             description="Backend-heavy product delivery.",
