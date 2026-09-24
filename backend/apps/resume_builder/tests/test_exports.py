@@ -363,6 +363,32 @@ class ResumeExportServiceTests(TestCase):
         self.assertEqual(self.client.post(docx_url).status_code, 302)
         self.assertTrue(ResumeExport.objects.filter(resume_version=version, format="docx").exists())
 
+    def test_admin_publish_action_requires_deeply_valid_both_exports(self):
+        version = self._approved_version()
+        pdf = self._generate(version, "pdf")
+        self._generate(version, "docx")
+        corrupt = b"not-a-valid-pdf"
+        ResumeExport.objects.filter(pk=pdf.pk).update(
+            binary_content=corrupt,
+            byte_size=len(corrupt),
+            sha256=hashlib.sha256(corrupt).hexdigest(),
+        )
+
+        self.client.force_login(self.owner)
+        response = self.client.get(
+            reverse("admin:resume_builder_resumeversion_change", args=(version.pk,))
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(
+            response,
+            reverse("admin:resume_builder_version_action", args=(version.pk, "publish")),
+        )
+        self.assertContains(
+            response,
+            reverse("admin:resume_builder_generate_export", args=(version.pk, "pdf")),
+        )
+
     def test_admin_download_is_owner_only_and_sets_strict_headers(self):
         version = self._approved_version()
         export = self._generate(version, "docx")
