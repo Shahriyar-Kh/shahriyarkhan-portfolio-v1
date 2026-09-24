@@ -10,7 +10,7 @@ from apps.site_config.models import SiteSetting
 from .exceptions import SnapshotSourceUnavailable, SnapshotValidationError
 
 SCHEMA_VERSION = 1
-MASTER_POSITIONING = "Software Engineer | Backend Engineer | Python & Django Developer"
+MASTER_POSITIONING = "Software Engineer | Backend Engineer | Python/Django Full-Stack Developer"
 
 
 def _primitive(value):
