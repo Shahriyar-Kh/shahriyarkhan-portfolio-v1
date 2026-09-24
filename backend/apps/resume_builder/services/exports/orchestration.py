@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from apps.accounts.permissions import is_portfolio_admin_user
 from apps.resume_builder.models import ResumeExport, ResumeVersion
-from apps.resume_builder.services.exceptions import ExportGenerationError, SnapshotError
+from apps.resume_builder.services.exceptions import ExportGenerationError, ExportIntegrityError, SnapshotError
 from apps.resume_builder.services.lifecycle import validate_generated_export, validate_version_snapshot
 
 from .docx import render_docx
@@ -42,8 +42,15 @@ def generate_resume_export(*, resume_version, format_name, actor):
         format=format_name,
     ).first()
     if existing is not None:
-        validate_generated_export(existing, inspect_artifact=True)
-        return existing
+        try:
+            validate_generated_export(existing, inspect_artifact=True)
+            return existing
+        except ExportIntegrityError:
+            # A stale/corrupt/failed row must not permanently block the
+            # admin workflow. The approved snapshot is immutable, so it is
+            # safe to replace only this broken derived artifact and render
+            # it again from the same governed content.
+            existing.delete()
 
     document_model = normalize_resume(locked)
     try:

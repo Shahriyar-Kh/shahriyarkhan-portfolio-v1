@@ -1,0 +1,35 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+<div id="content-main">
+  <h1>Rebuild & Publish Fresh Master Résumé</h1>
+  <p>
+    This creates a new master résumé from the current published portfolio evidence,
+    generates and validates both PDF and DOCX exports, publishes it as the default,
+    and archives the previously published master.
+  </p>
+  <p>
+    It does not edit an existing frozen snapshot in place.
+  </p>
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <fieldset class="module aligned">
+      <div class="form-row">
+        <label for="id_purge_old">
+          <input type="checkbox" name="purge_old" id="id_purge_old">
+          Delete old unreferenced résumé versions after successful publication
+        </label>
+        <div class="help">
+          Versions referenced by job applications or ATS assessments are preserved automatically.
+        </div>
+      </div>
+    </fieldset>
+    <div class="submit-row">
+      <input type="submit" value="Build, validate & publish fresh master" class="default">
+      <a href="{% url 'admin:resume_builder_resumeversion_changelist' %}" class="closelink">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

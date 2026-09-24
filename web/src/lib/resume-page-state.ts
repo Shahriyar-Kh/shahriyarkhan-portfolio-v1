@@ -18,7 +18,7 @@ export type ResumeSource = "default_version" | "composed_from_lists";
  * admin_forms.py) - used only in the no-published-master fallback
  * state, so the page still shows a real, non-invented professional
  * title instead of a blank heading. */
-const PROFESSIONAL_TITLE_FALLBACK = "Software Engineer | Backend Engineer | Python & Django Developer";
+const PROFESSIONAL_TITLE_FALLBACK = "Software Engineer | Backend Engineer | Python/Django Full-Stack Developer";
 
 export interface ResumeContactLink {
   readonly label: string;

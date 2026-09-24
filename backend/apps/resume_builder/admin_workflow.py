@@ -23,6 +23,7 @@ from apps.resume_builder.services import (
     mark_application_applied,
     publish_version,
     regenerate_from_current_portfolio,
+    rebuild_and_publish_master,
     update_resume_content,
     validate_generated_export,
 )
@@ -62,6 +63,35 @@ class OwnerAdminMixin:
 
 def _safe_error(request, error):
     messages.error(request, str(error))
+
+
+def rebuild_master_view(request):
+    if not is_portfolio_admin_user(request.user, require_owner_role=True):
+        raise PermissionDenied
+    if request.method != "POST":
+        return render(
+            request,
+            "admin/resume_builder/rebuild_master_confirm.html",
+            {"title": "Rebuild & Publish Fresh Master Résumé"},
+        )
+
+    try:
+        result = rebuild_and_publish_master(
+            actor=request.user,
+            purge_old=request.POST.get("purge_old") == "on",
+        )
+        message = "Fresh master résumé generated, validated and published."
+        if result.purged_ids:
+            message += f" Deleted {len(result.purged_ids)} old unreferenced version(s)."
+        if result.protected_ids:
+            message += (
+                f" Preserved {len(result.protected_ids)} old version(s) because job/ATS history references them."
+            )
+        messages.success(request, message)
+        return redirect("admin:resume_builder_resumeversion_change", result.version.pk)
+    except SnapshotError as error:
+        _safe_error(request, error)
+        return redirect("admin:resume_builder_resumeversion_changelist")
 
 
 def create_draft_view(request):
@@ -254,6 +284,7 @@ class ResumeVersionWorkflowMixin(OwnerAdminMixin):
         urls = super().get_urls()
         custom = [
             path("create-draft/", self.admin_site.admin_view(create_draft_view), name="resume_builder_create_draft"),
+            path("rebuild-master/", self.admin_site.admin_view(rebuild_master_view), name="resume_builder_rebuild_master"),
             path("<path:object_id>/preview/", self.admin_site.admin_view(version_preview_view), name="resume_builder_admin_preview"),
             path("<path:object_id>/edit-content/", self.admin_site.admin_view(content_edit_view), name="resume_builder_edit_content"),
             path("<path:object_id>/freshness/", self.admin_site.admin_view(freshness_view), name="resume_builder_freshness"),

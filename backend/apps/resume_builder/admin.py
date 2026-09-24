@@ -4,6 +4,7 @@ import json
 
 from .admin_workflow import JobApplicationWorkflowMixin, OwnerAdminMixin, ResumeVersionWorkflowMixin
 from .models import JobApplicationRecord, ResumeAssessment, ResumeExport, ResumeVersion
+from .services import resolve_downloadable_export
 
 
 @admin.register(ResumeVersion)
@@ -70,14 +71,27 @@ class ResumeVersionAdmin(ResumeVersionWorkflowMixin, admin.ModelAdmin):
 
     def change_view(self, request, object_id, form_url="", extra_context=None):
         context = dict(extra_context or {})
-        formats = set(
-            ResumeExport.objects.filter(
-                resume_version_id=object_id,
-                status=ResumeExport.Status.GENERATED,
-            ).values_list("format", flat=True)
-        )
-        context["has_pdf_export"] = ResumeExport.Format.PDF in formats
-        context["has_docx_export"] = ResumeExport.Format.DOCX in formats
+        version = self.get_object(request, object_id)
+        if version is not None:
+            # Do not enable publish/download actions from the DB status flag
+            # alone. A row can be GENERATED while its bytes are stale or
+            # corrupt; the public download endpoint intentionally rejects
+            # those. The admin must use the exact same integrity policy.
+            context["has_pdf_export"] = (
+                resolve_downloadable_export(version, ResumeExport.Format.PDF) is not None
+            )
+            context["has_docx_export"] = (
+                resolve_downloadable_export(version, ResumeExport.Format.DOCX) is not None
+            )
+            context["is_public_default"] = bool(
+                version.resume_type == ResumeVersion.ResumeType.MASTER
+                and version.status == ResumeVersion.Status.PUBLISHED
+                and version.is_default
+            )
+        else:
+            context["has_pdf_export"] = False
+            context["has_docx_export"] = False
+            context["is_public_default"] = False
         return super().change_view(request, object_id, form_url, context)
 
     def has_delete_permission(self, request, obj=None):
