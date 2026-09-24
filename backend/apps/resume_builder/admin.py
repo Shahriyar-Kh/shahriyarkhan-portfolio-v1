@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib import admin
 from django.core.exceptions import PermissionDenied
 import json
@@ -88,10 +89,12 @@ class ResumeVersionAdmin(ResumeVersionWorkflowMixin, admin.ModelAdmin):
                 and version.status == ResumeVersion.Status.PUBLISHED
                 and version.is_default
             )
+            context["public_resume_url"] = f"{settings.PUBLIC_SITE_URL.rstrip('/')}/resume"
         else:
             context["has_pdf_export"] = False
             context["has_docx_export"] = False
             context["is_public_default"] = False
+            context["public_resume_url"] = f"{settings.PUBLIC_SITE_URL.rstrip('/')}/resume"
         return super().change_view(request, object_id, form_url, context)
 
     def has_delete_permission(self, request, obj=None):
