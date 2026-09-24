@@ -1,6 +1,7 @@
 {% extends "admin/change_form.html" %}
 {% block object-tools-items %}
 {% if original %}
+{% if is_public_default %}<li><a href="/resume" target="_blank" rel="noopener">Open public résumé</a></li>{% endif %}
 <li><a href="{% url 'admin:resume_builder_admin_preview' original.pk %}">Preview</a></li>
 {% if original.status == 'draft' %}
 <li><a href="{% url 'admin:resume_builder_edit_content' original.pk %}">Edit wording</a></li>
