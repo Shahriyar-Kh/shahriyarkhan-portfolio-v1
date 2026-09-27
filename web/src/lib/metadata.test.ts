@@ -7,7 +7,7 @@ import type { PageSeo } from "@/lib/api/types";
 describe("absoluteUrl", () => {
   it("builds a canonical URL rooted at SITE_URL, never a Vercel preview host", () => {
     expect(absoluteUrl("/work")).toBe(`${SITE_URL}/work`);
-    expect(absoluteUrl("/")).toBe(`${SITE_URL}/`);
+    expect(absoluteUrl("/")).toBe(SITE_URL);
   });
 });
 
@@ -38,6 +38,14 @@ describe("brandedPageTitle", () => {
     expect(brandedPageTitle("Projects | Shahriyar Khan — Software Engineering Portfolio")).toBe(
       "Projects | Shahriyar Khan — Software Engineering Portfolio",
     );
+  });
+
+  it("removes a duplicated trailing brand from API-managed metadata", () => {
+    expect(
+      brandedPageTitle(
+        "Shahriyar Khan — Full-Stack Portfolio & AI Assistant Platform — Shahriyar Khan",
+      ),
+    ).toBe("Shahriyar Khan — Full-Stack Portfolio & AI Assistant Platform");
   });
 });
 
