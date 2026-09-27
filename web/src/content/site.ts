@@ -37,7 +37,7 @@ export const GITHUB_PROFILE_URL = SOCIAL_LINKS.github;
 export const RESUME_PDF_PATH = "/resume/Shahriyar_Khan_Software_Engineer.pdf";
 
 export function canonicalUrl(pathname: string): string {
-  if (pathname === "/" || pathname === "") return `${SITE_URL}/`;
+  if (pathname === "/" || pathname === "") return SITE_URL;
   const path = pathname.startsWith("/") ? pathname : `/${pathname}`;
   return `${SITE_URL}${path}`;
 }

@@ -72,6 +72,22 @@ class CanonicalProfileSyncTests(TestCase):
         self.assertTrue(nbb.featured)
         self.assertIn("case-studies/nbb-lms.md", nbb.github_url)
 
+        priority_projects = Project.objects.filter(
+            slug__in=[
+                "nurses-beyond-borders-nclex-learning-exam-preparation-platform",
+                "shahriyar-khan-full-stack-portfolio-ai-assistant-platform",
+            ]
+        )
+        for project in priority_projects:
+            with self.subTest(project=project.slug):
+                self.assertLessEqual(len(project.seo_title), 60)
+                self.assertGreaterEqual(len(project.seo_description), 120)
+                self.assertLessEqual(len(project.seo_description), 160)
+                self.assertEqual(
+                    project.seo_title.lower().count("shahriyar khan"),
+                    1,
+                )
+
         published_services = set(
             Service.objects.filter(status=PublishableModel.Status.PUBLISHED)
             .values_list("slug", flat=True)
@@ -91,6 +107,12 @@ class CanonicalProfileSyncTests(TestCase):
             Service.objects.get(slug="restaurant-website").status,
             PublishableModel.Status.DRAFT,
         )
+
+        for service in Service.objects.filter(status=PublishableModel.Status.PUBLISHED):
+            with self.subTest(service=service.slug):
+                self.assertLessEqual(len(service.seo_title), 60)
+                self.assertGreaterEqual(len(service.seo_description), 120)
+                self.assertLessEqual(len(service.seo_description), 160)
 
         self.assertFalse(Skill.objects.filter(published=True, level=4).exists())
 

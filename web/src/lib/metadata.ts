@@ -16,7 +16,11 @@ export interface MetadataInput {
 
 export function brandedPageTitle(title: string): string {
   const trimmed = title.trim();
-  return /\bShahriyar Khan\b/i.test(trimmed) ? trimmed : `${trimmed} — Shahriyar Khan`;
+  const brandMentions = trimmed.match(/\bShahriyar Khan\b/gi)?.length ?? 0;
+  if (brandMentions > 1) {
+    return trimmed.replace(/\s*(?:—|-|\|)\s*Shahriyar Khan\s*$/i, "");
+  }
+  return brandMentions === 1 ? trimmed : `${trimmed} — Shahriyar Khan`;
 }
 
 /**

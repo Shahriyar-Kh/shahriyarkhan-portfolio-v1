@@ -262,6 +262,11 @@ def sync_canonical_profile(*, tricore_start_date: date | None = None) -> dict[st
         {
             "slug": "nurses-beyond-borders-nclex-learning-exam-preparation-platform",
             "title": "Nurses Beyond Borders — NCLEX Learning & Exam Preparation Platform",
+            "seo_title": "NCLEX Learning Platform Case Study — Shahriyar Khan",
+            "seo_description": (
+                "Private NCLEX learning platform with NGN question workflows, timed attempts, progress analytics, "
+                "subscriptions, study planning, and role-aware administration."
+            ),
             "description": (
                 "Private NCLEX learning and assessment platform covering question-bank/NGN workflows, timed attempts, "
                 "learning progress, analytics, subscriptions and entitlements, study planning, administration, testing, "
@@ -314,6 +319,11 @@ def sync_canonical_profile(*, tricore_start_date: date | None = None) -> dict[st
         {
             "slug": "shahriyar-khan-full-stack-portfolio-ai-assistant-platform",
             "title": "Shahriyar Khan — Full-Stack Portfolio & AI Assistant Platform",
+            "seo_title": "Portfolio & AI Assistant Case Study — Shahriyar Khan",
+            "seo_description": (
+                "Full-stack portfolio platform built with Django, Next.js, and PostgreSQL, featuring dynamic content, "
+                "SEO, a grounded AI assistant, and governed résumé exports."
+            ),
             "description": (
                 "Full-stack professional portfolio platform with dynamic content, complete administration, project/service "
                 "management, SEO/JSON-LD, a grounded AI assistant, structured client project discovery, CV management, "
@@ -408,8 +418,8 @@ def sync_canonical_profile(*, tricore_start_date: date | None = None) -> dict[st
                 "published_at": now,
                 "display_order": item["display_order"],
                 "featured": item["featured"],
-                "seo_title": f'{item["title"]} — Shahriyar Khan',
-                "seo_description": item["description"],
+                "seo_title": item.get("seo_title", f'{item["title"]} — Shahriyar Khan'),
+                "seo_description": item.get("seo_description", item["description"]),
                 "seo_keywords": ", ".join(item["technologies"]),
                 "og_title": item["title"],
                 "og_description": item["description"],
@@ -444,6 +454,10 @@ def sync_canonical_profile(*, tricore_start_date: date | None = None) -> dict[st
         (
             "Custom Software Development",
             "Custom software built around real business workflows, roles, integrations, and operational needs.",
+            (
+                "Custom software development for business workflows, secure roles, integrations, REST APIs, "
+                "operational dashboards, and maintainable backend architecture."
+            ),
             [
                 "Requirements and workflow analysis",
                 "Backend/API architecture",
@@ -455,6 +469,10 @@ def sync_canonical_profile(*, tricore_start_date: date | None = None) -> dict[st
         (
             "Web Development",
             "Modern public and authenticated web products connected to maintainable backend services and structured content.",
+            (
+                "Modern web development for responsive public and authenticated products with backend services, "
+                "structured content, API integration, and SEO-aware delivery."
+            ),
             [
                 "Responsive web interfaces",
                 "Backend/API integration",
@@ -466,6 +484,10 @@ def sync_canonical_profile(*, tricore_start_date: date | None = None) -> dict[st
         (
             "Application Development",
             "Full application delivery across backend rules, data models, user workflows, dashboards, and administration.",
+            (
+                "Full-stack application development for role-based workflows, dashboards, administration, APIs, and "
+                "maintainable business logic with Django and modern web tools."
+            ),
             [
                 "Application architecture",
                 "REST APIs",
@@ -477,6 +499,10 @@ def sync_canonical_profile(*, tricore_start_date: date | None = None) -> dict[st
         (
             "SaaS Development",
             "Authenticated multi-user products with dashboards, roles, quotas or entitlements, integrations, and maintainable product workflows.",
+            (
+                "SaaS product development for authenticated multi-user platforms with dashboards, roles, entitlements, "
+                "integrations, and maintainable recurring workflows."
+            ),
             [
                 "User and role architecture",
                 "Dashboard workflows",
@@ -488,6 +514,10 @@ def sync_canonical_profile(*, tricore_start_date: date | None = None) -> dict[st
         (
             "Database Development",
             "Relational schema and data-model work designed around real business rules, reporting, filtering, and future change.",
+            (
+                "Database development for relational schemas, PostgreSQL data models, migrations, reporting, filtering, "
+                "and maintainable data-backed business workflows."
+            ),
             [
                 "Schema and relationship design",
                 "PostgreSQL data modeling",
@@ -499,6 +529,10 @@ def sync_canonical_profile(*, tricore_start_date: date | None = None) -> dict[st
         (
             "Cloud Application Development",
             "Application delivery prepared for repeatable cloud deployment with environment-aware configuration and operational boundaries.",
+            (
+                "Cloud application development with environment-aware configuration, deployment workflows, health "
+                "checks, data services, and clear operational handover."
+            ),
             [
                 "Deployment configuration",
                 "Database/cache/worker integration",
@@ -510,7 +544,7 @@ def sync_canonical_profile(*, tricore_start_date: date | None = None) -> dict[st
     ]
 
     canonical_service_slugs: list[str] = []
-    for order, (title, description, deliverables) in enumerate(services, start=1):
+    for order, (title, description, seo_description, deliverables) in enumerate(services, start=1):
         service_slug = slugify(title)
         canonical_service_slugs.append(service_slug)
         Service.objects.update_or_create(
@@ -524,7 +558,7 @@ def sync_canonical_profile(*, tricore_start_date: date | None = None) -> dict[st
                 "display_order": order,
                 "featured": order <= 4,
                 "seo_title": f"{title} — Shahriyar Khan",
-                "seo_description": description,
+                "seo_description": seo_description,
                 "seo_keywords": f"{title}, Python Django, software engineering",
                 "og_title": title,
                 "og_description": description,
