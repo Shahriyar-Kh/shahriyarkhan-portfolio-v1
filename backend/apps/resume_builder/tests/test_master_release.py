@@ -22,10 +22,13 @@ class MasterResumeReleaseTests(TestCase):
         SiteSetting.objects.create(
             owner_name="Shahriyar Khan",
             public_email="shahriyar@example.invalid",
+            public_phone="+92 311 0924560",
             public_location="Pakistan",
             social_links={
                 "github": "https://github.com/Shahriyar-Kh",
                 "linkedin": "https://www.linkedin.com/in/shahriyar-kh/",
+                "portfolio": "https://shahriyarkhan.com/",
+                "whatsapp": "https://wa.me/923110924560",
             },
         )
 
@@ -73,12 +76,26 @@ class MasterResumeReleaseTests(TestCase):
                 "noteassist-ai-productivity-platform",
                 "NoteAssist AI",
             ),
+            (
+                "feelwise-emotion-detection-system",
+                "FeelWise",
+            ),
+            (
+                "shahriyar-khan-full-stack-portfolio-ai-assistant-platform",
+                "Shahriyar Khan Portfolio",
+            ),
+            (
+                "sk-learntrack-ai-learning-platform",
+                "SK LearnTrack",
+            ),
         )
         for order, (slug, title) in enumerate(project_data, start=1):
             Project.objects.create(
                 slug=slug,
                 title=title,
                 description=f"{title} verified project description.",
+                live_url=f"https://example.invalid/live/{slug}",
+                github_url=f"https://github.com/example/{slug}",
                 status="published",
                 display_order=order,
             )
@@ -111,7 +128,7 @@ class MasterResumeReleaseTests(TestCase):
     def test_rebuild_uses_curated_cross_role_projects_and_compact_skill_line(self):
         version = rebuild_and_publish_master(actor=self.owner).version
 
-        self.assertEqual(version.include_projects.count(), 3)
+        self.assertEqual(version.include_projects.count(), 6)
         self.assertEqual(
             set(version.include_skills.values_list("name", flat=True)),
             {"Python", "Django", "PostgreSQL"},
@@ -124,6 +141,23 @@ class MasterResumeReleaseTests(TestCase):
         self.assertIn("Python", skill_items[0]["text"])
         self.assertIn("Django", skill_items[0]["text"])
         self.assertIn("PostgreSQL", skill_items[0]["text"])
+
+        contact_items = [
+            item for item in version.resume_content["items"]
+            if item["section"] == "contact"
+        ]
+        contact_text = "\n".join(item["text"] for item in contact_items)
+        self.assertIn("+92 311 0924560", contact_text)
+        self.assertIn("https://shahriyarkhan.com/", contact_text)
+        self.assertIn("https://wa.me/923110924560", contact_text)
+
+        project_items = [
+            item for item in version.resume_content["items"]
+            if item["section"] == "projects"
+        ]
+        project_text = "\n".join(item["text"] for item in project_items)
+        self.assertEqual(project_text.count("Live: https://example.invalid/live/"), 6)
+        self.assertEqual(project_text.count("GitHub: https://github.com/example/"), 6)
 
     def test_purge_removes_unreferenced_old_versions_but_preserves_governed_history(self):
         unreferenced = ResumeVersion.objects.create(
