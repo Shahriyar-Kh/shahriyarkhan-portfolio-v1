@@ -32,6 +32,9 @@ MASTER_PROJECT_SLUGS = (
     "nurses-beyond-borders-nclex-learning-exam-preparation-platform",
     "yango-wing-fleet-digital-registration-fleet-management-platform",
     "noteassist-ai-productivity-platform",
+    "feelwise-emotion-detection-system",
+    "shahriyar-khan-full-stack-portfolio-ai-assistant-platform",
+    "sk-learntrack-ai-learning-platform",
 )
 
 MASTER_SKILL_NAMES = (
