@@ -307,6 +307,24 @@ class ResumeExportServiceTests(TestCase):
             )
             self.assertIn("nurses-beyond-borders", text)
 
+    def test_pdf_and_docx_preserve_unicode_arrow_from_snapshot(self):
+        value = "Course → Chapter → Topic"
+
+        def add_arrow(content, facts):
+            summary = next(item for item in content["items"] if item["section"] == "summary")
+            summary["text"] = value
+            facts["sections"]["custom_summary"][0]["value"] = value
+
+        version = self._approved_version(content_transform=add_arrow)
+
+        for format_name in ("pdf", "docx"):
+            export = self._generate(version, format_name)
+            text = extract_artifact_text(
+                format_name=format_name,
+                artifact=bytes(export.binary_content),
+            )
+            self.assertIn(value, text)
+
     def test_unsafe_links_and_input_bounds_fail_before_persistence(self):
         for scheme in ("javascript:alert(1)", "data:text/plain,bad", "file:///private.txt"):
             def unsafe(content, facts, value=scheme):

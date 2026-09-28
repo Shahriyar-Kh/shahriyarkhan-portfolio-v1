@@ -3,7 +3,6 @@ from io import BytesIO
 from pathlib import Path
 import re
 
-import reportlab
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.pagesizes import LETTER
@@ -24,12 +23,18 @@ MUTED = colors.HexColor("#667085")
 
 
 def _register_fonts():
-    font_dir = Path(reportlab.__file__).parent / "fonts"
+    # The résumé snapshot can contain ordinary Unicode punctuation supplied by
+    # published portfolio records (for example ``Course → Chapter → Topic``).
+    # Bitstream Vera does not contain U+2192, so ReportLab rendered it as a
+    # missing glyph and pypdf extracted NUL bytes.  Bundle DejaVu Sans with the
+    # application so production rendering is deterministic and does not depend
+    # on host-installed fonts.
+    font_dir = Path(__file__).parent / "fonts"
     registered = set(pdfmetrics.getRegisteredFontNames())
     if FONT_REGULAR not in registered:
-        pdfmetrics.registerFont(TTFont(FONT_REGULAR, str(font_dir / "Vera.ttf")))
+        pdfmetrics.registerFont(TTFont(FONT_REGULAR, str(font_dir / "DejaVuSans.ttf")))
     if FONT_BOLD not in registered:
-        pdfmetrics.registerFont(TTFont(FONT_BOLD, str(font_dir / "VeraBd.ttf")))
+        pdfmetrics.registerFont(TTFont(FONT_BOLD, str(font_dir / "DejaVuSans-Bold.ttf")))
 
 
 def _markup(value):
