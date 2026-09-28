@@ -272,6 +272,41 @@ class ResumeExportServiceTests(TestCase):
         self.assertIn("https://example.invalid/morgan", relationships)
         self.assertIn("http://example.invalid/portfolio", relationships)
 
+    def test_long_wrapped_project_links_preserve_semantic_validation(self):
+        long_live_url = (
+            "https://example.invalid/projects/"
+            "nurses-beyond-borders-nclex-learning-exam-preparation-platform/"
+        )
+        long_github_url = (
+            "https://github.com/example/portfolio/blob/main/case-studies/"
+            "nurses-beyond-borders-nclex-learning-exam-preparation-platform.md"
+        )
+
+        def add_project_links(content, facts):
+            for number, (field, value) in enumerate(
+                (("live_url", long_live_url), ("github_url", long_github_url)),
+                start=2,
+            ):
+                claim = self._claim("projects", number, field, value)
+                facts["sections"]["projects"].append(claim)
+                content["items"].append(
+                    {
+                        "section": "projects",
+                        "text": value,
+                        "source_claim_ids": [claim["claim_id"]],
+                    }
+                )
+
+        version = self._approved_version(content_transform=add_project_links)
+
+        for format_name in ("pdf", "docx"):
+            export = self._generate(version, format_name)
+            text = extract_artifact_text(
+                format_name=format_name,
+                artifact=bytes(export.binary_content),
+            )
+            self.assertIn("nurses-beyond-borders", text)
+
     def test_unsafe_links_and_input_bounds_fail_before_persistence(self):
         for scheme in ("javascript:alert(1)", "data:text/plain,bad", "file:///private.txt"):
             def unsafe(content, facts, value=scheme):
