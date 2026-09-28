@@ -3,7 +3,11 @@ from datetime import date
 from django.test import TestCase
 
 from apps.core.management.commands.sync_canonical_profile_2026 import (
+    CANONICAL_GITHUB,
     CANONICAL_LINKEDIN,
+    CANONICAL_PHONE,
+    CANONICAL_PORTFOLIO,
+    CANONICAL_WHATSAPP,
     sync_canonical_profile,
 )
 from apps.core.models import PublishableModel
@@ -38,8 +42,11 @@ class CanonicalProfileSyncTests(TestCase):
 
         site = SiteSetting.get_solo()
         self.assertEqual(site.social_links["linkedin"], CANONICAL_LINKEDIN)
+        self.assertEqual(site.social_links["github"], CANONICAL_GITHUB)
+        self.assertEqual(site.social_links["portfolio"], CANONICAL_PORTFOLIO)
+        self.assertEqual(site.social_links["whatsapp"], CANONICAL_WHATSAPP)
         self.assertEqual(site.public_location, "Pakistan")
-        self.assertEqual(site.public_phone, "")
+        self.assertEqual(site.public_phone, CANONICAL_PHONE)
 
         ha = Experience.objects.get(
             company_name="HA Technologies (Pvt) Ltd",

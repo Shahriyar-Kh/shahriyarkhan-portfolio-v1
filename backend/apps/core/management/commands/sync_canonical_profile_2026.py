@@ -21,6 +21,8 @@ CANONICAL_LINKEDIN = "https://www.linkedin.com/in/shahriyar-kh/"
 CANONICAL_GITHUB = "https://github.com/Shahriyar-Kh"
 CANONICAL_PORTFOLIO = "https://shahriyarkhan.com/"
 CANONICAL_EMAIL = "shahriyarkhanpk1@gmail.com"
+CANONICAL_PHONE = "+92 311 0924560"
+CANONICAL_WHATSAPP = "https://wa.me/923110924560"
 # LinkedIn/public employment history records month granularity. The model
 # stores a DateField, so July 2026 is normalized internally to 2026-07-01;
 # public UI renders it as "Jul 2026", not as a claimed exact joining day.
@@ -84,7 +86,7 @@ def sync_canonical_profile(*, tricore_start_date: date | None = None) -> dict[st
     site.site_name = "Shahriyar Khan"
     site.owner_name = "Shahriyar Khan"
     site.public_email = CANONICAL_EMAIL
-    site.public_phone = ""
+    site.public_phone = CANONICAL_PHONE
     site.public_location = "Pakistan"
     site.notification_email = CANONICAL_EMAIL
     site.hero_title = "Shahriyar Khan"
@@ -105,6 +107,8 @@ def sync_canonical_profile(*, tricore_start_date: date | None = None) -> dict[st
     site.social_links = {
         "linkedin": CANONICAL_LINKEDIN,
         "github": CANONICAL_GITHUB,
+        "portfolio": CANONICAL_PORTFOLIO,
+        "whatsapp": CANONICAL_WHATSAPP,
     }
     site.maintenance_mode = False
     site.save()
