@@ -153,6 +153,8 @@ def _content(facts, title):
         fields = _field_map(claims)
         title_claim = fields.get("title")
         description_claim = fields.get("description")
+        live_url_claim = fields.get("live_url")
+        github_url_claim = fields.get("github_url")
         if title_claim:
             items.append({
                 "section": "projects",
@@ -171,6 +173,20 @@ def _content(facts, title):
                 "section": "projects",
                 "text": "Tech: " + ", ".join(str(item["value"]) for item in tech_claims),
                 "source_claim_ids": [item["claim_id"] for item in tech_claims],
+            })
+        link_claims = [item for item in (live_url_claim, github_url_claim) if item]
+        if link_claims:
+            labels = {
+                "live_url": "Live",
+                "github_url": "GitHub",
+            }
+            items.append({
+                "section": "projects",
+                "text": " | ".join(
+                    f"{labels[item['source']['field']]}: {item['value']}"
+                    for item in link_claims
+                ),
+                "source_claim_ids": [item["claim_id"] for item in link_claims],
             })
 
     # Education is a single conventional entry per record.

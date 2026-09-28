@@ -102,6 +102,8 @@ def _item_kind(section, source_ids, claims):
             return "entry_heading"
         if "description" in fields:
             return "bullet"
+        if "live_url" in fields or "github_url" in fields:
+            return "detail"
         if any(model == "portfolio.project.technology" for model in models):
             return "detail"
         return "bullet"

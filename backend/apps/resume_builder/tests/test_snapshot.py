@@ -35,6 +35,32 @@ class SnapshotServiceTests(TestCase):
     def test_changed_value_changes_hash(self):
         self.assertNotEqual(source_hash({"value": "before"}), source_hash({"value": "after"}))
 
+    def test_project_links_are_governed_claims_and_clickable_content(self):
+        project = Project.objects.create(
+            title="Linked Project",
+            slug="linked-project",
+            description="Verified project description.",
+            live_url="https://example.com/live",
+            github_url="https://github.com/example/linked-project",
+            status="published",
+        )
+
+        version = create_master_draft(selections={"include_projects": [project]})
+
+        project_claims = version.source_facts["sections"]["projects"]
+        fields = {claim["source"]["field"] for claim in project_claims}
+        self.assertIn("live_url", fields)
+        self.assertIn("github_url", fields)
+        link_item = next(
+            item for item in version.resume_content["items"]
+            if item["section"] == "projects" and item["text"].startswith("Live:")
+        )
+        self.assertEqual(
+            link_item["text"],
+            "Live: https://example.com/live | GitHub: https://github.com/example/linked-project",
+        )
+        self.assertEqual(len(link_item["source_claim_ids"]), 2)
+
     def test_master_and_tailored_drafts_are_new_private_non_default_snapshots(self):
         master = create_master_draft()
         tailored = create_tailored_draft(target_role="Engineer", target_organization="Org")

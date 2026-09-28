@@ -86,7 +86,14 @@ def collect_source_facts(version):
     project_claims = []
     for item in _ordered(version.include_projects.prefetch_related("technologies").all(), "display_order"):
         _eligible(item, "project")
-        values = [claim("portfolio.project", item.pk, "title", item.title), claim("portfolio.project", item.pk, "description", item.description)]
+        values = [
+            claim("portfolio.project", item.pk, "title", item.title),
+            claim("portfolio.project", item.pk, "description", item.description),
+        ]
+        if item.live_url:
+            values.append(claim("portfolio.project", item.pk, "live_url", item.live_url))
+        if item.github_url:
+            values.append(claim("portfolio.project", item.pk, "github_url", item.github_url))
         for technology in _ordered(item.technologies.all(), "name"):
             # record_id carries BOTH the owning Project's pk and the
             # Technology's pk (RESUME-SYSTEM-01B9.1). Technology.pk alone
