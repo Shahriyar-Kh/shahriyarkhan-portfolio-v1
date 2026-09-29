@@ -333,6 +333,17 @@ def _technology_fact_tokens(item: EvidenceItem) -> set[str]:
     return technology_tokens
 
 
+def _declared_canonical_technologies(item: EvidenceItem) -> set[str]:
+    declared: set[str] = set()
+    for fact in item.facts:
+        prefix, separator, value = fact.partition(":")
+        if not separator or prefix.strip().casefold() != "technologies":
+            continue
+        for technology_name in value.split(","):
+            declared.update(_canonical_technology_tokens(_tokenize(technology_name)))
+    return declared
+
+
 def _rank_evidence(
     items: list[EvidenceItem],
     message_tokens: set[str],
@@ -344,9 +355,11 @@ def _rank_evidence(
     require_explicit_technology_match: bool = False,
     preferred_types: tuple[str, ...] = (),
 ) -> list[EvidenceItem]:
+    raw_query_tokens = message_tokens - _STOPWORDS
     query_tokens = _expanded_query_tokens(message_tokens) - _STOPWORDS
     domain_tokens = _domain_tokens(message_tokens)
     requested_technologies = _canonical_technology_tokens(message_tokens)
+    domain_technologies = _canonical_technology_tokens(domain_tokens)
     if not query_tokens:
         return []
     candidate_items = [item for item in items if allowed_types is None or item.source_type in allowed_types]
@@ -358,6 +371,7 @@ def _rank_evidence(
     for candidate_index, item in enumerate(candidate_items):
         title_tokens = _tokenize(item.title)
         technology_tokens = _technology_fact_tokens(item)
+        declared_technologies = _declared_canonical_technologies(item)
         summary_tokens = _tokenize(
             " ".join(
                 fact
@@ -368,11 +382,8 @@ def _rank_evidence(
         item_tokens = title_tokens | technology_tokens | summary_tokens
 
         domain_overlap = len(domain_tokens & item_tokens)
-        technology_domain_overlap = len(domain_tokens & technology_tokens)
-        non_technology_domain_overlap = max(0, domain_overlap - technology_domain_overlap)
-        exact_technology_overlap = len(
-            requested_technologies & _canonical_technology_tokens(technology_tokens)
-        )
+        technology_domain_overlap = len(domain_technologies & declared_technologies)
+        exact_technology_overlap = len(requested_technologies & declared_technologies)
 
         if require_domain_match and domain_tokens and domain_overlap == 0:
             continue
@@ -383,16 +394,24 @@ def _rank_evidence(
         ):
             continue
 
-        technology_overlap = len(query_tokens & technology_tokens)
-        title_overlap = len(query_tokens & title_tokens)
-        summary_overlap = len(query_tokens & summary_tokens)
+        # Generic words such as "API" and "backend" describe a domain, not an
+        # exact technology. Do not let "Groq API" outrank Django/DRF evidence
+        # merely because backend-domain expansion contains the token "api".
+        direct_technology_query_tokens = raw_query_tokens - {
+            "api", "apis", "backend", "database", "authentication",
+            "project", "projects", "technology", "technologies", "tech", "stack",
+        }
+        technology_overlap = len(direct_technology_query_tokens & technology_tokens)
+        title_overlap = len(raw_query_tokens & title_tokens)
+        summary_overlap = len(raw_query_tokens & summary_tokens)
+        non_technology_domain_overlap = len(domain_tokens & (title_tokens | summary_tokens))
 
         # Declared stack/tags are the strongest project signal. Title and
         # summary still help natural-language discovery, but cannot outrank an
         # otherwise comparable exact stack match.
         relevance_score = (
-            20 * exact_technology_overlap
-            + 10 * technology_overlap
+            30 * exact_technology_overlap
+            + 8 * technology_overlap
             + 4 * technology_domain_overlap
             + 2 * title_overlap
             + summary_overlap
