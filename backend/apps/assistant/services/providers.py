@@ -103,7 +103,10 @@ _INTENT_KEYWORDS: list[tuple[str, tuple[str, ...]]] = [
 
 
 def _tokenize(text: str) -> set[str]:
-    return set(_TOKEN_RE.findall(text.casefold()))
+    # Keep meaningful internal punctuation in technology names such as
+    # ``next.js`` and ``c#``, but discard sentence-ending full stops so
+    # ``PostgreSQL.`` still matches a query for ``PostgreSQL``.
+    return {token.strip(".") for token in _TOKEN_RE.findall(text.casefold()) if token.strip(".")}
 
 
 def _is_private_information_request(message: str) -> bool:
