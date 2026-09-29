@@ -19,9 +19,17 @@ const CASES = [
   { path: "/this-route-genuinely-does-not-exist-anywhere", expect: 404, label: "unknown top-level route (router 404)" },
 ];
 
+const TRANSIENT_STATUSES = new Set([502, 503, 504]);
+
 async function check(path, method) {
-  const res = await fetch(`${BASE_URL}${path}`, { method, redirect: "manual" });
-  return res.status;
+  let status = 0;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const res = await fetch(`${BASE_URL}${path}`, { method, redirect: "manual" });
+    status = res.status;
+    if (!TRANSIENT_STATUSES.has(status) || attempt === 3) return status;
+    await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
+  }
+  return status;
 }
 
 async function main() {
