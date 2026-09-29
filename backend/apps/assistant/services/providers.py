@@ -272,6 +272,46 @@ def _expanded_query_tokens(message_tokens: set[str]) -> set[str]:
     return set(message_tokens) | _domain_tokens(message_tokens)
 
 
+def _canonical_technology_tokens(tokens: set[str]) -> set[str]:
+    """Normalize explicit technology names for exact-match ranking.
+
+    Domain expansion is intentionally broad, but a visitor who names a
+    technology (for example Django) should never receive a project that only
+    matches related generic terms such as API, authentication, or PostgreSQL.
+    """
+    canonical: set[str] = set()
+    aliases = {
+        "python": {"python"},
+        "django": {"django"},
+        "fastapi": {"fastapi"},
+        "postgresql": {"postgresql", "postgres"},
+        "redis": {"redis"},
+        "celery": {"celery"},
+        "react": {"react", "react.js"},
+        "next.js": {"next", "next.js"},
+        "typescript": {"typescript"},
+        "javascript": {"javascript"},
+        "jwt": {"jwt"},
+        "rbac": {"rbac"},
+        "docker": {"docker"},
+        "mongodb": {"mongodb"},
+        "mysql": {"mysql"},
+        "sqlite": {"sqlite"},
+        "node.js": {"node", "node.js", "nodejs"},
+        "express.js": {"express", "express.js"},
+        "pyqt5": {"pyqt5"},
+        "tkinter": {"tkinter"},
+    }
+    for technology, spellings in aliases.items():
+        if tokens & spellings:
+            canonical.add(technology)
+    if "drf" in tokens or {"django", "rest", "framework"} <= tokens:
+        canonical.add("drf")
+    if "rest" in tokens and tokens & {"api", "apis"}:
+        canonical.add("rest-api")
+    return canonical
+
+
 def _rank_evidence(
     items: list[EvidenceItem],
     message_tokens: set[str],
@@ -280,10 +320,12 @@ def _rank_evidence(
     allowed_types: set[str] | None = None,
     min_score: int = 1,
     require_domain_match: bool = False,
+    require_explicit_technology_match: bool = False,
     preferred_types: tuple[str, ...] = (),
 ) -> list[EvidenceItem]:
     query_tokens = _expanded_query_tokens(message_tokens) - _STOPWORDS
     domain_tokens = _domain_tokens(message_tokens)
+    requested_technologies = _canonical_technology_tokens(message_tokens)
     if not query_tokens:
         return []
     candidate_items = [item for item in items if allowed_types is None or item.source_type in allowed_types]
@@ -295,11 +337,21 @@ def _rank_evidence(
     for item in candidate_items:
         item_tokens = _tokenize(item.searchable_text)
         domain_overlap = len(domain_tokens & item_tokens)
+        exact_technology_overlap = len(
+            requested_technologies & _canonical_technology_tokens(item_tokens)
+        )
         if require_domain_match and domain_tokens and domain_overlap == 0:
+            continue
+        if (
+            require_explicit_technology_match
+            and requested_technologies
+            and exact_technology_overlap == 0
+        ):
             continue
         base_score = len(query_tokens & item_tokens)
         domain_bonus = 3 * domain_overlap
-        relevance_score = base_score + domain_bonus
+        exact_technology_bonus = 8 * exact_technology_overlap
+        relevance_score = base_score + domain_bonus + exact_technology_bonus
         if relevance_score < min_score:
             continue
         type_bonus = type_bonuses.get(item.source_type, 0)
@@ -356,7 +408,7 @@ def _select_prompt_evidence(message: str, evidence_bundle: list[EvidenceItem]) -
             require_domain_match=True,
             preferred_types=("project", "service"),
         )
-    elif intent == "PROJECT_RECOMMENDATION":
+    elif intent in {"PROJECT_RECOMMENDATION", "PROJECTS"}:
         ranked = _rank_evidence(
             evidence_bundle,
             tokens,
@@ -364,6 +416,7 @@ def _select_prompt_evidence(message: str, evidence_bundle: list[EvidenceItem]) -
             allowed_types={"project"},
             min_score=2,
             require_domain_match=True,
+            require_explicit_technology_match=True,
             preferred_types=("project",),
         )
     else:
@@ -428,7 +481,7 @@ class DeterministicFallbackProvider(AssistantProvider):
         intent = _resolve_intent(message, context)
         if intent == "CLIENT_QUESTION":
             allowed_types = {"service", "project"}
-        elif intent == "PROJECT_RECOMMENDATION":
+        elif intent in {"PROJECT_RECOMMENDATION", "PROJECTS"}:
             allowed_types = {"project"}
         else:
             allowed_types = None
@@ -437,7 +490,8 @@ class DeterministicFallbackProvider(AssistantProvider):
             tokens,
             allowed_types=allowed_types,
             min_score=2 if intent == "CLIENT_QUESTION" else 1,
-            require_domain_match=intent in {"CLIENT_QUESTION", "PROJECT_RECOMMENDATION"},
+            require_domain_match=intent in {"CLIENT_QUESTION", "PROJECT_RECOMMENDATION", "PROJECTS"},
+            require_explicit_technology_match=intent in {"PROJECT_RECOMMENDATION", "PROJECTS"},
             preferred_types=_INTENT_TYPE_PRIORITY.get(intent or "", ()),
         )
 
