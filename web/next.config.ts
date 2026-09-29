@@ -16,12 +16,16 @@ function apiOrigin(): string | null {
 
 const API_ORIGIN = apiOrigin();
 
-// Conservative 'self' + 'unsafe-inline' CSP, no nonce/middleware - see
+// Conservative allowlist-based CSP, no nonce/middleware - see
 // docs/rebuild/P01_ARCHITECTURE.md for the full reasoning. A nonce would
 // require middleware.ts minting a per-request value, which forces every
 // route to render dynamically - destroying the ISR/generateStaticParams
 // strategy that is this site's entire cold-start-resilience story. The
-// site renders zero untrusted HTML (every API string goes through JSX
+// Cloudflare Web Analytics injects its privacy-first performance beacon at
+// the edge in production, so script-src explicitly allows only Cloudflare's
+// documented beacon host. connect-src already includes 'self', which covers
+// automatic-injection reporting to this site's own /cdn-cgi/rum endpoint.
+// The site renders zero untrusted HTML (every API string goes through JSX
 // text interpolation, which React escapes; the only dangerouslySetInnerHTML
 // is the JSON-LD block). style-src 'unsafe-inline' is unavoidable
 // regardless, since Next injects inline <style> and the system map sets an
@@ -44,7 +48,7 @@ function buildCsp(): string {
     "form-action": ["'self'"],
     "script-src": isDev
       ? ["'self'", "'unsafe-inline'", "'unsafe-eval'"]
-      : ["'self'", "'unsafe-inline'"],
+      : ["'self'", "'unsafe-inline'", "https://static.cloudflareinsights.com"],
     "style-src": ["'self'", "'unsafe-inline'"],
     "img-src": imgSrc,
     "font-src": ["'self'", "data:"],
