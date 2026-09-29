@@ -301,6 +301,12 @@ def _canonical_technology_tokens(tokens: set[str]) -> set[str]:
         "express.js": {"express", "express.js"},
         "pyqt5": {"pyqt5"},
         "tkinter": {"tkinter"},
+        "vite": {"vite"},
+        "tailwind": {"tailwind", "tailwindcss"},
+        "railway": {"railway"},
+        "pytest": {"pytest"},
+        "pytorch": {"pytorch"},
+        "opencv": {"opencv"},
     }
     for technology, spellings in aliases.items():
         if tokens & spellings:
@@ -310,6 +316,21 @@ def _canonical_technology_tokens(tokens: set[str]) -> set[str]:
     if "rest" in tokens and tokens & {"api", "apis"}:
         canonical.add("rest-api")
     return canonical
+
+
+def _technology_fact_tokens(item: EvidenceItem) -> set[str]:
+    """Return only technologies explicitly attached to a published record.
+
+    Project descriptions and titles remain useful relevance signals, but they
+    must not impersonate the project's declared stack for exact-technology
+    filtering.
+    """
+    technology_tokens: set[str] = set()
+    for fact in item.facts:
+        prefix, separator, value = fact.partition(":")
+        if separator and prefix.strip().casefold() == "technologies":
+            technology_tokens.update(_tokenize(value))
+    return technology_tokens
 
 
 def _rank_evidence(
@@ -334,12 +355,25 @@ def _rank_evidence(
         for index, source_type in enumerate(preferred_types)
     }
     scored = []
-    for item in candidate_items:
-        item_tokens = _tokenize(item.searchable_text)
-        domain_overlap = len(domain_tokens & item_tokens)
-        exact_technology_overlap = len(
-            requested_technologies & _canonical_technology_tokens(item_tokens)
+    for candidate_index, item in enumerate(candidate_items):
+        title_tokens = _tokenize(item.title)
+        technology_tokens = _technology_fact_tokens(item)
+        summary_tokens = _tokenize(
+            " ".join(
+                fact
+                for fact in item.facts
+                if not fact.partition(":")[0].strip().casefold() == "technologies"
+            )
         )
+        item_tokens = title_tokens | technology_tokens | summary_tokens
+
+        domain_overlap = len(domain_tokens & item_tokens)
+        technology_domain_overlap = len(domain_tokens & technology_tokens)
+        non_technology_domain_overlap = max(0, domain_overlap - technology_domain_overlap)
+        exact_technology_overlap = len(
+            requested_technologies & _canonical_technology_tokens(technology_tokens)
+        )
+
         if require_domain_match and domain_tokens and domain_overlap == 0:
             continue
         if (
@@ -348,16 +382,28 @@ def _rank_evidence(
             and exact_technology_overlap == 0
         ):
             continue
-        base_score = len(query_tokens & item_tokens)
-        domain_bonus = 3 * domain_overlap
-        exact_technology_bonus = 8 * exact_technology_overlap
-        relevance_score = base_score + domain_bonus + exact_technology_bonus
+
+        technology_overlap = len(query_tokens & technology_tokens)
+        title_overlap = len(query_tokens & title_tokens)
+        summary_overlap = len(query_tokens & summary_tokens)
+
+        # Declared stack/tags are the strongest project signal. Title and
+        # summary still help natural-language discovery, but cannot outrank an
+        # otherwise comparable exact stack match.
+        relevance_score = (
+            20 * exact_technology_overlap
+            + 10 * technology_overlap
+            + 4 * technology_domain_overlap
+            + 2 * title_overlap
+            + summary_overlap
+            + non_technology_domain_overlap
+        )
         if relevance_score < min_score:
             continue
         type_bonus = type_bonuses.get(item.source_type, 0)
-        # The source_id is a deterministic final tie-breaker, so the same
-        # published evidence always produces the same recommendation order.
-        scored.append((relevance_score + type_bonus, item.source_id, item))
+        # Preserve the published evidence order as the deterministic final
+        # tie-breaker instead of introducing an arbitrary alphabetical order.
+        scored.append((relevance_score + type_bonus, candidate_index, item))
     scored.sort(key=lambda row: (-row[0], row[1]))
     return [item for _, _, item in scored[:limit]]
 
@@ -439,7 +485,10 @@ def _select_prompt_evidence(message: str, evidence_bundle: list[EvidenceItem]) -
     for item in ranked:
         add(item)
 
-    if intent == "CLIENT_QUESTION":
+    if intent in {"CLIENT_QUESTION", "PROJECT_RECOMMENDATION", "PROJECTS"}:
+        # Recommendation/project prompts must contain only positively ranked
+        # projects. Backfilling generic project evidence here would reintroduce
+        # zero-match items that the ranking layer deliberately excluded.
         return selected
 
     priorities = _INTENT_TYPE_PRIORITY.get(
