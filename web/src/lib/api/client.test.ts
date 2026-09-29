@@ -83,7 +83,7 @@ describe("apiGet/apiGetList/apiPost", () => {
     expect(result.ok).toBe(true);
   });
 
-  it("does not retry a 4xx/5xx response even with retry set", async () => {
+  it("does not retry a non-transient 500 response even with retry set", async () => {
     const fetchSpy = vi.fn().mockResolvedValue(new Response("", { status: 500 }));
     vi.stubGlobal("fetch", fetchSpy);
     const { apiGet } = await freshClient();
@@ -91,6 +91,23 @@ describe("apiGet/apiGetList/apiPost", () => {
     await apiGet("/api/v1/public/portfolio/projects/", { retry: true, retryBackoffMs: [1] });
 
     expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries a transient 503 on GET and succeeds on the next attempt", async () => {
+    const fetchSpy = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("", { status: 503 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchSpy);
+    const { apiGet } = await freshClient();
+
+    const result = await apiGet("/api/v1/public/portfolio/projects/", {
+      retry: true,
+      retryBackoffMs: [1],
+    });
+
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(result.ok).toBe(true);
   });
 
   it("survives a retryable failure that only succeeds on the second retry (simulating a slow cold start)", async () => {
