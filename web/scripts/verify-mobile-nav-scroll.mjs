@@ -42,6 +42,24 @@ async function state(page) {
   });
 }
 
+const TRANSIENT_STATUSES = new Set([502, 503, 504]);
+
+async function navigateReady(page, path) {
+  let lastStatus = 0;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const response = await page.goto(`${BASE_URL}${path}`, {
+      waitUntil: "networkidle0",
+      timeout: 45000,
+    });
+    lastStatus = response?.status() ?? 0;
+    if (lastStatus === 200) return;
+    if (!TRANSIENT_STATUSES.has(lastStatus) || attempt === 3) {
+      throw new Error(`navigation to ${path} returned HTTP ${lastStatus}`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
+  }
+}
+
 async function waitForMenuTrigger(page) {
   await page.waitForSelector('button[aria-label*="menu" i]', {
     visible: true,
@@ -67,7 +85,7 @@ async function testNavigation(browser, viewport, from, link) {
   page.on("pageerror", (e) => consoleErrors.push(String(e)));
 
   await page.setViewport(viewport);
-  await page.goto(`${BASE_URL}${from}`, { waitUntil: "networkidle0", timeout: 45000 });
+  await navigateReady(page, from);
   const scrollHeight = await page.evaluate(() => document.body.scrollHeight);
   const targetScroll = Math.round(scrollHeight * 0.4);
   await page.evaluate((y) => window.scrollTo(0, y), targetScroll);
@@ -92,7 +110,7 @@ async function testNavigation(browser, viewport, from, link) {
 async function testDismissRestoresOnSameRoute(browser, viewport) {
   const page = await browser.newPage();
   await page.setViewport(viewport);
-  await page.goto(`${BASE_URL}/about`, { waitUntil: "networkidle0", timeout: 45000 });
+  await navigateReady(page, "/about");
   const scrollHeight = await page.evaluate(() => document.body.scrollHeight);
   const targetScroll = Math.round(scrollHeight * 0.3);
   await page.evaluate((y) => window.scrollTo(0, y), targetScroll);
