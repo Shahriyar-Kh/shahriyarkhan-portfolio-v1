@@ -5,7 +5,7 @@ from django.test import TestCase
 from apps.assistant.services.providers import DeterministicFallbackProvider
 from apps.assistant.services.public_knowledge import build_evidence_bundle
 from apps.assistant.services.schema import validate_structured_response
-from apps.portfolio.models import Project, Service, Skill, SkillCategory
+from apps.portfolio.models import Project, Service, Skill, SkillCategory, Technology
 from apps.site_config.models import SiteSetting
 
 PROVIDER = DeterministicFallbackProvider()
@@ -21,12 +21,17 @@ class DeterministicProviderTests(TestCase):
         SiteSetting.objects.create(owner_name="Shahriyar Khan", public_email="owner@example.com")
         category = SkillCategory.objects.create(name="Backend", slug="backend")
         Skill.objects.create(name="Django", category=category, level=4, published=True)
-        Project.objects.create(
+        django = Technology.objects.create(name="Django", slug="django")
+        drf = Technology.objects.create(name="Django REST Framework", slug="django-rest-framework")
+        postgresql = Technology.objects.create(name="PostgreSQL", slug="postgresql")
+        rest_api = Technology.objects.create(name="REST APIs", slug="rest-apis")
+        yango = Project.objects.create(
             title="Yango Wing Fleet",
             slug="yango-wing-fleet",
-            description="Fleet management platform built with Django and PostgreSQL.",
+            description="Fleet management platform with staff APIs and operations workflows.",
             status="published",
         )
+        yango.technologies.add(django, drf, postgresql, rest_api)
         Service.objects.create(title="Backend Development", slug="backend-development", description="API and backend engineering.", status="published")
         self.bundle = build_evidence_bundle()
         self.project_slugs = {"yango-wing-fleet"}
@@ -71,6 +76,111 @@ class DeterministicProviderTests(TestCase):
         )
 
         self.assertEqual(answer.recommended_project_slugs[0], "yango-wing-fleet")
+
+    def test_django_project_query_only_returns_declared_django_stack_projects(self):
+        Project.objects.create(
+            title="Django Migration Notes",
+            slug="django-migration-notes",
+            description="A Django-focused write-up that is not a Django project stack.",
+            status="published",
+        )
+        react = Technology.objects.create(name="React.js", slug="react-js")
+        react_only = Project.objects.create(
+            title="Frontend Dashboard",
+            slug="frontend-dashboard",
+            description="A client-side dashboard.",
+            status="published",
+        )
+        react_only.technologies.add(react)
+
+        bundle = build_evidence_bundle()
+        answer = PROVIDER.generate_grounded_answer(
+            message="Show me Django projects.",
+            evidence_bundle=bundle,
+            project_slugs={"yango-wing-fleet", "django-migration-notes", "frontend-dashboard"},
+            service_slugs=self.service_slugs,
+        )
+
+        self.assertEqual(answer.intent, "PROJECTS")
+        self.assertEqual(answer.recommended_project_slugs, ["yango-wing-fleet"])
+        self.assertNotIn("django-migration-notes", answer.recommended_project_slugs)
+        self.assertNotIn("frontend-dashboard", answer.recommended_project_slugs)
+
+    def test_project_stack_outweighs_title_and_summary_keyword_noise(self):
+        noisy = Project.objects.create(
+            title="Backend API Django PostgreSQL Guide",
+            slug="keyword-heavy-guide",
+            description="Backend API Django PostgreSQL reference material.",
+            status="published",
+        )
+        stack_match = Project.objects.create(
+            title="Operations Console",
+            slug="operations-console",
+            description="Business operations workflow.",
+            status="published",
+        )
+        stack_match.technologies.add(
+            *Technology.objects.filter(slug__in=["django", "django-rest-framework", "postgresql", "rest-apis"])
+        )
+
+        bundle = build_evidence_bundle()
+        answer = PROVIDER.generate_grounded_answer(
+            message="Which project is strongest for backend API work?",
+            evidence_bundle=bundle,
+            project_slugs={"yango-wing-fleet", noisy.slug, stack_match.slug},
+            service_slugs=self.service_slugs,
+        )
+
+        self.assertEqual(answer.intent, "PROJECT_RECOMMENDATION")
+        self.assertIn(answer.recommended_project_slugs[0], {"yango-wing-fleet", "operations-console"})
+        self.assertNotEqual(answer.recommended_project_slugs[0], "keyword-heavy-guide")
+
+    def test_backend_recommendations_keep_nbb_yango_portfolio_above_zero_match_noise(self):
+        technologies = {
+            technology.slug: technology
+            for technology in Technology.objects.filter(
+                slug__in=["django", "django-rest-framework", "postgresql", "rest-apis"]
+            )
+        }
+        nbb = Project.objects.create(
+            title="Nurses Beyond Borders",
+            slug="nbb",
+            description="Learning and assessment platform with administration and analytics.",
+            status="published",
+        )
+        nbb.technologies.add(
+            technologies["django"],
+            technologies["django-rest-framework"],
+            technologies["postgresql"],
+        )
+        portfolio = Project.objects.create(
+            title="Shahriyar Portfolio Platform",
+            slug="portfolio-platform",
+            description="Portfolio platform with administration, project discovery, and controlled exports.",
+            status="published",
+        )
+        portfolio.technologies.add(
+            technologies["django"],
+            technologies["django-rest-framework"],
+            technologies["postgresql"],
+        )
+        unrelated = Project.objects.create(
+            title="Static Brand Microsite",
+            slug="static-brand-microsite",
+            description="A visual marketing microsite.",
+            status="published",
+        )
+
+        bundle = build_evidence_bundle()
+        answer = PROVIDER.generate_grounded_answer(
+            message="Which projects best demonstrate Django DRF PostgreSQL backend engineering?",
+            evidence_bundle=bundle,
+            project_slugs={"yango-wing-fleet", "nbb", "portfolio-platform", unrelated.slug},
+            service_slugs=self.service_slugs,
+        )
+
+        self.assertTrue({"nbb", "yango-wing-fleet", "portfolio-platform"}.issubset(answer.recommended_project_slugs))
+        self.assertNotIn("static-brand-microsite", answer.recommended_project_slugs)
 
     def test_grounded_answer_uses_readable_sentences_not_pipe_separators(self):
         answer = self._ask("Tell me about Shahriyar's Django projects and skills.")
