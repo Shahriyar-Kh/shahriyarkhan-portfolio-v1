@@ -4,7 +4,7 @@ from django.test import TestCase
 
 from apps.assistant.services.providers import GeminiAssistantProvider
 from apps.assistant.services.public_knowledge import build_evidence_bundle
-from apps.portfolio.models import Project
+from apps.portfolio.models import Project, Technology
 from apps.site_config.models import SiteSetting
 
 
@@ -47,6 +47,40 @@ class GeminiPromptBuildingTests(TestCase):
         called_system_instruction = mock_generate_json.call_args.kwargs["system_instruction"]
         self.assertIn("prompt-project", called_system_instruction)
         self.assertIn("EXACTLY these keys", called_system_instruction)
+
+    @patch("apps.assistant.services.providers.generate_json")
+    def test_explicit_technology_prompt_excludes_zero_match_projects(self, mock_generate_json):
+        django = Technology.objects.create(name="Django", slug="django")
+        prompt_project = Project.objects.get(slug="prompt-project")
+        prompt_project.technologies.add(django)
+        Project.objects.create(
+            title="Unrelated Frontend Project",
+            slug="unrelated-frontend-project",
+            description="A frontend-only interface.",
+            status="published",
+        )
+        bundle = build_evidence_bundle()
+        mock_generate_json.return_value = {
+            "answer": "Prompt Project is the published Django project.",
+            "intent": "PROJECTS",
+            "source_ids": ["project:prompt-project"],
+            "recommended_project_slugs": ["prompt-project"],
+            "recommended_service_slugs": [],
+            "handoff": False,
+            "handoff_reason": None,
+        }
+
+        answer = GeminiAssistantProvider().generate_grounded_answer(
+            message="Show me Django projects.",
+            evidence_bundle=bundle,
+            project_slugs={"prompt-project", "unrelated-frontend-project"},
+            service_slugs=set(),
+        )
+
+        self.assertEqual(answer.recommended_project_slugs, ["prompt-project"])
+        called_system_instruction = mock_generate_json.call_args.kwargs["system_instruction"]
+        self.assertIn("prompt-project", called_system_instruction)
+        self.assertNotIn("unrelated-frontend-project", called_system_instruction)
 
     @patch("apps.assistant.services.providers.generate_json")
     def test_client_build_request_forces_project_discovery_routing(self, mock_generate_json):
