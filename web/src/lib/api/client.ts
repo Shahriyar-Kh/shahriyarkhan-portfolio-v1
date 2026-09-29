@@ -8,10 +8,9 @@ export interface RequestOptions {
   timeoutMs?: number;
   signal?: AbortSignal;
   /** GET only, never applied to POST. Retries with bounded backoff
-   * (config.ts's RETRY_BACKOFF_MS) on network/timeout failures only -
-   * never on a 4xx/5xx/validation/schema error, since retrying a real
-   * outage or a permanent client error just doubles load on an
-   * already-struggling instance without changing the outcome. */
+   * (config.ts's RETRY_BACKOFF_MS) on network/timeout failures and the
+   * transient gateway/service-unavailable statuses 502/503/504. Other
+   * 4xx/5xx, validation, not-found, and schema errors are not retried. */
   retry?: boolean;
   /** Test-only override for the retry backoff schedule, so retry tests
    * don't have to wait out the real multi-second production delays. */
@@ -106,12 +105,13 @@ async function attemptGet<T>(path: string, options: RequestOptions): Promise<Api
   }
 }
 
-function isRetryableKind(kind: ApiError["kind"]): boolean {
-  // Deliberately excludes "http" (4xx/5xx), "validation", "not_found",
-  // and "invalid_response" - a permanent or schema-level failure is not
-  // fixed by waiting, and retrying a real 5xx outage just adds load to
-  // an already-struggling instance.
-  return kind === "network" || kind === "timeout";
+function isRetryableError(error: ApiError): boolean {
+  if (error.kind === "network" || error.kind === "timeout") return true;
+  // Railway/edge cold starts can surface briefly as gateway/service
+  // availability responses instead of a fetch rejection. GET is idempotent,
+  // so bounded retries are safe here. Do not retry arbitrary 5xx responses:
+  // 500 usually means a real application failure that waiting will not fix.
+  return error.kind === "http" && error.status !== null && [502, 503, 504].includes(error.status);
 }
 
 export async function apiGet<T>(path: string, options: RequestOptions = {}): Promise<ApiResult<T>> {
@@ -124,10 +124,13 @@ export async function apiGet<T>(path: string, options: RequestOptions = {}): Pro
 
   const backoffSchedule = options.retryBackoffMs ?? RETRY_BACKOFF_MS;
   for (const backoffMs of backoffSchedule) {
-    if (result.ok || !isRetryableKind(result.error.kind)) break;
-    // Safe diagnostic context only - path and error kind, never a
+    if (result.ok || !isRetryableError(result.error)) break;
+    // Safe diagnostic context only - path, error kind/status, never a
     // response body (which could carry a Django traceback on a 5xx).
-    console.warn(`apiGet: retrying ${path} after a "${result.error.kind}" error (waiting ${backoffMs}ms)`);
+    const retryReason = result.error.status === null
+      ? result.error.kind
+      : `${result.error.kind} ${result.error.status}`;
+    console.warn(`apiGet: retrying ${path} after "${retryReason}" (waiting ${backoffMs}ms)`);
     await new Promise((resolve) => setTimeout(resolve, backoffMs));
     result = await attemptGet<T>(path, options);
   }
