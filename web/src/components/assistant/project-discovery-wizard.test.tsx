@@ -4,12 +4,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/api", () => ({
   postProjectDiscovery: vi.fn(),
+  postProjectDiscoveryAnalysis: vi.fn(),
 }));
 
 import { ProjectDiscoveryWizard } from "@/components/assistant/project-discovery-wizard";
-import { postProjectDiscovery } from "@/lib/api";
+import { postProjectDiscovery, postProjectDiscoveryAnalysis } from "@/lib/api";
 
 const postProjectDiscoveryMock = vi.mocked(postProjectDiscovery);
+const postProjectDiscoveryAnalysisMock = vi.mocked(postProjectDiscoveryAnalysis);
 
 async function fillContactAndProject(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByLabelText(/^Name/i), "Jane Client");
@@ -33,6 +35,7 @@ async function fillContactAndProject(user: ReturnType<typeof userEvent.setup>) {
 describe("ProjectDiscoveryWizard", () => {
   beforeEach(() => {
     postProjectDiscoveryMock.mockReset();
+    postProjectDiscoveryAnalysisMock.mockReset();
   });
 
   afterEach(() => {
@@ -97,10 +100,76 @@ describe("ProjectDiscoveryWizard", () => {
     await fillContactAndProject(user);
 
     expect(screen.getByText(/step 6 of 6: review/i)).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /submit enquiry/i }));
-
-    expect(screen.getByText(/consent is required/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /submit enquiry/i })).toBeDisabled();
     expect(postProjectDiscoveryMock).not.toHaveBeenCalled();
+
+    await user.click(screen.getByLabelText(/i consent/i));
+    expect(screen.getByRole("button", { name: /submit enquiry/i })).toBeEnabled();
+  });
+
+  it("shows every submitted section in the review summary", async () => {
+    const user = userEvent.setup();
+    render(<ProjectDiscoveryWizard sourcePage="/contact" />);
+
+    await user.type(screen.getByLabelText(/^Name/i), "Jane Client");
+    await user.type(screen.getByLabelText(/^Email/i), "jane@example.com");
+    await user.type(screen.getByLabelText(/Phone \/ WhatsApp/i), "+44 7000 000000");
+    await user.type(screen.getByLabelText(/Organization/i), "Example Ltd");
+    await user.selectOptions(screen.getByLabelText(/Preferred contact method/i), "whatsapp");
+    await user.click(screen.getByRole("button", { name: /next/i }));
+    await user.selectOptions(screen.getByLabelText(/project type/i), "Web application");
+    await user.selectOptions(screen.getByLabelText(/current stage/i), "Just an idea");
+    await user.click(screen.getByRole("button", { name: /next/i }));
+    await user.type(screen.getByLabelText(/business problem/i), "Bookings are currently managed in spreadsheets.");
+    await user.type(screen.getByLabelText(/target users/i), "Staff and customers");
+    await user.type(screen.getByLabelText(/expected outcome/i), "A reliable self-service booking flow.");
+    await user.click(screen.getByRole("button", { name: /next/i }));
+    await user.type(screen.getByLabelText(/required.*features/i), "Booking workflow{Enter}");
+    await user.type(screen.getByLabelText(/optional features/i), "SMS reminders{Enter}");
+    await user.type(screen.getByLabelText(/existing website/i), "Existing brand guide");
+    await user.click(screen.getByRole("button", { name: /next/i }));
+    await user.selectOptions(screen.getByLabelText(/budget range/i), "$1,000 - $5,000");
+    await user.selectOptions(screen.getByLabelText(/timeline/i), "1-3 months");
+    await user.type(screen.getByLabelText(/technical preferences/i), "Django and PostgreSQL");
+    await user.click(screen.getByRole("button", { name: /next/i }));
+    await user.type(screen.getByLabelText(/additional notes/i), "Accessibility is important.");
+
+    expect(screen.getByText("Jane Client")).toBeInTheDocument();
+    expect(screen.getByText("+44 7000 000000")).toBeInTheDocument();
+    expect(screen.getByText("Example Ltd")).toBeInTheDocument();
+    expect(screen.getByText("Staff and customers")).toBeInTheDocument();
+    expect(screen.getByText("SMS reminders")).toBeInTheDocument();
+    expect(screen.getByText("Existing brand guide")).toBeInTheDocument();
+    expect(screen.getByText("Django and PostgreSQL")).toBeInTheDocument();
+    expect(screen.getAllByText("Accessibility is important.")).toHaveLength(2);
+  });
+
+  it("prefills a reviewable structured draft from project analysis", async () => {
+    postProjectDiscoveryAnalysisMock.mockResolvedValue({
+      ok: true,
+      data: {
+        summary: "A booking application for a small clinic.",
+        project_type: "Web application",
+        project_stage: "Just an idea",
+        target_users: "Staff and Patients",
+        expected_outcome: "Make booking and scheduling easier to manage.",
+        required_features: ["Booking workflow", "Email reminders"],
+        optional_features: [],
+        technical_preferences: "Django, PostgreSQL",
+        follow_up_questions: ["Do you have a target timeline or budget range?"],
+        fallback_used: true,
+      },
+    });
+    const user = userEvent.setup();
+    render(<ProjectDiscoveryWizard sourcePage="/contact" initialDescription="I need a clinic booking web app for staff and patients." />);
+
+    expect(await screen.findByText(/helpful questions to consider/i)).toBeInTheDocument();
+    await user.type(screen.getByLabelText(/^Name/i), "Jane Client");
+    await user.type(screen.getByLabelText(/^Email/i), "jane@example.com");
+    await user.click(screen.getByRole("button", { name: /next/i }));
+
+    expect(screen.getByLabelText(/project type/i)).toHaveValue("Web application");
+    expect(screen.getByLabelText(/current stage/i)).toHaveValue("Just an idea");
   });
 
   it("submits successfully and shows the reference ID", async () => {

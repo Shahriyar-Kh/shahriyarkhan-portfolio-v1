@@ -171,6 +171,27 @@ export function ProjectDiscoveryWizard({ sourcePage, initialDescription = "" }: 
   const submissionIdRef = useRef<string>(crypto.randomUUID());
 
   const step = DISCOVERY_STEPS[stepIndex]!;
+  const preferredContactLabel =
+    PREFERRED_CONTACT_OPTIONS.find((option) => option.value === values.preferredContactMethod)?.label || "No preference";
+  const reviewItems = [
+    ["Name", values.name],
+    ["Email", values.email],
+    ["Phone / WhatsApp", values.phone],
+    ["Organization", values.organization],
+    ["Preferred contact", preferredContactLabel],
+    ["Project type", values.projectType],
+    ["Stage", values.projectStage],
+    ["Business problem", values.businessProblem],
+    ["Target users", values.targetUsers],
+    ["Expected outcome", values.expectedOutcome],
+    ["Core features", values.requiredFeatures.join(", ")],
+    ["Optional features", values.optionalFeatures.join(", ")],
+    ["Existing assets", values.existingAssets],
+    ["Budget", values.budgetRange || "Not sure yet"],
+    ["Timeline", values.timeline || "Flexible"],
+    ["Technical preferences", values.technicalPreferences],
+    ["Additional notes", values.additionalNotes],
+  ] as const;
 
   useEffect(() => {
     const seed = initialDescription.trim();
@@ -460,27 +481,13 @@ export function ProjectDiscoveryWizard({ sourcePage, initialDescription = "" }: 
               <Textarea id={`${formId}-notes`} rows={3} value={values.additionalNotes} onChange={(e) => setField("additionalNotes", e.target.value)} />
             </Field>
 
-            <dl className="border border-border p-3 text-caption-sm text-ink-secondary">
-              <div className="flex justify-between gap-2 py-1">
-                <dt>Project</dt>
-                <dd>{values.projectType || "—"}</dd>
-              </div>
-              <div className="flex justify-between gap-2 py-1">
-                <dt>Stage</dt>
-                <dd>{values.projectStage || "—"}</dd>
-              </div>
-              <div className="flex justify-between gap-2 py-1">
-                <dt>Core features</dt>
-                <dd className="text-right">{values.requiredFeatures.join(", ") || "—"}</dd>
-              </div>
-              <div className="flex justify-between gap-2 py-1">
-                <dt>Budget</dt>
-                <dd>{values.budgetRange || "Not specified"}</dd>
-              </div>
-              <div className="flex justify-between gap-2 py-1">
-                <dt>Timeline</dt>
-                <dd>{values.timeline || "Flexible"}</dd>
-              </div>
+            <dl className="divide-y divide-border border border-border text-caption-sm text-ink-secondary">
+              {reviewItems.map(([label, value]) => (
+                <div key={label} className="grid gap-1 px-3 py-2 sm:grid-cols-[9rem_minmax(0,1fr)] sm:gap-3">
+                  <dt className="font-medium text-ink-primary">{label}</dt>
+                  <dd className="min-w-0 whitespace-pre-wrap break-words sm:text-right">{value || "Not provided"}</dd>
+                </div>
+              ))}
             </dl>
 
             <label className="flex items-start gap-2 text-body-sm text-ink-primary">
@@ -514,7 +521,12 @@ export function ProjectDiscoveryWizard({ sourcePage, initialDescription = "" }: 
           Back
         </Button>
         {step.key === "review" ? (
-          <Button type="button" size="sm" onClick={() => void handleSubmit()} disabled={status === "submitting"}>
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => void handleSubmit()}
+            disabled={status === "submitting" || !values.consentGiven}
+          >
             {status === "submitting" ? "Submitting…" : "Submit enquiry"}
           </Button>
         ) : (
