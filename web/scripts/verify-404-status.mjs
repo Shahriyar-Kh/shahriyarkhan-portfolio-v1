@@ -14,7 +14,7 @@ const BASE_URL = process.env.SMOKE_BASE_URL ?? "http://localhost:3000";
 const CASES = [
   { path: "/work/yango-wing-fleet-digital-registration-fleet-management-platform", expect: 200, label: "valid project" },
   { path: `/work/verify-404-status-invalid-${Date.now()}`, expect: 404, label: "invalid project" },
-  { path: "/services/website-development", expect: 200, label: "valid service" },
+  { path: "/services/web-development", expect: 200, label: "valid service" },
   { path: `/services/verify-404-status-invalid-${Date.now()}`, expect: 404, label: "invalid service" },
   { path: "/this-route-genuinely-does-not-exist-anywhere", expect: 404, label: "unknown top-level route (router 404)" },
 ];
