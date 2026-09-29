@@ -47,10 +47,10 @@ describe("assistant API cold-start recovery", () => {
     expect(secondQueryInit.method).toBe("POST");
   });
 
-  it("still attempts the assistant POST when the health endpoint returns an HTTP error", async () => {
+  it("still attempts the assistant POST when the health endpoint returns a non-transient HTTP error", async () => {
     const fetchSpy = vi
       .fn()
-      .mockResolvedValueOnce(new Response("", { status: 503 }))
+      .mockResolvedValueOnce(new Response("", { status: 500 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ answer: "fallback path" }), { status: 200 }));
     vi.stubGlobal("fetch", fetchSpy);
 
