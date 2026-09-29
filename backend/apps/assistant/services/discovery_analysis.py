@@ -36,6 +36,46 @@ _MAX_SHORT = 500
 _MAX_FEATURES = 12
 _MAX_QUESTIONS = 4
 
+_FEATURE_PATTERNS: tuple[tuple[tuple[str, ...], str], ...] = (
+    (("booking", "appointment", "reservation"), "Booking workflow"),
+    (("staff scheduling", "staff schedule"), "Staff scheduling"),
+    (("customer record", "customer records", "client record", "client records"), "Customer records"),
+    (("email reminder", "email reminders"), "Email reminders"),
+    (("authentication", "login", "sign in", "user account"), "User authentication"),
+    (("payment", "payments", "checkout"), "Payments"),
+    (("dashboard",), "Dashboard"),
+    (("reporting", "reports"), "Reporting"),
+    (("analytics",), "Analytics"),
+    (("notification", "notifications"), "Notifications"),
+    (("inventory",), "Inventory management"),
+    (("order tracking", "orders"), "Order management"),
+    (("course", "courses"), "Course management"),
+    (("quiz", "quizzes", "assessment"), "Assessments"),
+    (("progress tracking", "track progress"), "Progress tracking"),
+)
+
+_USER_PATTERNS: tuple[tuple[tuple[str, ...], str], ...] = (
+    (("staff", "employee", "employees"), "Staff"),
+    (("customer", "customers"), "Customers"),
+    (("student", "students", "learner", "learners"), "Students"),
+    (("teacher", "teachers", "instructor", "instructors"), "Instructors"),
+    (("administrator", "administrators", "admin", "admins"), "Administrators"),
+    (("driver", "drivers"), "Drivers"),
+    (("patient", "patients"), "Patients"),
+    (("client", "clients"), "Clients"),
+)
+
+_TECHNOLOGY_PATTERNS: tuple[tuple[tuple[str, ...], str], ...] = (
+    (("django",), "Django"),
+    (("django rest framework", "drf"), "Django REST Framework"),
+    (("fastapi",), "FastAPI"),
+    (("postgresql", "postgres"), "PostgreSQL"),
+    (("react", "react.js"), "React"),
+    (("next.js", "nextjs"), "Next.js"),
+    (("redis",), "Redis"),
+    (("celery",), "Celery"),
+)
+
 _SYSTEM_INSTRUCTION = """You help a prospective software-development client turn a rough project idea into
 reviewable intake suggestions for a human engineer.
 
@@ -69,21 +109,64 @@ Return one JSON object with EXACTLY these keys:
 
 def deterministic_analysis(description: str) -> dict:
     text = " ".join(description.split())[:_MAX_SUMMARY]
+    lower = text.casefold()
+
+    if any(marker in lower for marker in ("existing product", "existing app", "existing website", "needs improvement")):
+        project_type = "Improvement to an existing product"
+        project_stage = "Existing product needs work"
+    elif any(marker in lower for marker in ("mobile app", "android app", "ios app")):
+        project_type = "Mobile app"
+        project_stage = ""
+    elif any(marker in lower for marker in ("api service", "backend service", "rest api", "api / backend")):
+        project_type = "API / backend service"
+        project_stage = ""
+    elif any(marker in lower for marker in ("web application", "web app", "platform", "portal", "dashboard", "booking")):
+        project_type = "Web application"
+        project_stage = ""
+    elif any(marker in lower for marker in ("website", "landing page")):
+        project_type = "New website"
+        project_stage = ""
+    else:
+        project_type = ""
+        project_stage = ""
+
+    if any(marker in lower for marker in ("requirements are ready", "requirements ready", "specification is ready")):
+        project_stage = "Requirements are ready"
+    elif not project_stage and any(marker in lower for marker in ("just an idea", "idea for", "want to build", "need to build", "i need a", "we need a")):
+        project_stage = "Just an idea"
+
+    target_users = [label for markers, label in _USER_PATTERNS if any(marker in lower for marker in markers)]
+    required_features = [label for markers, label in _FEATURE_PATTERNS if any(marker in lower for marker in markers)]
+    technologies = [label for markers, label in _TECHNOLOGY_PATTERNS if any(marker in lower for marker in markers)]
+
+    if "manual" in lower:
+        expected_outcome = "Replace the current manual workflow with a more organized digital process."
+    elif any(marker in lower for marker in ("booking", "appointment", "reservation")):
+        expected_outcome = "Make booking and scheduling easier to manage."
+    else:
+        expected_outcome = ""
+
+    questions: list[str] = []
+    if not target_users:
+        questions.append("Who will use this product?")
+    if not expected_outcome:
+        questions.append("What result should the project achieve for your business?")
+    if not required_features:
+        questions.append("Which features are essential for the first version?")
+    if not project_stage:
+        questions.append("Is this an early idea, a requirements-ready project, or an existing product?")
+    questions.append("Do you have a target timeline or budget range?")
+
     return {
         "summary": text,
-        "project_type": "",
-        "project_stage": "",
-        "target_users": "",
-        "expected_outcome": "",
-        "required_features": [],
+        "project_type": project_type,
+        "project_stage": project_stage,
+        "target_users": " and ".join(target_users),
+        "expected_outcome": expected_outcome,
+        "required_features": required_features[:_MAX_FEATURES],
         "optional_features": [],
-        "technical_preferences": "",
-        "follow_up_questions": [
-            "Who will use this product?",
-            "What result should the project achieve for your business?",
-            "Which features are essential for the first version?",
-            "Do you have a target timeline or budget range?",
-        ],
+        "technical_preferences": ", ".join(technologies),
+        "follow_up_questions": questions[:_MAX_QUESTIONS],
     }
 
 

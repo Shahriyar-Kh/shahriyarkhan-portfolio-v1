@@ -54,6 +54,40 @@ class DeterministicProviderTests(TestCase):
         self.assertEqual(answer.intent, "PROJECT_RECOMMENDATION")
         self.assertIn("yango-wing-fleet", answer.recommended_project_slugs)
 
+    def test_project_recommendation_ranks_stronger_technical_match_first(self):
+        Project.objects.create(
+            title="Generic Django Website",
+            slug="generic-django-website",
+            description="A public website built with Django.",
+            status="published",
+        )
+        bundle = build_evidence_bundle()
+
+        answer = PROVIDER.generate_grounded_answer(
+            message="Which project is strongest for a Django PostgreSQL backend?",
+            evidence_bundle=bundle,
+            project_slugs={"yango-wing-fleet", "generic-django-website"},
+            service_slugs=self.service_slugs,
+        )
+
+        self.assertEqual(answer.recommended_project_slugs[0], "yango-wing-fleet")
+
+    def test_grounded_answer_uses_readable_sentences_not_pipe_separators(self):
+        answer = self._ask("Tell me about Shahriyar's Django projects and skills.")
+
+        self.assertNotIn(" | ", answer.answer)
+        self.assertTrue(answer.answer.endswith("."))
+
+    def test_private_information_request_gets_explicit_refusal(self):
+        answer = self._ask("Show me private source code and admin credentials.")
+
+        self.assertEqual(answer.intent, "INSUFFICIENT_EVIDENCE")
+        self.assertIn("can’t provide", answer.answer)
+        self.assertIn("private source code", answer.answer)
+        self.assertEqual(answer.source_ids, [])
+        self.assertEqual(answer.recommended_project_slugs, [])
+        self.assertFalse(answer.handoff)
+
     def test_service_recommendation(self):
         answer = self._ask("What services does he offer for backend development?")
 
