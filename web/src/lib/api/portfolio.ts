@@ -19,6 +19,7 @@ export async function getProject(slug: string): Promise<ApiResult<Project>> {
   return apiGet<Project>(`/api/v1/public/portfolio/projects/${encodeURIComponent(slug)}/`, {
     revalidate: REVALIDATE.projects,
     tags: [CACHE_TAGS.projects],
+    retry: true,
   });
 }
 
