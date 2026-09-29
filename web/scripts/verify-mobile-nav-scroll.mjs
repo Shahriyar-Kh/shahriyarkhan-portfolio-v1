@@ -42,6 +42,13 @@ async function state(page) {
   });
 }
 
+async function waitForMenuTrigger(page) {
+  await page.waitForSelector('button[aria-label*="menu" i]', {
+    visible: true,
+    timeout: 10000,
+  });
+}
+
 async function clickPanelLink(page, name) {
   const handle = await page.evaluateHandle((linkName) => {
     const dialog = document.querySelector('[role="dialog"]');
@@ -66,8 +73,9 @@ async function testNavigation(browser, viewport, from, link) {
   await page.evaluate((y) => window.scrollTo(0, y), targetScroll);
   await new Promise((r) => setTimeout(r, 200));
 
+  await waitForMenuTrigger(page);
   await page.click('button[aria-label*="menu" i]');
-  await page.waitForSelector('[role="dialog"]', { timeout: 5000 });
+  await page.waitForSelector('[role="dialog"]', { visible: true, timeout: 5000 });
   await clickPanelLink(page, link);
 
   // Wait generously, then assert final settled state - no arbitrary
@@ -90,8 +98,9 @@ async function testDismissRestoresOnSameRoute(browser, viewport) {
   await page.evaluate((y) => window.scrollTo(0, y), targetScroll);
   await new Promise((r) => setTimeout(r, 200));
 
+  await waitForMenuTrigger(page);
   await page.click('button[aria-label*="menu" i]');
-  await page.waitForSelector('[role="dialog"]', { timeout: 5000 });
+  await page.waitForSelector('[role="dialog"]', { visible: true, timeout: 5000 });
   await page.keyboard.press("Escape");
   await new Promise((r) => setTimeout(r, 400));
   const after = await state(page);
