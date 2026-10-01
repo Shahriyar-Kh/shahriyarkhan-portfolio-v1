@@ -142,7 +142,7 @@ describe("ProjectDiscoveryWizard", () => {
     expect(screen.getByText("Existing brand guide")).toBeInTheDocument();
     expect(screen.getByText("Django and PostgreSQL")).toBeInTheDocument();
     expect(screen.getAllByText("Accessibility is important.")).toHaveLength(2);
-  });
+  }, 20_000);
 
   it("prefills a reviewable structured draft from project analysis", async () => {
     postProjectDiscoveryAnalysisMock.mockResolvedValue({

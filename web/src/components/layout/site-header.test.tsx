@@ -82,10 +82,14 @@ describe("SiteHeader", () => {
     expect(resume.className).toContain("bg-primary-on-ink");
   });
 
-  it("keeps the SK mark's orange signal node visible on the dark surface", () => {
+  it("renders the SK monogram with its orange brand accent on the dark surface", () => {
     const { container } = render(<SiteHeader />);
-    const circle = container.querySelector("svg circle");
-    expect(circle).toHaveClass("fill-primary-on-ink");
+    const mark = container.querySelector("svg");
+    expect(mark).toBeInTheDocument();
+
+    const accent = mark?.querySelector('[data-brand-accent="true"]');
+    expect(accent).toBeInTheDocument();
+    expect(accent).toHaveClass("stroke-primary-on-ink");
   });
 
   /**
