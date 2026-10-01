@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { getSiteSettings } from "@/lib/api";
-import { SignalLine } from "@/components/motif/signal-line";
 import { SkMark } from "@/components/motif/sk-mark";
 import { Button } from "@/components/ui/button";
 import { ExternalLink } from "@/components/ui/external-link";
@@ -27,7 +26,7 @@ export async function SiteFooter() {
   return (
     <footer className="surface-ink">
       <div className="section-shell py-16 sm:py-24">
-        <SignalLine variant="rise" pulses={2} className="mb-10 h-16 w-40" />
+        <SkMark tone="on-ink" className="mb-10 h-12 w-auto" />
         <div className="flex flex-col gap-8 sm:flex-row sm:items-end sm:justify-between">
           <h2 className="max-w-2xl text-display-sm text-paper-primary sm:text-display-md">
             Have a system to build, or a role to fill?
