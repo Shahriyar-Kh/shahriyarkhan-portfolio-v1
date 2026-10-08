@@ -239,7 +239,7 @@ async function main() {
       return {
         projectLinks: document.querySelectorAll('a[href^="/work/"]').length,
         serviceCards: document.querySelectorAll("[data-service-card]").length,
-        skillGroups: document.querySelectorAll("[data-category-id]").length,
+        skillGroups: document.querySelectorAll("[data-category-card]").length,
         brokenImages: images.filter((img) => img.complete && img.naturalWidth === 0).map((img) => img.src),
       };
     });
