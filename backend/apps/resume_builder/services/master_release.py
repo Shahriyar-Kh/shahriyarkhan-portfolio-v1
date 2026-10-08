@@ -9,6 +9,7 @@ from apps.accounts.permissions import is_portfolio_admin_user
 from apps.portfolio.models import Certification, Education, Experience, Project, Skill
 from apps.resume_builder.models import ResumeExport, ResumeVersion
 
+from .canonical import MASTER_POSITIONING
 from .drafts import compare_freshness, create_master_draft
 from .exports import generate_resume_export, resolve_downloadable_export
 from .lifecycle import approve_version, publish_version
