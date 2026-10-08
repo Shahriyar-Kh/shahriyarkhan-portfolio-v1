@@ -16,7 +16,7 @@ from apps.resume_builder.services import (
     regenerate_from_current_portfolio,
     source_hash,
 )
-from apps.resume_builder.services.canonical import collect_source_facts
+from apps.resume_builder.services.canonical import MASTER_POSITIONING, collect_source_facts
 from apps.site_config.models import SiteSetting
 
 
@@ -64,7 +64,7 @@ class SnapshotServiceTests(TestCase):
     def test_master_and_tailored_drafts_are_new_private_non_default_snapshots(self):
         master = create_master_draft()
         tailored = create_tailored_draft(target_role="Engineer", target_organization="Org")
-        self.assertEqual(master.title, "Software Engineer | Backend Engineer | Python/Django Full-Stack Developer")
+        self.assertEqual(master.title, MASTER_POSITIONING)
         self.assertEqual(master.status, ResumeVersion.Status.DRAFT)
         self.assertFalse(master.is_default)
         self.assertEqual(tailored.resume_type, ResumeVersion.ResumeType.TAILORED)

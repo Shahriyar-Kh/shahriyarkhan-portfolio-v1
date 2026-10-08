@@ -9,16 +9,17 @@ from apps.accounts.permissions import is_portfolio_admin_user
 from apps.portfolio.models import Certification, Education, Experience, Project, Skill
 from apps.resume_builder.models import ResumeExport, ResumeVersion
 
-from .drafts import create_master_draft
+from .canonical import MASTER_POSITIONING
+from .drafts import compare_freshness, create_master_draft
 from .exports import generate_resume_export, resolve_downloadable_export
 from .lifecycle import approve_version, publish_version
 
 
 MASTER_SUMMARY = (
-    "Software Engineer focused on Python/Django backend engineering and backend-heavy "
-    "full-stack product delivery. Builds REST APIs, authenticated workflows, "
-    "PostgreSQL-backed systems, and React/Next.js interfaces, with testing, CI/CD, "
-    "and cloud deployment experience."
+    "Software Engineer specializing in Python, Django/DRF, REST APIs, PostgreSQL, and backend-heavy "
+    "full-stack product delivery. Builds authenticated systems, role-aware workflows, SaaS and EdTech "
+    "products, background processing with Redis/Celery, and React/Next.js interfaces, backed by testing, "
+    "CI/CD, Docker, cloud deployment, and production troubleshooting."
 )
 
 MASTER_EXPERIENCE_KEYS = (
@@ -31,8 +32,8 @@ MASTER_EXPERIENCE_KEYS = (
 MASTER_PROJECT_SLUGS = (
     "nurses-beyond-borders-nclex-learning-exam-preparation-platform",
     "yango-wing-fleet-digital-registration-fleet-management-platform",
+    "techbuilt-open-school-multilingual-education-platform-operational-lms",
     "noteassist-ai-productivity-platform",
-    "feelwise-emotion-detection-system",
     "shahriyar-khan-full-stack-portfolio-ai-assistant-platform",
     "sk-learntrack-ai-learning-platform",
 )
@@ -113,6 +114,39 @@ def master_selections():
     }
 
 
+def _selection_ids(version, field_name):
+    return set(getattr(version, field_name).values_list("pk", flat=True))
+
+
+def master_release_needs_refresh(version):
+    """Return True when the public master is missing, stale, incomplete, or no longer curated."""
+
+    if version is None:
+        return True
+    if (
+        version.resume_type != ResumeVersion.ResumeType.MASTER
+        or version.status != ResumeVersion.Status.PUBLISHED
+        or not version.is_default
+        or version.title != MASTER_POSITIONING
+        or version.custom_summary != MASTER_SUMMARY
+    ):
+        return True
+
+    selections = master_selections()
+    for field_name, expected_items in selections.items():
+        expected_ids = {item.pk for item in expected_items}
+        if _selection_ids(version, field_name) != expected_ids:
+            return True
+
+    if compare_freshness(version).get("status") != "current":
+        return True
+    if resolve_downloadable_export(version, ResumeExport.Format.PDF) is None:
+        return True
+    if resolve_downloadable_export(version, ResumeExport.Format.DOCX) is None:
+        return True
+    return False
+
+
 def purge_old_resume_versions(*, keep_version):
     """Delete only old resume versions that have no governed application history.
 
@@ -130,6 +164,23 @@ def purge_old_resume_versions(*, keep_version):
         version.delete()
         purged.append(version_id)
     return tuple(purged), tuple(protected)
+
+
+def ensure_published_master(*, actor, purge_old=False):
+    """Reuse the current governed master when valid; otherwise rebuild and publish a fresh one."""
+
+    current = (
+        ResumeVersion.objects.filter(
+            resume_type=ResumeVersion.ResumeType.MASTER,
+            status=ResumeVersion.Status.PUBLISHED,
+            is_default=True,
+        )
+        .order_by("-published_at", "-pk")
+        .first()
+    )
+    if not master_release_needs_refresh(current):
+        return MasterReleaseResult(version=current, purged_ids=(), protected_ids=())
+    return rebuild_and_publish_master(actor=actor, purge_old=purge_old)
 
 
 @transaction.atomic

@@ -3,7 +3,7 @@ from django.test import TestCase
 
 from apps.portfolio.models import Education, Experience, Project, Skill, SkillCategory
 from apps.resume_builder.models import JobApplicationRecord, ResumeExport, ResumeVersion
-from apps.resume_builder.services import rebuild_and_publish_master, resolve_downloadable_export
+from apps.resume_builder.services import ensure_published_master, rebuild_and_publish_master, resolve_downloadable_export
 from apps.resume_builder.services.canonical import MASTER_POSITIONING
 from apps.site_config.models import SiteSetting
 
@@ -77,8 +77,8 @@ class MasterResumeReleaseTests(TestCase):
                 "NoteAssist AI",
             ),
             (
-                "feelwise-emotion-detection-system",
-                "FeelWise",
+                "techbuilt-open-school-multilingual-education-platform-operational-lms",
+                "TechBuilt Open School",
             ),
             (
                 "shahriyar-khan-full-stack-portfolio-ai-assistant-platform",
@@ -158,6 +158,41 @@ class MasterResumeReleaseTests(TestCase):
         project_text = "\n".join(item["text"] for item in project_items)
         self.assertEqual(project_text.count("Live: https://example.invalid/live/"), 6)
         self.assertEqual(project_text.count("GitHub: https://github.com/example/"), 6)
+
+    def test_ensure_current_reuses_valid_published_master_without_creating_duplicates(self):
+        first = rebuild_and_publish_master(actor=self.owner).version
+
+        ensured = ensure_published_master(actor=self.owner).version
+
+        self.assertEqual(ensured.pk, first.pk)
+        self.assertEqual(
+            ResumeVersion.objects.filter(
+                resume_type=ResumeVersion.ResumeType.MASTER,
+                status=ResumeVersion.Status.PUBLISHED,
+                is_default=True,
+            ).count(),
+            1,
+        )
+
+    def test_ensure_current_rebuilds_when_curated_project_facts_change(self):
+        first = rebuild_and_publish_master(actor=self.owner).version
+        tbos = Project.objects.get(
+            slug="techbuilt-open-school-multilingual-education-platform-operational-lms"
+        )
+        tbos.live_url = "https://techbuiltos.online/"
+        tbos.save(update_fields=("live_url", "updated_at"))
+
+        ensured = ensure_published_master(actor=self.owner).version
+
+        self.assertNotEqual(ensured.pk, first.pk)
+        self.assertEqual(ensured.status, ResumeVersion.Status.PUBLISHED)
+        self.assertTrue(ensured.is_default)
+        project_text = "\n".join(
+            item["text"]
+            for item in ensured.resume_content["items"]
+            if item["section"] == "projects"
+        )
+        self.assertIn("Live: https://techbuiltos.online/", project_text)
 
     def test_purge_removes_unreferenced_old_versions_but_preserves_governed_history(self):
         unreferenced = ResumeVersion.objects.create(

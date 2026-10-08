@@ -10,7 +10,7 @@ from .applications import advance_application_status, mark_application_applied, 
 from .lifecycle import archive_version, approve_version, canonical_resume_content, publish_version, resume_content_hash, update_resume_content, validate_generated_export, validate_version_snapshot
 from .exceptions import SnapshotError, SnapshotMutationError, SnapshotSourceUnavailable, SnapshotValidationError
 from .exports import artifact_filename, artifact_mime_type, generate_resume_export, normalize_resume, resolve_downloadable_export
-from .master_release import MasterReleaseResult, master_selections, purge_old_resume_versions, rebuild_and_publish_master
+from .master_release import MasterReleaseResult, ensure_published_master, master_release_needs_refresh, master_selections, purge_old_resume_versions, rebuild_and_publish_master
 
 __all__ = [
     "canonical_json",
@@ -43,6 +43,8 @@ __all__ = [
     "normalize_resume",
     "resolve_downloadable_export",
     "MasterReleaseResult",
+    "ensure_published_master",
+    "master_release_needs_refresh",
     "master_selections",
     "purge_old_resume_versions",
     "rebuild_and_publish_master",

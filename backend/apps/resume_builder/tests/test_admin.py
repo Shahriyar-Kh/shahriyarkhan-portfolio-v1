@@ -14,6 +14,7 @@ from apps.resume_builder.admin import ResumeExportAdmin, ResumeVersionAdmin
 from apps.resume_builder.models import JobApplicationRecord, ResumeExport, ResumeVersion
 from apps.resume_builder.models import ResumeAssessment
 from apps.resume_builder.services import create_master_draft, create_tailored_draft
+from apps.resume_builder.services.canonical import MASTER_POSITIONING
 from apps.resume_builder.services.exceptions import SnapshotSourceUnavailable
 
 
@@ -58,7 +59,7 @@ class ResumeAdminWorkflowTests(TestCase):
         self.assertEqual(response.status_code, 302)
         version = ResumeVersion.objects.get()
         self.assertEqual(version.status, "draft")
-        self.assertEqual(version.title, "Software Engineer | Backend Engineer | Python/Django Full-Stack Developer")
+        self.assertEqual(version.title, MASTER_POSITIONING)
         self.assertEqual(version.target_organization, "")
         self.assertEqual(list(version.include_experiences.values_list("pk", flat=True)), [experience.pk])
 
