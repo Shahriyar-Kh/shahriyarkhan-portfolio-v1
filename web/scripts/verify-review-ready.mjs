@@ -60,7 +60,7 @@ async function main() {
 
     const projectLinks = Array.from(document.querySelectorAll('a[href^="/work/"]'));
     const serviceCards = Array.from(document.querySelectorAll("[data-service-card]"));
-    const skillGroups = Array.from(document.querySelectorAll("[data-category-id]"));
+    const skillGroups = Array.from(document.querySelectorAll("[data-category-card]"));
     const experienceSection = sectionByHeading("Where this experience comes from");
     const experienceItems = experienceSection ? Array.from(experienceSection.querySelectorAll("li")) : [];
 
