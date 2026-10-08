@@ -386,7 +386,7 @@ def sync_canonical_profile(*, tricore_start_date: date | None = None) -> dict[st
                 "Python", "Django", "Django REST Framework", "Next.js", "React.js", "TypeScript",
                 "PostgreSQL", "Redis", "Celery", "OpenAPI", "Docker", "GitHub Actions"
             ],
-            "live_url": "",
+            "live_url": "https://techbuiltos.online/",
             "github_url": "https://github.com/Shahriyar-Kh/TechBuilt_OS",
             "featured": False,
             "display_order": 7,
