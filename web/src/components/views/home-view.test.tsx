@@ -120,16 +120,11 @@ describe("HomeView", () => {
     expect(screen.queryByText(/\$|per hour|per month|guarantee/i)).not.toBeInTheDocument();
   });
 
-  it("shows skill proficiency as a categorical label, never a percentage", () => {
+  it("shows real skills cleanly without percentages or level indicators", () => {
     render(<HomeView projects={[PROJECT]} experiences={[]} education={[]} services={[]} skills={[SKILL]} />);
 
-    // A verified Core Stack technology (this fixture's "Django REST
-    // Framework" matches the Django keyword) legitimately appears twice -
-    // once in the Core Stack preview row, once in its full category
-    // breakdown - same "appears in more than one section" shape as
-    // "Yango Wing Fleet" elsewhere in this file.
     expect(screen.getAllByText("Django REST Framework").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Advanced").length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Advanced|Intermediate|Expert/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/%/)).not.toBeInTheDocument();
   });
 

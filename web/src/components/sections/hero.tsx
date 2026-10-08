@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRef } from "react";
-import { SignalLine } from "@/components/motif/signal-line";
+import { SkMark } from "@/components/motif/sk-mark";
 import { RoleRotator } from "@/components/sections/role-rotator";
 import { Button } from "@/components/ui/button";
 import { HERO_COPY, HERO_ROLES } from "@/content/home";
@@ -31,15 +31,13 @@ function splitLeadForSweep(lead: string): [string, string] {
  * column/row placement (`lg:`) - NOT two parallel mobile/desktop DOM
  * trees - so there is exactly one <h1>, one portrait, one CTA row in the
  * document at every width. That single-tree constraint is also what
- * keeps the R1 mobile bug from recurring: the portrait sits at
+ * keeps the mobile bug from recurring: the portrait sits at
  * mobile order-3 (right after the headline, before role/lead/CTAs), so
  * it is part of the first thing a phone visitor sees rather than a
- * reward for scrolling past the full text stack (see the R2 visual-gap
- * audit's mobile-gaps section for how R1 got this wrong).
+ * reward for scrolling past the full text stack.
  */
 export function Hero() {
   const rootRef = useRef<HTMLDivElement>(null);
-  const signalRef = useRef<SVGSVGElement>(null);
   const metaRef = useRef<HTMLDivElement>(null);
   const headlineClipRef = useRef<HTMLDivElement>(null);
   const headlineTextRef = useRef<HTMLHeadingElement>(null);
@@ -48,47 +46,21 @@ export function Hero() {
   const ctaRef = useRef<HTMLDivElement>(null);
   const portraitClipRef = useRef<HTMLDivElement>(null);
   const depthPlaneRef = useRef<HTMLDivElement>(null);
-  const haloRef = useRef<HTMLDivElement>(null);
   const sweepRef = useRef<HTMLSpanElement>(null);
   const [leadSweep, leadRest] = splitLeadForSweep(HERO_COPY.lead);
 
-  // Portrait frame + halo respond independently to the pointer, each
-  // within its own small max offset - fine-pointer/hover-capable/motion-
-  // allowed only, reset on leave (lib/motion/use-pointer-tilt.ts).
+  // Portrait frame responds to the pointer with restrained tilt -
+  // fine-pointer/hover-capable/motion-allowed only, reset on leave.
   const tiltZoneRef = usePointerTilt<HTMLDivElement>(true, [
-    { ref: portraitClipRef, maxOffset: 3 },
-    { ref: haloRef, maxOffset: 1.5 },
+    { ref: portraitClipRef, maxOffset: 2.5 },
   ]);
 
-  // The first-load staged sequence (brief §4): signal draws, then
-  // availability, then the headline unmasks line-by-line, then role,
-  // lead, CTAs, and finally the portrait's own mask/depth reveal. This
-  // plays once on mount - it is not scroll-triggered, since the hero is
-  // already the first thing in the viewport. Every element it touches
-  // renders fully visible in the base HTML; gsap.set() only ever hides
-  // something in the same synchronous call that also schedules the tween
-  // bringing it back, so a script error elsewhere can't strand anything
-  // in a hidden state.
+  // First-load staged reveal: availability, headline unmasks, role, lead, CTAs,
+  // and the portrait card. Fully fails open if JS or motion is disabled.
   useScrollReveal(rootRef, ({ gsap }) => {
-    const signalPath = signalRef.current?.querySelector("path");
     const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
 
-    // getTotalLength() is unimplemented in some test/embedded DOM
-    // environments (jsdom included) - guarded the same way canvas
-    // getContext() already is elsewhere in this app, so a missing
-    // implementation just skips the line-draw and lets the rest of the
-    // sequence play, rather than throwing and aborting the whole timeline.
-    try {
-      if (signalPath) {
-        const length = signalPath.getTotalLength();
-        gsap.set(signalPath, { strokeDasharray: length, strokeDashoffset: length });
-        tl.to(signalPath, { strokeDashoffset: 0, duration: 0.9, ease: "power2.inOut" });
-      }
-    } catch {
-      // No-op - see comment above.
-    }
-
-    tl.from(metaRef.current, { opacity: 0, y: 10, duration: 0.5 }, "-=0.5")
+    tl.from(metaRef.current, { opacity: 0, y: 10, duration: 0.5 })
       .from(headlineTextRef.current, { yPercent: 110, opacity: 0, duration: 0.7 }, "-=0.25")
       .from(roleRef.current, { opacity: 0, y: 12, duration: 0.5 }, "-=0.3")
       .addLabel("lead")
@@ -99,18 +71,9 @@ export function Hero() {
       tl.fromTo(portraitClipRef.current, { clipPath: "inset(0 0 100% 0)" }, { clipPath: "inset(0 0 0% 0)", duration: 0.8, ease: "power2.inOut" }, "-=0.5");
     }
     if (depthPlaneRef.current) {
-      tl.from(depthPlaneRef.current, { x: 16, y: 16, opacity: 0, duration: 0.7 }, "-=0.7");
+      tl.from(depthPlaneRef.current, { scale: 0.96, opacity: 0, duration: 0.7 }, "-=0.7");
     }
 
-    // Positioned at the "lead" label (concurrent with the lead paragraph's
-    // own fade-in), not appended to the end of the chain - it finishes
-    // well before the portrait reveal regardless, so it adds no extra
-    // wait before the hero's largest content becomes visible. Starts
-    // off-gradient (200% 0) and settles at the CSS-authored resting
-    // position (0% 0, the default in the JSX below), so if this never
-    // runs (no-JS, reduced motion, an earlier error) the phrase is still
-    // fully legible at its settled tint - same fail-open shape as every
-    // other tween in this sequence.
     if (sweepRef.current) {
       tl.from(sweepRef.current, { backgroundPosition: "200% 0", duration: 1.1, ease: "power2.out" }, "lead");
     }
@@ -118,10 +81,7 @@ export function Hero() {
 
   return (
     <div ref={rootRef} className="surface-ink relative overflow-hidden">
-      {/* Atmosphere: a faint architectural grid plus one warm radial
-       * light, both purely decorative (aria-hidden, pointer-events-none,
-       * static CSS - no image asset, no video, no WebGL). The signal-line
-       * path atmosphere element is the existing `flow` line below. */}
+      {/* Atmosphere: architectural grid + warm radial light */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 opacity-[0.05]"
@@ -136,96 +96,72 @@ export function Hero() {
         className="pointer-events-none absolute -top-40 right-[-10%] h-136 w-136 rounded-full opacity-25 blur-[110px] sm:h-168 sm:w-2xl"
         style={{ backgroundColor: "var(--primary)" }}
       />
-
-      <SignalLine
-        variant="flow"
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-24 w-full opacity-40 sm:h-32"
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-border-on-ink/60 to-transparent"
       />
 
       <div className="section-shell relative grid grid-cols-1 gap-y-7 pt-10 pb-14 sm:pt-14 sm:pb-20 lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:gap-x-16 lg:gap-y-0 lg:pt-36 lg:pb-28">
-        {/* Step 1/2: signal + availability - order-1 everywhere, so it's
-            always the very first thing rendered, mobile included. */}
-        <div ref={metaRef} className="order-1 lg:order-0 lg:col-start-1 flex flex-wrap items-center gap-x-5 gap-y-2">
-          <svg ref={signalRef} viewBox="0 0 96 24" className="h-4 w-20 text-primary-on-ink" aria-hidden focusable="false">
-            <path
-              d="M2 20 L22 20 L22 8 L44 8 L44 16 L94 16"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="square"
-            />
-            <circle cx={94} cy={16} r={3.5} className="fill-primary-on-ink" />
-          </svg>
-          <span className="inline-flex items-center gap-2 font-mono text-caption text-paper-secondary">
-            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-primary-on-ink" />
-            Open to new roles & selected projects
-          </span>
+        {/* Availability row - clean micro-brand accent & pulsing live dot */}
+        <div ref={metaRef} className="order-1 lg:order-0 lg:col-start-1 flex flex-wrap items-center gap-x-4 gap-y-2">
+          <div className="flex items-center gap-3">
+            <SkMark tone="on-ink" className="h-4 w-auto text-primary-on-ink" />
+            <span className="h-3 w-px bg-border-on-ink/80" aria-hidden />
+            <span className="inline-flex items-center gap-2 font-mono text-caption text-paper-secondary">
+              <span aria-hidden className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary-on-ink opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-primary-on-ink" />
+              </span>
+              Open to new roles & selected projects
+            </span>
+          </div>
           <span className="font-mono text-caption text-paper-tertiary">Pakistan · Remote internationally</span>
         </div>
 
-        {/* Step 3: headline, mask-revealed by line. */}
+        {/* Headline */}
         <div ref={headlineClipRef} className="order-2 lg:order-0 lg:col-start-1 mt-3 overflow-hidden">
           <h1 ref={headlineTextRef} className="text-display-lg text-paper-primary sm:text-display-xl">
             {HERO_COPY.title}
           </h1>
         </div>
 
-        {/* Portrait composition - order-3 on mobile (right after the
-            headline, before role/lead/CTAs) so it's part of the first
-            meaningful viewport; explicit lg: placement floats it into
-            its own column spanning every row on desktop. */}
-        <div className="order-3 lg:order-0 lg:col-start-2 lg:row-span-6 lg:row-start-1 mx-auto mt-2 w-full max-w-60 sm:max-w-xs lg:mx-0 lg:mt-0 lg:max-w-sm">
-          {/* Architectural squircle, not a circle: 24px on three corners
-           * plus one 56px "signature" curve (top-right, echoing the SK
-           * mark's own right-angle-into-curve idiom) rather than a
-           * uniform radius. Three layered depth planes - a thin
-           * accent-colored outline (offset up-left), a solid ink card
-           * (offset down-right, the existing GSAP-animated depthPlaneRef),
-           * and the portrait itself in front - plus a small signal-line
-           * halo, both of which tilt a couple of px independently on
-           * fine-pointer hover via usePointerTilt. */}
-          <div ref={tiltZoneRef} className="relative">
+        {/* Refined Portrait Card */}
+        <div className="order-3 lg:order-0 lg:col-start-2 lg:row-span-6 lg:row-start-1 mx-auto mt-2 w-full max-w-64 sm:max-w-xs lg:mx-0 lg:mt-0 lg:max-w-sm">
+          <div ref={tiltZoneRef} className="relative group">
             <div
-              ref={haloRef}
-              data-hero-portrait-halo
               aria-hidden
-              className="pointer-events-none absolute -top-7 -left-7 h-16 w-16 opacity-45 sm:-top-9 sm:-left-9 sm:h-20 sm:w-20"
-            >
-              <SignalLine variant="rise" pulses={1} className="h-full w-full" />
-            </div>
+              className="pointer-events-none absolute -inset-1 rounded-2xl bg-gradient-to-br from-primary-on-ink/25 via-transparent to-primary-on-ink/10 blur-sm opacity-60 transition-opacity duration-500 group-hover:opacity-90"
+            />
 
             <div
-              aria-hidden
-              className="absolute -top-3 -left-3 h-full w-full rounded-tl-3xl rounded-tr-[3.5rem] rounded-br-3xl rounded-bl-3xl border-2 border-primary-on-ink/40 sm:-top-4 sm:-left-4"
-            />
-            <div
               ref={depthPlaneRef}
-              aria-hidden
-              className="absolute -right-3 -bottom-3 h-full w-full rounded-tl-3xl rounded-tr-[3.5rem] rounded-br-3xl rounded-bl-3xl border border-border-on-ink bg-ink-raised sm:-right-4 sm:-bottom-4"
-            />
-            <div
-              ref={portraitClipRef}
-              className="relative aspect-4/5 w-full overflow-hidden rounded-tl-3xl rounded-tr-[3.5rem] rounded-br-3xl rounded-bl-3xl bg-ink-raised"
+              className="relative rounded-2xl border border-border-on-ink/90 bg-ink-raised p-2 sm:p-2.5 shadow-2xl shadow-black/70"
             >
-              <Image
-                src="/images/profile.png"
-                alt="Portrait of Shahriyar Khan"
-                fill
-                priority
-                unoptimized
-                sizes="(min-width: 1024px) 24rem, (min-width: 640px) 20rem, 15rem"
-                className="object-cover object-[center_15%]"
-              />
-              {/* Subtle inner highlight - a soft top-edge light catch, not
-               * a glossy overlay. */}
               <div
-                aria-hidden
-                className="pointer-events-none absolute inset-0"
-                style={{ boxShadow: "inset 0 1px 0 rgba(250,246,238,0.14), inset 0 0 0 1px rgba(250,246,238,0.06)" }}
-              />
-              <div className="absolute inset-x-0 bottom-0 flex items-center gap-2 bg-ink/80 px-3 py-2 backdrop-blur-sm">
-                <span aria-hidden className="h-px w-4 bg-primary-on-ink" />
-                <p className="font-mono text-caption-sm text-paper-secondary">Python · Django · PostgreSQL</p>
+                ref={portraitClipRef}
+                className="relative aspect-4/5 w-full overflow-hidden rounded-xl border border-primary-on-ink/20 bg-ink"
+              >
+                <Image
+                  src="/images/profile.png"
+                  alt="Portrait of Shahriyar Khan"
+                  fill
+                  priority
+                  unoptimized
+                  sizes="(min-width: 1024px) 24rem, (min-width: 640px) 20rem, 15rem"
+                  className="object-cover object-[center_15%]"
+                />
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/90 via-transparent to-transparent"
+                  style={{ boxShadow: "inset 0 1px 0 rgba(250,246,238,0.14), inset 0 0 0 1px rgba(250,246,238,0.06)" }}
+                />
+                <div className="absolute inset-x-0 bottom-0 flex items-center justify-between border-t border-border-on-ink/60 bg-ink/85 px-3.5 py-2.5 backdrop-blur-md">
+                  <div className="flex items-center gap-2">
+                    <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-primary-on-ink" />
+                    <p className="font-mono text-caption-sm text-paper-secondary">Python · Django · PostgreSQL</p>
+                  </div>
+                  <SkMark tone="on-ink" className="h-3 w-auto opacity-75" />
+                </div>
               </div>
             </div>
           </div>

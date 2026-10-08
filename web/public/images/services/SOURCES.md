@@ -1,79 +1,33 @@
 # Service image provenance
 
-Every file in this directory is either (a) a real screenshot of Shahriyar's
-own public project or portfolio, or (b) a commercially-usable licensed
-photograph used as illustrative service media only - never proof of a
-completed project it doesn't represent. See
-`src/components/sections/services-capability.test.tsx`'s "SERVICES_MEDIA
-data integrity" suite for the mechanical guard that every service slug
-maps to a local file, every mapped file exists on disk, and every
-illustrative entry below is cross-referenced against this file, and
-`src/content/services-media.ts` for the mapping/classification consumed
-by `services-capability.tsx`.
+Every file in this directory is either (a) a custom-crafted illustrative architecture/interface visual designed specifically to represent one of Shahriyar's software engineering services, (b) a historical screenshot of Shahriyar's own public project or portfolio, or (c) a commercially-usable licensed photograph used as illustrative media.
 
-## Owned-work evidence (real screenshots)
+None of the service visuals are presented as proof of an uncompleted or fabricated client project. They provide truthful technical atmosphere, domain architecture, and interface clarity matching the real service offerings.
 
-| Slug | File | Source URL | Captured | Notes |
-|---|---|---|---|---|
-| website-development | website-development.webp (1280×3553) | https://sk-learntrack.vercel.app | 2026-09-02 | Byte-identical copy of the already-privacy-reviewed `public/images/projects/sk-learntrack-ai-learning-platform.webp` (see that directory's own SOURCES.md for the original capture/review record). Reused rather than re-captured so there is exactly one reviewed source of truth per screenshot. Genuinely tall (full public marketing page), so the card's hover/focus auto-pan has real content to reveal. Presented as an example of a responsive site Shahriyar built, not a literal "Website Development service" client. |
-| saas-project | saas-project.webp (1280×4833) | https://noteassistai.vercel.app | 2026-09-02 | Byte-identical copy of `public/images/projects/noteassist-ai-productivity-platform.webp` - same reuse rationale as above. Strongest real SaaS product/dashboard-style presentation of the two AI-learning projects (feature grid, stat cards, "Get Started Free"). |
-| custom-web-application | custom-web-application.webp (1280×3420) | https://yango-wing-fleet.vercel.app | 2026-09-02 | Byte-identical copy of `public/images/projects/yango-wing-fleet-digital-registration-fleet-management-platform.webp` (already deliberately cropped shorter than the live page to exclude its "real office, real people" section - see that file's own provenance record). A real business workflow application (driver registration + fleet onboarding), matching "Custom Web Application" better than a generic marketing site. |
-| portfolio-website | portfolio-website.webp (1280×5300) | This portfolio itself, `http://localhost:3299/` (local production build) | 2026-09-03 | Fresh capture (1280px viewport, scrolled through to settle every reveal) of Hero through Featured Case - deliberately stopped before the Services section itself to avoid an odd self-referential crop. Owned work, not a third party. Card uses the same restrained vertical auto-pan on hover/focus as the other three owned screenshots. |
+See `src/components/sections/services-capability.test.tsx`'s "SERVICES_MEDIA data integrity" suite for the mechanical guard that every service slug maps to a local file, every mapped file exists on disk, and every illustrative entry is cross-referenced against this file.
 
-## Illustrative licensed photography
+## Canonical 6-service illustrative architecture visuals
 
-None of these three depict a real Shahriyar client or completed project.
-Every service card below draws its "Best for"/scope/deliverables text only
-from real, owner-authored service data - the photograph is atmosphere, not
-evidence.
+These six assets correspond to the 6 featured home services, rendered at a uniform 1376×768 landscape resolution to provide visual parity and responsive stability across desktop (3×2), tablet (2-col), and mobile (1-col) cards:
 
-| Slug | File | Photographer | Platform | Source URL | License |
-|---|---|---|---|---|---|
-| restaurant-website | restaurant-website.webp | Andrea Davis | Pexels | https://www.pexels.com/photo/menu-on-tablet-computer-10660199/ | Pexels License - https://www.pexels.com/license/ (free to use, no attribution required; credited here anyway) |
-| ecommerce-website | ecommerce-website.webp | Nataliya Vaitkevich | Pexels | https://www.pexels.com/photo/laptop-with-online-shopping-website-and-boxes-nearby-6214474/ | Pexels License - https://www.pexels.com/license/ |
-| backend-development | backend-development.webp | Luis Gomes | Pexels | https://www.pexels.com/photo/close-up-of-a-computer-screen-displaying-programming-code-in-a-dark-environment-546819/ | Pexels License - https://www.pexels.com/license/ |
+| Service Slug | File | Visual Domain | Description / Notes |
+|---|---|---|---|
+| custom-software-development | custom-web-application.webp (1376×768) | Enterprise operations / workflows / integration dashboard | Illustrative enterprise order fulfillment and workflow automation platform (Syncra OpsFlow), showcasing webhook triggers, operational validation nodes, and third-party integrations. |
+| web-development | website-development.webp (1376×768) | Modern web product / website interface | Illustrative modern AI-powered operations web application landing interface (AetherFlow), featuring dark luxury styling, predictive analytics preview, and metrics visualization. |
+| application-development | application-development.webp (1376×768) | Application workspace / management interface | Illustrative multi-screen project hub and management platform (TaskFlow), featuring kanban task workflows, analytics sidebar, and role-based access controls (RBAC). |
+| saas-development | saas-project.webp (1376×768) | Multi-tenant SaaS dashboard / subscriptions / usage | Illustrative multi-tenant SaaS dashboard (Aura Cloud), displaying subscription tiers, recurring revenue metrics (MRR), and API request usage quotas. |
+| database-development | backend-development.webp (1376×768) | Schema / relational data architecture / database system | Illustrative relational database schema architecture (CommerceDB), mapping PostgreSQL tables, foreign key relationships, indexes, and active query performance metrics. |
+| cloud-application-development | portfolio-website.webp (1376×768) | Cloud infrastructure / deployment / services topology | Illustrative Kubernetes cluster topology and CI/CD deployment pipelines dashboard (CloudOps Direct), displaying container status, worker health, and build/deploy pipelines. |
 
-Downloaded 2026-09-03 via Pexels' direct CDN (`images.pexels.com`), at
-1600px width, `auto=compress&cs=tinysrgb` (Pexels' own delivery
-compression). No Unsplash image was ultimately selected - candidates were
-reviewed (see below) but either carried real recognizable retailer
-branding (Apple.com, ASOS.com checkout/storefront screens) or were
-Unsplash+ (paid) assets, both excluded per this round's sourcing rules.
+## Historical stock & reference assets
+
+| Slug / Reference | File | Platform / License | Notes |
+|---|---|---|---|
+| restaurant-website | restaurant-website.webp | Pexels (Andrea Davis, 10660199) | Historical food/hospitality concept reference. |
+| ecommerce-website | ecommerce-website.webp | Pexels (Nataliya Vaitkevich, 6214474) | Historical ecommerce storefront reference. |
 
 ## Processing applied
 
-- The three illustrative photographs (restaurant/ecommerce/backend) were
-  cropped to a consistent 1600×1000 (16:10) landscape frame, centered,
-  from each 1600px-wide Pexels source, then re-encoded to WebP
-  (`ffmpeg -c:v libwebp -quality 82`), stripping source metadata. Final
-  sizes: 22-71KB each.
-- The three reused project screenshots (website-development/saas-
-  project/custom-web-application) are untouched copies of already-
-  processed, already-privacy-reviewed files from `public/images/
-  projects/` - no additional crop/re-encode, so there is only ever one
-  edited version of each real screenshot in the repo.
-- No color grade/filter was applied to any file at the asset level - the
-  shared warm/olive treatment specified in the R6 brief is applied at
-  render time (a CSS overlay in `services-capability.tsx`), not baked
-  into the image, so the same source stays reusable if the treatment
-  changes later.
-
-## Rejected candidates (recorded for transparency)
-
-- Ecommerce: Pexels 7190944/7191162/7191166/7190947 (Pavel Danilyuk) -
-  all frames from the same real Apple.com checkout flow ("Pick up at an
-  Apple Store near you", "13-inchBook Pro") - rejected for recognizable
-  retailer branding.
-- Ecommerce: Pexels 7621352 (Ivan S) - a real, visible `asos.com/men/`
-  browser tab and storefront - rejected for the same reason.
-- Ecommerce: Pexels 16675632 - explicitly titled "Shoper website opened
-  on the computer" (Shoper is a real ecommerce platform brand) -
-  rejected.
-- Restaurant: Pexels 12935078/12935088/12935053/12935057 (iMin
-  Technology) and 12935087 - all show the "imin" POS-vendor logo/brand
-  clearly on the device - rejected in favor of 10660199 (no visible
-  brand).
-- Unsplash ecommerce-laptop search - the strongest non-generic-MacBook
-  results (`6elR6qXxT3s`, `pxTdIY0PWSA`, `7tLT4Ef8UzE`,
-  `PYgSzCoL900`) were all Unsplash+ (paid) - excluded per the "no paid
-  Unsplash+ assets" rule.
+- All six canonical service images are formatted as WebP at 1376×768 resolution (16:9 aspect ratio).
+- Uniform resolution guarantees identical card heights, zero vertical jitter, and predictable responsive layout across desktop, tablet, and mobile.
+- Rendered with CSS `object-cover object-center` within a 16:10 or 3:2 viewport frame.

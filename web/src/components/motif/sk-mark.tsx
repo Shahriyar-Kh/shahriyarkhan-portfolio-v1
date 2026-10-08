@@ -22,46 +22,46 @@ const ACCENT_TONE_CLASS: Record<NonNullable<SkMarkProps["tone"]>, string> = {
 };
 
 /**
- * The Shahriyar Khan signature mark: a geometric S contour shares a central
- * spine with a sharp K. The small center node is an architectural join,
- * giving the monogram a systems-minded detail without turning it into a
- * graph, chart, or decorative signal line.
+ * The Shahriyar Khan signature mark: bold geometric "SK" letterforms
+ * framed by a restrained partial circular ring enclosure. The warm orange
+ * broken ring supports the ivory monogram with architectural precision,
+ * remaining instantly legible from high-res headers down to 16px favicons.
  */
 export function SkMark({ className, tone = "brand", pulse = false }: SkMarkProps) {
   return (
     <svg
-      viewBox="0 0 44 28"
+      viewBox="0 0 32 32"
       className={cn("h-5 w-auto shrink-0", className)}
       aria-hidden
       focusable="false"
+      fill="none"
     >
+      {/* Partial circle / broken ring enclosure (warm orange brand accent) */}
       <path
-        d="M18 4 H8 C4.7 4 3 5.7 3 8.2 C3 10.5 4.7 11.7 7.5 12.5 L13.5 14.3 C16.5 15.2 18 16.6 18 19.2 C18 22 16.1 24 12.8 24 H3"
-        fill="none"
+        d="M 28 12 A 13 13 0 1 1 22 5"
         stroke="currentColor"
-        strokeWidth={2.4}
+        strokeWidth={1.8}
         strokeLinecap="round"
-        strokeLinejoin="round"
-        className={MARK_TONE_CLASS[tone]}
-      />
-      <path
-        d="M25 4 V24 M25 14 L41 4 M25 14 L41 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2.4}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className={MARK_TONE_CLASS[tone]}
-      />
-      <rect
-        x={22.8}
-        y={11.8}
-        width={4.4}
-        height={4.4}
-        rx={0.7}
         data-brand-accent="true"
-        fill="currentColor"
         className={cn(ACCENT_TONE_CLASS[tone], pulse && "animate-[sk-pulse_2.4s_ease-in-out_infinite]")}
+      />
+      {/* Bold geometric "S" */}
+      <path
+        d="M 14.2 10.5 H 10.5 C 8.6 10.5 7.2 11.6 7.2 13.2 C 7.2 14.8 8.6 15.7 10.8 16.3 L 12 16.6 C 14.2 17.2 15.4 18.2 15.4 19.8 C 15.4 21.4 14 22.5 11.8 22.5 H 8"
+        stroke="currentColor"
+        strokeWidth={2.4}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={MARK_TONE_CLASS[tone]}
+      />
+      {/* Bold geometric "K" */}
+      <path
+        d="M 19 9.5 V 22.5 M 19 16 L 25.5 9.5 M 19 16 L 25.5 22.5"
+        stroke="currentColor"
+        strokeWidth={2.4}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={MARK_TONE_CLASS[tone]}
       />
     </svg>
   );
