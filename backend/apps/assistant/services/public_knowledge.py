@@ -17,14 +17,12 @@ public queryset - see that module for the authoritative filter):
               variables, secrets. This module never imports
               apps.inquiries, apps.resume_builder, or apps.accounts.
 
-CognoRise, the unverified Coursera certificates, and any TechBuilt Open
-School deployment claim are excluded the same way they always have been in
-this codebase: CognoRise was never entered as a published (or any) Experience
-row, and Certification has zero rows in production, so the `published`-only
-filters below never see them. TBOS's own Project row IS published (it is a
-real, publicly-shown project on /work) - its `description`/`seo_description`
-text is surfaced like any other project's, unmodified from what's already
-live; this module adds no deployment claim of its own.
+CognoRise and unverified Coursera certificates remain excluded by the
+published-only evidence boundary. TechBuilt Open School's current public
+frontend is represented only through the canonical published Project.live_url
+(`https://techbuiltos.online/`); this module does not invent deployment
+claims and surfaces the URL only because it is now part of the published
+project record.
 """
 
 from dataclasses import dataclass, field
