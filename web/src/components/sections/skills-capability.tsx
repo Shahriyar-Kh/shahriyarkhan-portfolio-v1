@@ -1,14 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { CategoryIcon, CoreStackIcon, categoryIconFor, coreStackIconFor } from "@/components/icons/tech-icons";
+import { useMemo, useState } from "react";
+import {
+  CategoryIcon,
+  CoreStackIcon,
+  CORE_TECH_COLORS,
+  categoryIconFor,
+  coreStackIconFor,
+} from "@/components/icons/tech-icons";
 import { SectionIndex } from "@/components/motif/section-index";
-import { LevelTrack } from "@/components/skills/level-track";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Section } from "@/components/ui/section";
 import { groupSkillsByCategory } from "@/lib/skills";
-import { useScrollReveal } from "@/lib/motion/use-scroll-reveal";
 import { cn } from "@/lib/cn";
 import type { Skill } from "@/lib/api/types";
 
@@ -16,98 +20,133 @@ export interface SkillsCapabilityProps {
   skills: readonly Skill[] | null;
 }
 
-/** The technologies the owner asked to headline as a "Core Stack" row -
- * matched against real skill names via coreStackIconFor(), so a skill
- * that doesn't actually exist in the fetched data (or a real category the
- * backend renamed) never renders a slot. This ordering is a display
- * preference only - it does not affect which skills exist or their real
- * levels. */
-const CORE_STACK_ORDER: ReadonlyArray<keyof typeof CoreStackIcon> = ["Python", "Django", "PostgreSQL", "React", "Docker"];
+/**
+ * Exactly five primary technologies headlining the Core Tech row:
+ * Python, Django, PostgreSQL, React.js, Docker.
+ */
+const CANONICAL_CORE_TECH: readonly { key: keyof typeof CoreStackIcon; displayName: string }[] = [
+  { key: "Python", displayName: "Python" },
+  { key: "Django", displayName: "Django" },
+  { key: "PostgreSQL", displayName: "PostgreSQL" },
+  { key: "React", displayName: "React.js" },
+  { key: "Docker", displayName: "Docker" },
+];
 
 /**
- * Section G - a capability console built entirely from real skill
- * categories (FINAL-DESIGN-01A-R2 §9, refined in R4 §E). No orbit
- * diagram, no percentages, no invented years. Within each category,
- * skills are sorted by their stored categorical level so higher-supported
- * entries read first. The public profile deliberately avoids arbitrary
- * percentages or invented years-of-experience claims.
+ * The six canonical categories for the category selector:
+ * Backend, Frontend, Database, Engineering, Tools, Deployment.
+ */
+const CANONICAL_CATEGORIES = [
+  "Backend",
+  "Frontend",
+  "Database",
+  "Engineering",
+  "Tools",
+  "Deployment",
+] as const;
+
+/**
+ * Default initial 3 showcase categories:
+ * 1. Frontend
+ * 2. Backend
+ * 3. Database
+ */
+const DEFAULT_SHOWCASE_CATEGORIES = ["Frontend", "Backend", "Database"];
+
+/**
+ * Section G - Technical Capability / Skills.
+ * Three clear visual layers:
+ * Row 1 - Core Tech: Exactly 5 technologies in one row on desktop with native icon colors.
+ * Row 2 - Category Selector: Clean, accessible row of 6 categories.
+ * Row 3 - Exactly 3 category cards at a time: Default Frontend, Backend, Database.
+ *         Clicking another category swaps into one of the 3 visible positions.
  *
- * R4 adds: a Core Stack row for the verified primary technologies (only
- * ones actually present in the fetched data - see CORE_STACK_ORDER);
- * icon-labeled category chips/headers; a consistent hybrid icon per skill
- * row (its own Core Stack mark, or its category's mark as a fallback -
- * never a guessed logo, never a remote icon); and a one-time (not
- * looping, not scroll-scrubbed) rail fill-in tied to the same per-
- * category ScrollTrigger the capability-rule underline already uses.
+ * All dot scales, progress boxes, and level labels are removed. Only real technology
+ * icons and names are displayed.
  */
 export function SkillsCapability({ skills }: SkillsCapabilityProps) {
-  const groups = skills
-    ? groupSkillsByCategory(skills).map((group) => ({
-        ...group,
-        skills: [...group.skills].sort((a, b) => b.level - a.level),
-      }))
-    : [];
-  const coreStack = useMemo(() => {
-    const bySlug = new Map<keyof typeof CoreStackIcon, Skill>();
-    for (const skill of skills ?? []) {
-      const key = coreStackIconFor(skill.name);
-      if (key && !bySlug.has(key)) bySlug.set(key, skill);
-    }
-    return CORE_STACK_ORDER.filter((key) => bySlug.has(key)).map((key) => ({ key, skill: bySlug.get(key)! }));
+  const groups = useMemo(() => {
+    if (!skills) return [];
+    return groupSkillsByCategory(skills);
   }, [skills]);
 
-  const [activeCategory, setActiveCategory] = useState<number | null>(groups[0]?.categoryId ?? null);
-  const sectionRefs = useRef(new Map<number, HTMLDivElement>());
-  const rootRef = useRef<HTMLDivElement>(null);
-
-  // Scroll-spy: purely cosmetic (which category chip reads "active") -
-  // never gates content. Every category's full skill list is always in
-  // the DOM and always visible regardless of this state.
-  useEffect(() => {
-    if (groups.length === 0 || !("IntersectionObserver" in window)) return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        const visible = entries.find((e) => e.isIntersecting);
-        if (visible) {
-          const id = Number(visible.target.getAttribute("data-category-id"));
-          if (!Number.isNaN(id)) setActiveCategory(id);
-        }
-      },
-      { rootMargin: "-20% 0px -60% 0px" },
-    );
-    for (const el of sectionRefs.current.values()) io.observe(el);
-    return () => io.disconnect();
-  }, [groups.length]);
-
-  // FINAL-DESIGN-01A-R3: only the decorative capability-rule underline is
-  // GSAP-scrubbed (continuous, non-`once`). R4 adds a second, separate
-  // tween on the same per-category trigger: the rail (Node) marks scale
-  // in once (not scrubbed, not looping, `once: true`) - real content
-  // (skill names, levels) is never opacity-gated by either tween, per the
-  // R3 motion hierarchy and to avoid the blank-content capture-mode risk
-  // documented in lib/motion/use-scroll-reveal.ts.
-  useScrollReveal(rootRef, (api) => {
-    for (const el of sectionRefs.current.values()) {
-      const rule = el.querySelector<HTMLElement>("[data-capability-rule]");
-      if (rule) {
-        api.gsap.to(rule, {
-          scaleX: 1,
-          ease: "none",
-          scrollTrigger: { trigger: el, start: "top 85%", end: "top 50%", scrub: 0.5 },
-        });
-      }
-      const nodes = el.querySelectorAll("[data-capability-node] svg");
-      if (nodes.length > 0) {
-        api.gsap.from(Array.from(nodes), {
-          scale: 0,
-          duration: 0.35,
-          stagger: 0.02,
-          ease: "back.out(2)",
-          scrollTrigger: { trigger: el, start: "top 85%", once: true },
+  // Row 1: Core tech resolved from real skills
+  const coreTech = useMemo(() => {
+    if (!skills || skills.length === 0) return [];
+    const result: { key: keyof typeof CoreStackIcon; displayName: string; skill: Skill }[] = [];
+    for (const item of CANONICAL_CORE_TECH) {
+      const match = skills.find((s) => coreStackIconFor(s.name) === item.key);
+      if (match) {
+        result.push({
+          key: item.key,
+          displayName: item.displayName,
+          skill: match,
         });
       }
     }
-  }, [groups.length]);
+    return result;
+  }, [skills]);
+
+  // Row 2: Category names available from data, ordered canonically
+  const categoryList = useMemo(() => {
+    if (groups.length === 0) return [];
+    const names = groups.map((g) => g.categoryName);
+    return names.sort((a, b) => {
+      const aIdx = CANONICAL_CATEGORIES.findIndex((c) => c.toLowerCase() === a.toLowerCase());
+      const bIdx = CANONICAL_CATEGORIES.findIndex((c) => c.toLowerCase() === b.toLowerCase());
+      if (aIdx >= 0 && bIdx >= 0) return aIdx - bIdx;
+      if (aIdx >= 0) return -1;
+      if (bIdx >= 0) return 1;
+      return 0;
+    });
+  }, [groups]);
+
+  // Row 3: Active showcase categories (always exactly 3 if data has >= 3)
+  const [showcaseCategories, setShowcaseCategories] = useState<string[]>(DEFAULT_SHOWCASE_CATEGORIES);
+  const [replaceSlot, setReplaceSlot] = useState<number>(2); // Default to replacing slot 3 (index 2)
+
+  // Resolve active 3 groups
+  const visibleGroups = useMemo(() => {
+    if (groups.length === 0) return [];
+    if (groups.length <= 3) return groups;
+
+    const resolved: typeof groups = [];
+    for (const catName of showcaseCategories) {
+      const match = groups.find((g) => g.categoryName.toLowerCase() === catName.toLowerCase());
+      if (match && !resolved.some((r) => r.categoryId === match.categoryId)) {
+        resolved.push(match);
+      }
+    }
+    // Fill up to 3 from remaining groups if needed
+    for (const g of groups) {
+      if (resolved.length >= 3) break;
+      if (!resolved.some((r) => r.categoryId === g.categoryId)) {
+        resolved.push(g);
+      }
+    }
+    return resolved.slice(0, 3);
+  }, [groups, showcaseCategories]);
+
+  // Handle category selector click
+  const handleCategorySelect = (categoryName: string) => {
+    const existingIndex = visibleGroups.findIndex(
+      (g) => g.categoryName.toLowerCase() === categoryName.toLowerCase(),
+    );
+
+    if (existingIndex >= 0) {
+      // Category is already in the 3 cards
+      return;
+    }
+
+    // Category is NOT in the 3 cards: swap into replaceSlot position
+    const currentNames = visibleGroups.map((g) => g.categoryName);
+    const targetIndex = replaceSlot >= 0 && replaceSlot < currentNames.length ? replaceSlot : (currentNames.length - 1);
+    const nextNames = [...currentNames];
+    nextNames[targetIndex] = categoryName;
+
+    setShowcaseCategories(nextNames);
+    setReplaceSlot((prev) => (prev + 1) % 3);
+  };
 
   return (
     <Section className="border-t border-border">
@@ -121,45 +160,42 @@ export function SkillsCapability({ skills }: SkillsCapabilityProps) {
         </Link>
       </div>
       <p className="mt-4 max-w-xl text-body text-ink-secondary">
-        Grouped from the canonical backend record and connected to real project evidence. Levels stay categorical — never self-rated percentages or invented years-of-experience figures.
+        Engineering capabilities grounded in real systems delivery across backend APIs, relational data, and frontend architecture.
       </p>
 
-      <div ref={rootRef} className="mt-10">
+      <div className="mt-10">
         {!skills ? (
           <EmptyState title="Skill data is temporarily unavailable." />
         ) : groups.length === 0 ? (
           <EmptyState title="No published skills yet." />
         ) : (
-          <>
-            {coreStack.length > 0 && (
-              <div className="mb-10 border border-border bg-paper-raised p-5 sm:p-6">
-                <p className="font-mono text-label text-ink-hint uppercase">Core stack</p>
-                <ul className="mt-4 flex flex-wrap gap-3">
-                  {coreStack.map(({ key, skill }) => {
+          <div className="flex flex-col gap-10">
+            {/* ROW 1 — CORE TECH (exactly 5 technologies in one row on desktop) */}
+            {coreTech.length > 0 && (
+              <div className="border border-border bg-paper-raised p-5 sm:p-6 shadow-elevation-sm">
+                <div className="flex items-center justify-between">
+                  <p className="font-mono text-label text-ink-hint uppercase">Core Stack</p>
+                  <span className="font-mono text-caption text-ink-tertiary">Primary technologies</span>
+                </div>
+                <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                  {coreTech.map(({ key, displayName, skill }) => {
                     const Icon = CoreStackIcon[key];
+                    const brandColor = CORE_TECH_COLORS[displayName] || CORE_TECH_COLORS[key] || "var(--primary)";
                     return (
-                      // flex-wrap (not a single unbreakable row) - found via
-                      // FINAL-DESIGN-01A-R5's extreme-zoom audit: a pill this
-                      // dense (icon + name + a 4-node rail + its level label)
-                      // is wider than the ~260px effective viewport a phone
-                      // screen zoomed to 150-200% actually presents, and
-                      // without this the pill forced real page-level
-                      // horizontal scroll rather than just wrapping its own
-                      // second line.
                       <li
                         key={skill.id}
-                        className="flex flex-wrap items-center gap-x-2.5 gap-y-1 border border-border bg-background px-3.5 py-2 text-clay"
+                        className="flex items-center gap-3 border border-border bg-background px-4 py-3 shadow-2xs transition-colors duration-(--motion-fast) hover:border-border-strong"
                       >
-                        <Icon size={20} />
-                        <span className="text-body-sm font-semibold text-ink-primary">{skill.name}</span>
-                        {/* No skillName here (unlike the full-breakdown
-                         * instance below) - that prop drives LevelTrack's
-                         * combined "{name} — {level}" aria-label, and this
-                         * same skill's name is already visible text a few
-                         * words to the left, so a screen reader would hear
-                         * the pairing twice for no reason. The level label
-                         * itself still reads normally either way. */}
-                        <LevelTrack level={skill.level} className="text-ink-tertiary" />
+                        <span
+                          className="flex shrink-0 items-center justify-center"
+                          style={{ color: brandColor }}
+                          aria-hidden="true"
+                        >
+                          <Icon size={22} />
+                        </span>
+                        <span className="text-body-sm font-semibold text-ink-primary whitespace-nowrap">
+                          {displayName}
+                        </span>
                       </li>
                     );
                   })}
@@ -167,75 +203,81 @@ export function SkillsCapability({ skills }: SkillsCapabilityProps) {
               </div>
             )}
 
-            <nav aria-label="Skill categories" className="flex flex-wrap gap-2 border-b border-border pb-6">
-              {groups.map((group) => {
-                const Icon = CategoryIcon[categoryIconFor(group.categoryName)];
-                return (
-                  <a
-                    key={group.categoryId}
-                    href={`#skill-category-${group.categoryId}`}
-                    className={cn(
-                      "flex items-center gap-2 border px-3 py-1.5 font-mono text-caption-sm uppercase transition-colors duration-(--motion-fast)",
-                      activeCategory === group.categoryId
-                        ? "border-olive text-olive"
-                        : "border-border text-ink-tertiary hover:border-olive/50 hover:text-ink-primary",
-                    )}
-                  >
-                    <Icon size={14} />
-                    {group.categoryName}
-                  </a>
-                );
-              })}
-            </nav>
+            {/* ROW 2 — CATEGORY SELECTOR */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <p className="font-mono text-label text-ink-hint uppercase">Explore Domains</p>
+                <span className="text-caption text-ink-hint hidden sm:inline">Select a domain to showcase</span>
+              </div>
+              <nav aria-label="Skill categories" className="flex flex-wrap gap-2 border-b border-border pb-6">
+                {categoryList.map((categoryName) => {
+                  const Icon = CategoryIcon[categoryIconFor(categoryName)];
+                  const isVisible = visibleGroups.some(
+                    (g) => g.categoryName.toLowerCase() === categoryName.toLowerCase(),
+                  );
+                  return (
+                    <button
+                      type="button"
+                      key={categoryName}
+                      onClick={() => handleCategorySelect(categoryName)}
+                      aria-pressed={isVisible}
+                      className={cn(
+                        "flex items-center gap-2 border px-3.5 py-2 font-mono text-caption-sm uppercase transition-colors duration-(--motion-fast) cursor-pointer select-none",
+                        isVisible
+                          ? "border-olive bg-olive/12 text-olive font-semibold shadow-2xs"
+                          : "border-border bg-background text-ink-tertiary hover:border-olive/50 hover:text-ink-primary",
+                      )}
+                    >
+                      <Icon size={15} />
+                      <span>{categoryName}</span>
+                      {isVisible && (
+                        <span className="h-1.5 w-1.5 rounded-full bg-olive ml-0.5" aria-hidden="true" />
+                      )}
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
 
-            <div className="mt-10 grid gap-x-10 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
-              {groups.map((group) => {
+            {/* ROW 3 — ONLY THREE CATEGORY CARDS */}
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {visibleGroups.map((group) => {
                 const GroupIcon = CategoryIcon[categoryIconFor(group.categoryName)];
+
                 return (
                   <div
                     key={group.categoryId}
-                    id={`skill-category-${group.categoryId}`}
-                    data-category-id={group.categoryId}
-                    ref={(el) => {
-                      if (el) sectionRefs.current.set(group.categoryId, el);
-                      else sectionRefs.current.delete(group.categoryId);
-                    }}
-                    className="scroll-mt-28"
+                    data-category-card={group.categoryName}
+                    className="flex flex-col border border-border bg-paper-raised p-5 sm:p-6 transition-all duration-(--motion-fast) shadow-elevation-sm hover:border-border-strong"
                   >
-                    <div className="flex items-center gap-2 text-ink-primary">
-                      <GroupIcon size={18} />
-                      <p className="text-headline-sm">{group.categoryName}</p>
+                    <div className="flex items-center justify-between border-b border-border pb-3.5">
+                      <div className="flex items-center gap-2.5 text-ink-primary">
+                        <GroupIcon size={20} className="text-olive shrink-0" />
+                        <h3 className="text-headline-sm font-semibold">{group.categoryName}</h3>
+                      </div>
+                      <span className="font-mono text-caption text-ink-hint">
+                        {group.skills.length} skills
+                      </span>
                     </div>
-                    <span
-                      aria-hidden
-                      data-capability-rule
-                      className="mt-2 block h-0.5 w-full origin-left scale-x-0 bg-olive/60"
-                    />
-                    <ul className="mt-4 flex flex-col gap-1">
-                      {group.skills.map((skill, i) => {
+
+                    <ul className="mt-4 flex flex-1 flex-col divide-y divide-border/40">
+                      {group.skills.map((skill) => {
                         const coreKey = coreStackIconFor(skill.name);
                         const RowIcon = coreKey ? CoreStackIcon[coreKey] : GroupIcon;
+                        const brandColor = coreKey ? (CORE_TECH_COLORS[coreKey] || undefined) : undefined;
                         return (
                           <li
                             key={skill.id}
-                            className={cn(
-                              "group flex flex-wrap items-center justify-between gap-2 rounded-md px-2 py-2 transition-colors duration-(--motion-fast) hover:bg-olive/10",
-                              i >= 3 && "opacity-80",
-                            )}
+                            className="flex items-center gap-3 py-2.5 text-ink-primary transition-colors duration-(--motion-fast) hover:text-primary"
                           >
-                            <span className="flex items-center gap-2.5" aria-hidden="true">
-                              <RowIcon
-                                size={16}
-                                className="shrink-0 text-ink-hint transition-transform duration-(--motion-fast) group-hover:translate-x-0.5 group-hover:text-clay"
-                              />
-                              <span className={cn("text-body-sm text-ink-primary", i < 3 && "font-medium")}>{skill.name}</span>
+                            <span
+                              className="flex shrink-0 items-center justify-center text-ink-hint"
+                              aria-hidden="true"
+                              style={brandColor ? { color: brandColor } : undefined}
+                            >
+                              <RowIcon size={16} />
                             </span>
-                            <LevelTrack
-                              level={skill.level}
-                              skillName={skill.name}
-                              nodeSize={7}
-                              className="text-ink-tertiary transition-transform duration-(--motion-fast) group-hover:scale-105"
-                            />
+                            <span className="text-body-sm font-medium">{skill.name}</span>
                           </li>
                         );
                       })}
@@ -244,7 +286,7 @@ export function SkillsCapability({ skills }: SkillsCapabilityProps) {
                 );
               })}
             </div>
-          </>
+          </div>
         )}
       </div>
 

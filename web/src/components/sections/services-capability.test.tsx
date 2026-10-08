@@ -68,11 +68,7 @@ describe("SERVICES_MEDIA data integrity", () => {
     }
   });
 
-  // FINAL-DESIGN-01A-R6-FIX: this round touched only the data-fetching
-  // layer, never services-media.ts - this regression guard confirms the
-  // R6 real-image mapping is exactly what it was, not silently narrowed
-  // or expanded.
-  it("keeps the R6 mapping at exactly the six canonical service slugs, no more and no fewer", () => {
+  it("keeps the mapping at exactly the six canonical service slugs, no more and no fewer", () => {
     expect(Object.keys(SERVICES_MEDIA).sort()).toEqual([...REAL_SLUGS].sort());
   });
 
@@ -90,15 +86,10 @@ describe("SERVICES_MEDIA data integrity", () => {
     }
   });
 
-  it("distinguishes owned project/portfolio evidence from illustrative stock photography", () => {
-    const kinds = new Set(Object.values(SERVICES_MEDIA).map((e) => e.image.kind));
-    expect(kinds).toEqual(new Set(["owned", "illustrative"]));
-    expect(SERVICES_MEDIA["custom-software-development"]!.image.kind).toBe("owned");
-    expect(SERVICES_MEDIA["web-development"]!.image.kind).toBe("owned");
-    expect(SERVICES_MEDIA["application-development"]!.image.kind).toBe("owned");
-    expect(SERVICES_MEDIA["saas-development"]!.image.kind).toBe("owned");
-    expect(SERVICES_MEDIA["database-development"]!.image.kind).toBe("illustrative");
-    expect(SERVICES_MEDIA["cloud-application-development"]!.image.kind).toBe("owned");
+  it("classifies service visual assets honestly as illustrative architecture visuals", () => {
+    for (const entry of Object.values(SERVICES_MEDIA)) {
+      expect(entry.image.kind).toBe("illustrative");
+    }
   });
 
   it("gives every image a real, non-empty alt description", () => {
@@ -115,7 +106,7 @@ describe("SERVICES_MEDIA data integrity", () => {
     }
   });
 
-  it("every SOURCES.md-documented licensed image has a matching illustrative entry", () => {
+  it("every SOURCES.md-documented licensed or illustrative image has a matching entry", () => {
     const sources = readFileSync(join(PUBLIC_SERVICES_DIR, "SOURCES.md"), "utf8");
     const illustrative = Object.values(SERVICES_MEDIA).filter((e) => e.image.kind === "illustrative");
     for (const entry of illustrative) {
@@ -126,8 +117,11 @@ describe("SERVICES_MEDIA data integrity", () => {
 });
 
 describe("ServicesCapability", () => {
-  it("renders every real service (API-sourced titles, not hardcoded) with real local media", () => {
+  it("renders exactly 6 uniform service cards in a responsive 3x2 grid with real local media", () => {
     const { container } = render(<ServicesCapability services={ALL_REAL_SERVICES} />);
+    const cards = container.querySelectorAll("[data-service-card]");
+    expect(cards.length).toBe(6);
+
     for (const service of ALL_REAL_SERVICES) {
       expect(screen.getByRole("link", { name: service.title })).toBeInTheDocument();
     }
@@ -136,6 +130,11 @@ describe("ServicesCapability", () => {
     for (const img of Array.from(images)) {
       expect(img.getAttribute("src")).toMatch(/^\/images\/services\//);
     }
+
+    const grid = container.querySelector(".grid");
+    expect(grid?.className).toContain("grid-cols-1");
+    expect(grid?.className).toContain("md:grid-cols-2");
+    expect(grid?.className).toContain("lg:grid-cols-3");
   });
 
   it("never uses the old SVG scene renderer - no inline <svg> scene anywhere in the section", () => {
@@ -172,28 +171,25 @@ describe("ServicesCapability", () => {
     render(<ServicesCapability services={[makeService({ id: 1, slug: "graphic-design-consulting", title: "Graphic Design Consulting" })]} />);
     expect(screen.getByText(/media coming soon/i)).toBeInTheDocument();
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
-    // Still an honest, real service card - title and description present.
     expect(screen.getByRole("link", { name: "Graphic Design Consulting" })).toBeInTheDocument();
   });
 
-  it("keeps the featured service's request/detail links pointed at the correct contact intent and route", () => {
-    render(<ServicesCapability services={[makeService({ id: 1, slug: "custom-software-development", title: "Custom Software Development" })]} />);
-    const request = screen.getByRole("link", { name: "Request this service" });
-    expect(request).toHaveAttribute("href", "/contact?intent=freelance_project");
-    expect(request).toHaveAttribute("data-analytics-event", "project_cta_click");
-    expect(screen.getByRole("link", { name: "Custom Software Development" })).toHaveAttribute("href", "/services/custom-software-development");
-  });
-
-  it("keeps every supporting service's Details and Request links pointed correctly", () => {
+  it("keeps every service card's Details link pointed at the correct route", () => {
     render(<ServicesCapability services={ALL_REAL_SERVICES} />);
-    for (const slug of REAL_SLUGS.slice(1)) {
-      const detailsLinks = screen.getAllByRole("link", { name: "Details" });
+    const detailsLinks = screen.getAllByRole("link", { name: "Details" });
+    expect(detailsLinks.length).toBe(REAL_SLUGS.length);
+    for (const slug of REAL_SLUGS) {
       expect(detailsLinks.some((l) => l.getAttribute("href") === `/services/${slug}`)).toBe(true);
     }
+  });
+
+  it("keeps every service card's Request link pointed at the contact intent with analytics tracking", () => {
+    render(<ServicesCapability services={ALL_REAL_SERVICES} />);
     const requestLinks = screen.getAllByRole("link", { name: "Request" });
-    expect(requestLinks.length).toBe(REAL_SLUGS.length - 1);
+    expect(requestLinks.length).toBe(REAL_SLUGS.length);
     for (const link of requestLinks) {
       expect(link).toHaveAttribute("href", "/contact?intent=freelance_project");
+      expect(link).toHaveAttribute("data-analytics-event", "project_cta_click");
     }
   });
 
@@ -227,12 +223,6 @@ describe("ServicesCapability", () => {
   });
 });
 
-/**
- * axe-in-jsdom cannot evaluate color contrast or true focus order (no
- * layout engine) - this catches structural issues only (missing
- * labels/roles, invalid ARIA, heading order). Manual verification of
- * contrast/focus order is documented in the R6 audit report.
- */
 describe("ServicesCapability accessibility", () => {
   it("has no axe violations with a full populated card set", async () => {
     const { container } = render(<ServicesCapability services={ALL_REAL_SERVICES} />);

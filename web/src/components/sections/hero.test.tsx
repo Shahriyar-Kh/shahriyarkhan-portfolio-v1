@@ -32,15 +32,6 @@ afterEach(() => {
   mockReducedMotion(false);
 });
 
-/**
- * FINAL-DESIGN-01A-R2 §5/§17: the mobile hero must include the portrait
- * as part of its first meaningful content, not as a reward for scrolling
- * past the full text stack (see the R2 visual-gap audit). jsdom doesn't
- * apply the responsive CSS that actually reorders the layout per
- * viewport, so this asserts the one thing that's true regardless of
- * viewport and regardless of JS: the portrait <img> is unconditionally
- * in the DOM alongside the headline, not behind client-side state.
- */
 describe("Hero", () => {
   it("renders the headline and the portrait together, unconditionally", () => {
     render(<Hero />);
@@ -65,27 +56,20 @@ describe("Hero", () => {
     expect(startProject).toHaveAttribute("data-analytics-event", "project_cta_click");
   });
 
-  /**
-   * FINAL-DESIGN-01A-R4 §C: the portrait frame gained a decorative
-   * accent-outline layer and a signal-line halo, and the lead paragraph
-   * gained a color-swept span around its opening phrase - neither should
-   * change the real text content or expose extra noise to assistive tech.
-   */
   it("keeps the lead paragraph's real text intact despite the color-swept phrase span", () => {
     render(<Hero />);
-    // The sweep span splits the paragraph into two text nodes, so this
-    // matches on the <p>'s combined textContent rather than a single
-    // node's own text (RTL's default getByText only matches one node).
     const lead = screen.getByText("Python/Django").closest("p");
     expect(lead?.textContent).toBe(
       "Python/Django backend engineering for REST APIs, authenticated products, and backend-heavy full-stack systems.",
     );
   });
 
-  it("marks the portrait frame's signal-line halo aria-hidden and keeps it decorative-only", () => {
+  it("does not render the retired landing-page SignalLine or stepped-graph decoration", () => {
     const { container } = render(<Hero />);
-    const halo = container.querySelector("[data-hero-portrait-halo]");
-    expect(halo).toHaveAttribute("aria-hidden", "true");
-    expect(halo?.querySelector("svg")).toBeInTheDocument();
+    expect(container.querySelector("[data-hero-portrait-halo]")).not.toBeInTheDocument();
+    expect(container.querySelector("[data-signal-line]")).not.toBeInTheDocument();
+    const paths = Array.from(container.querySelectorAll("path"));
+    const hasSteppedGraph = paths.some((p) => p.getAttribute("d")?.includes("L22 20 L22 8"));
+    expect(hasSteppedGraph).toBe(false);
   });
 });

@@ -3,17 +3,9 @@ import { StrokeIcon, type StrokeIconProps } from "@/components/icons/stroke-icon
 type IconProps = Omit<StrokeIconProps, "viewBox" | "children">;
 
 /**
- * FINAL-DESIGN-01A-R4 §E: the Skills section's hybrid icon system, per
- * the owner's explicit scope decision - one consistent mark per real
- * skill *category* (5, matching the 5 real categories the backend
- * returns: Frontend/Backend/Database/Tools/Deployment), plus individual
- * marks only for the verified Core Stack skills. Every mark is an
- * original, abstract, geometric interpretation in the same stroke
- * language as the SK mark and every other icon in this directory - never
- * an attempt to reproduce a real trademarked product logo (no snake, no
- * elephant, no whale, no atom), and never fetched from a remote icon
- * CDN. Skill/category names always render as real text alongside these -
- * see skills-capability.tsx - so a name is never lost if an icon fails.
+ * The Skills section's hybrid icon system:
+ * One consistent mark per skill category (Frontend, Backend, Database, Engineering, Tools, Deployment),
+ * plus individual geometric marks for verified Core Tech skills.
  */
 export const CategoryIcon = {
   Frontend: (props: IconProps) => (
@@ -38,6 +30,14 @@ export const CategoryIcon = {
     <StrokeIcon viewBox="0 0 24 24" {...props}>
       <path d="M4 6 Q12 2 20 6 V18 Q12 22 4 18 Z" />
       <path d="M4 6 Q12 10 20 6 M4 12 Q12 16 20 12" />
+    </StrokeIcon>
+  ),
+
+  Engineering: (props: IconProps) => (
+    <StrokeIcon viewBox="0 0 24 24" {...props}>
+      <path d="M7 8 L3 12 L7 16" />
+      <path d="M17 8 L21 12 L17 16" />
+      <path d="M14 4 L10 20" />
     </StrokeIcon>
   ),
 
@@ -99,25 +99,31 @@ export const CoreStackIcon = {
   ),
 } as const;
 
-/** Keyword-matched against the category's real name (Frontend/Backend/
- * Database/Tools/Deployment today) - falls back to Tools' generic mark
- * for any future category name rather than rendering nothing. */
+/**
+ * Recognizable official brand colors for Core Tech icons:
+ * Python (blue), Django (deep green), PostgreSQL (blue), React (cyan/blue), Docker (blue).
+ */
+export const CORE_TECH_COLORS: Readonly<Record<string, string>> = {
+  Python: "#3776AB",
+  Django: "#0C4B33",
+  PostgreSQL: "#336791",
+  React: "#087ea4",
+  "React.js": "#087ea4",
+  Docker: "#1D63ED",
+};
+
+/** Keyword-matched against the category's real name */
 export function categoryIconFor(categoryName: string): keyof typeof CategoryIcon {
   const c = categoryName.toLowerCase();
   if (c.includes("front")) return "Frontend";
   if (c.includes("back")) return "Backend";
   if (c.includes("data")) return "Database";
+  if (c.includes("engine")) return "Engineering";
   if (c.includes("deploy")) return "Deployment";
   return "Tools";
 }
 
-/** Keyword-matched against a skill's real name (never an exact-string
- * lookup table that would need hand-maintaining) - "Django / DRF" (the
- * real, combined backend skill entry) matches on "django", so both
- * verified technologies share the one real pill rather than a fabricated
- * second one. Returns null for anything outside the verified Core Stack,
- * which the caller must treat as "no individual icon" (falls back to the
- * category icon), never a guessed one. */
+/** Keyword-matched against a skill's real name */
 export function coreStackIconFor(skillName: string): keyof typeof CoreStackIcon | null {
   const s = skillName.toLowerCase();
   if (s.includes("python")) return "Python";
