@@ -96,10 +96,16 @@ async function testNavigation(browser, viewport, from, link) {
   await page.waitForSelector('[role="dialog"]', { visible: true, timeout: 5000 });
   await clickPanelLink(page, link);
 
-  // Wait generously, then assert final settled state - no arbitrary
-  // fixed-delay assumption about the underlying app, just enough margin
-  // past the ~1.3s smooth-scroll window the defect exhibited.
-  await new Promise((r) => setTimeout(r, 2200));
+  // Wait for the actual destination to commit instead of assuming a
+  // fixed delay. On free-tier backends a destination RSC request can be
+  // delayed by a cold start, so a 2.2s sleep can observe the still-open
+  // source-route menu even though navigation is healthy.
+  const expectedPath = link === "Home" ? "/" : `/${link.toLowerCase()}`;
+  await page.waitForFunction(
+    (path) => location.pathname === path && !document.querySelector('[role="dialog"]'),
+    { timeout: 45000 },
+    expectedPath,
+  );
   const final = await state(page);
   await page.close();
 
