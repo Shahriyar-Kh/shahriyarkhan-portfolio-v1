@@ -79,6 +79,11 @@ class CanonicalProfileSyncTests(TestCase):
         self.assertTrue(nbb.featured)
         self.assertIn("case-studies/nbb-lms.md", nbb.github_url)
 
+        tbos = Project.objects.get(
+            slug="techbuilt-open-school-multilingual-education-platform-operational-lms"
+        )
+        self.assertEqual(tbos.live_url, "https://techbuiltos.online/")
+
         priority_projects = Project.objects.filter(
             slug__in=[
                 "nurses-beyond-borders-nclex-learning-exam-preparation-platform",
