@@ -11,6 +11,22 @@ const ALTERNATE_PUBLIC_HOSTS = new Set([
   WORKERS_DEV_HOST,
 ]);
 
+/** Previously indexed URLs moved during the October service/project refresh.
+ * Keep these mappings explicit: unrelated missing URLs must remain real 404s.
+ */
+const LEGACY_PATH_REDIRECTS: Readonly<Record<string, string>> = {
+  "/services/website-development": "/services/web-development",
+  "/services/portfolio-website": "/services/web-development",
+  "/services/restaurant-website": "/services/web-development",
+  "/services/ecommerce-website": "/services/web-development",
+  "/services/backend-development": "/services/application-development",
+  "/services/custom-web-application": "/services/application-development",
+  "/services/saas-project": "/services/saas-development",
+  // Historical TBOS LMS now has a distinct FYP case study. Do not conflate
+  // it with the separately published, current operational LMS project.
+  "/work/techbuilt-open-school-lms": "/work/techbuilt-open-school-lms-final-year-project",
+};
+
 function hostnameFromHostHeader(host: string) {
   return host.split(":", 1)[0]?.toLowerCase() ?? "";
 }
@@ -33,11 +49,20 @@ export function proxy(request: NextRequest) {
   const isInsecureApexRequest =
     host === APEX_HOST && requestProtocol(request) === "http";
 
-  if (isAlternatePublicHost || isInsecureApexRequest) {
+  // Only apply legacy mappings to our real public hosts. Local and
+  // third-party preview environments should not be redirected away.
+  const legacyPath = request.nextUrl.pathname.replace(/\/+$/, "") || "/";
+  const legacyTarget =
+    host === APEX_HOST || isAlternatePublicHost
+      ? LEGACY_PATH_REDIRECTS[legacyPath]
+      : undefined;
+
+  if (isAlternatePublicHost || isInsecureApexRequest || legacyTarget) {
     const url = new URL(request.url);
     url.hostname = APEX_HOST;
     url.protocol = "https:";
     url.port = "";
+    if (legacyTarget) url.pathname = legacyTarget;
     return NextResponse.redirect(url, 301);
   }
   return NextResponse.next();
