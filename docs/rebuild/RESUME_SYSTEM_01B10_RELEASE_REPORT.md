@@ -37,7 +37,7 @@ exactly:
 - Phone / WhatsApp: `+92 311 0924560` / `https://wa.me/923110924560`
 - Location: `Islamabad, Pakistan`
 - GitHub: `https://github.com/Shahriyar-Kh`
-- LinkedIn: `https://linkedin.com/in/shahriyarkhan786`
+- LinkedIn: `https://www.linkedin.com/in/shahriyar-kh/`
 - Portfolio URL: `https://shahriyarkhan.com` (already the live custom domain;
   not a `SiteSetting` field, no write needed)
 
